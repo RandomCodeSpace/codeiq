@@ -162,7 +162,7 @@ class CacheStore:
             # Insert nodes
             for node in nodes:
                 self._conn.execute(
-                    "INSERT INTO nodes (id, content_hash, kind, data) "
+                    "INSERT OR IGNORE INTO nodes (id, content_hash, kind, data) "
                     "VALUES (?, ?, ?, ?)",
                     (
                         node.id,

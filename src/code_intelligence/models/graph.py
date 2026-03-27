@@ -27,6 +27,17 @@ class NodeKind(str, Enum):
     CONFIG_FILE = "config_file"
     CONFIG_KEY = "config_key"
     WEBSOCKET_ENDPOINT = "websocket_endpoint"
+    INTERFACE = "interface"
+    ABSTRACT_CLASS = "abstract_class"
+    ENUM = "enum"
+    ANNOTATION_TYPE = "annotation_type"
+    PROTOCOL_MESSAGE = "protocol_message"
+    CONFIG_DEFINITION = "config_definition"
+    DATABASE_CONNECTION = "database_connection"
+    AZURE_RESOURCE = "azure_resource"
+    AZURE_FUNCTION = "azure_function"
+    MESSAGE_QUEUE = "message_queue"
+    INFRA_RESOURCE = "infra_resource"
 
 
 class EdgeKind(str, Enum):
@@ -50,6 +61,13 @@ class EdgeKind(str, Enum):
     READS_CONFIG = "reads_config"
     MIGRATES = "migrates"
     CONTAINS = "contains"
+    DEFINES = "defines"
+    OVERRIDES = "overrides"
+    CONNECTS_TO = "connects_to"
+    TRIGGERS = "triggers"
+    PROVISIONS = "provisions"
+    SENDS_TO = "sends_to"
+    RECEIVES_FROM = "receives_from"
 
 
 class SourceLocation(BaseModel):

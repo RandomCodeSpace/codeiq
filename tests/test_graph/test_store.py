@@ -119,6 +119,20 @@ def test_find_cycles():
     assert len(cycles) >= 1
 
 
+def test_duplicate_node_keeps_first():
+    store = GraphStore()
+    node1 = GraphNode(id="class:Foo", kind=NodeKind.CLASS, label="First")
+    node2 = GraphNode(id="class:Foo", kind=NodeKind.ENDPOINT, label="Second")
+    store.add_node(node1)
+    store.add_node(node2)
+
+    assert store.node_count == 1
+    retrieved = store.get_node("class:Foo")
+    assert retrieved is not None
+    assert retrieved.label == "First"
+    assert retrieved.kind == NodeKind.CLASS
+
+
 def test_to_and_from_model():
     store = GraphStore()
     store.add_node(_make_node("A", NodeKind.MODULE, "module-a"))

@@ -36,12 +36,51 @@ def analyze(
     cfg.analysis.parallelism = parallelism
     cfg.analysis.incremental = incremental
 
+    console.print("🚀 Starting analysis…")
     analyzer = Analyzer(cfg)
-    result = analyzer.run(path.resolve(), incremental=incremental)
+    result = analyzer.run(
+        path.resolve(),
+        incremental=incremental,
+        on_progress=console.print,
+    )
+    console.print()
+    console.print(f"📊 [bold]Results:[/bold]  {result.graph.node_count} nodes, {result.graph.edge_count} edges")
+    console.print(f"   📂 {result.total_files} total files — {result.files_cached} cached, {result.files_analyzed} analyzed")
 
-    console.print(f"[green]Analysis complete.[/green]")
-    console.print(f"  Nodes: {result.graph.node_count}")
-    console.print(f"  Edges: {result.graph.edge_count}")
+    # Language breakdown
+    if result.language_breakdown:
+        console.print()
+        console.print("📋 [bold]Language Breakdown:[/bold]")
+
+        # We need the registry to check detector support
+        from code_intelligence.detectors.registry import DetectorRegistry
+        from code_intelligence.analyzer import _TREESITTER_LANGUAGES, _STRUCTURED_LANGUAGES
+
+        registry = DetectorRegistry()
+        registry.load_builtin_detectors()
+        registry.load_plugin_detectors()
+
+        # Sort by file count descending
+        sorted_langs = sorted(result.language_breakdown.items(), key=lambda x: -x[1])
+
+        for lang, count in sorted_langs:
+            detectors = registry.detectors_for_language(lang)
+            if detectors:
+                det_count = len(detectors)
+                status = f"🟢 {det_count} detector{'s' if det_count != 1 else ''}"
+            elif lang in _TREESITTER_LANGUAGES or lang in _STRUCTURED_LANGUAGES:
+                status = "🟡 parsed"
+            else:
+                status = "🔴 discovered only"
+            console.print(f"   {status}  {lang:<16} {count:>6} files")
+
+    # Node breakdown
+    if result.node_breakdown:
+        console.print()
+        console.print("🏗️  [bold]Detection Summary:[/bold]")
+        sorted_kinds = sorted(result.node_breakdown.items(), key=lambda x: -x[1])
+        for kind, count in sorted_kinds:
+            console.print(f"   {kind:<24} {count:>8,}")
 
 
 @app.command()
@@ -73,21 +112,27 @@ def graph(
     cache_path = path.resolve() / cfg.cache.directory / cfg.cache.db_name
 
     if not cache_path.exists():
-        console.print("[red]No analysis cache found. Run 'code-intelligence analyze' first.[/red]")
+        console.print("❌ No analysis cache found. Run 'code-intelligence analyze' first.")
         raise typer.Exit(1)
 
+    console.print("💾 Loading analysis cache…")
     from code_intelligence.cache.store import CacheStore
     cache = CacheStore(cache_path)
     store = cache.load_full_graph()
 
     # Apply view transformation
     if view == "architect":
+        console.print("🔭 Applying architect view…")
         store = ArchitectView().roll_up(store)
     elif view == "domain":
+        console.print("🔭 Applying domain view…")
         store = DomainView(cfg.domains).roll_up(store)
 
     # Apply filters via query builder
     query = GraphQuery(store)
+    has_filters = any([module, node_type, edge_type, focus])
+    if has_filters:
+        console.print("🔍 Applying filters…")
     if module:
         query = query.filter_modules(module)
     if node_type:
@@ -105,6 +150,7 @@ def graph(
     check_graph_size(result_store, max_nodes, console)
 
     # Render output
+    console.print(f"🎨 Rendering {format} output…")
     model = result_store.to_model()
     model.metadata["view"] = view
     model.metadata["filters_applied"] = {
@@ -124,12 +170,12 @@ def graph(
     elif format == "dot":
         content = DotRenderer().render(result_store, cluster_by=cluster_by)
     else:
-        console.print(f"[red]Unknown format: {format}[/red]")
+        console.print(f"❌ Unknown format: {format}")
         raise typer.Exit(1)
 
     if output:
         output.write_text(content)
-        console.print(f"[green]Graph written to {output}[/green]")
+        console.print(f"✅ Graph written to {output}")
     else:
         console.print(content)
 
@@ -150,9 +196,10 @@ def query(
     cache_path = path.resolve() / cfg.cache.directory / cfg.cache.db_name
 
     if not cache_path.exists():
-        console.print("[red]No analysis cache found. Run 'code-intelligence analyze' first.[/red]")
+        console.print("❌ No analysis cache found. Run 'code-intelligence analyze' first.")
         raise typer.Exit(1)
 
+    console.print("💾 Loading analysis cache…")
     from code_intelligence.cache.store import CacheStore
     from code_intelligence.graph.query import GraphQuery
 
@@ -161,35 +208,43 @@ def query(
     q = GraphQuery(store)
 
     if consumers_of:
+        console.print(f"🔍 Querying consumers of '{consumers_of}'…")
         result = q.consumers_of(consumers_of).execute()
         _print_query_result(result, f"Consumers of '{consumers_of}'")
     elif producers_of:
+        console.print(f"🔍 Querying producers of '{producers_of}'…")
         result = q.producers_of(producers_of).execute()
         _print_query_result(result, f"Producers of '{producers_of}'")
     elif callers_of:
+        console.print(f"🔍 Querying callers of '{callers_of}'…")
         result = q.callers_of(callers_of).execute()
         _print_query_result(result, f"Callers of '{callers_of}'")
     elif dependencies_of:
+        console.print(f"🔍 Querying dependencies of '{dependencies_of}'…")
         result = q.dependencies_of(dependencies_of).execute()
         _print_query_result(result, f"Dependencies of '{dependencies_of}'")
     elif dependents_of:
+        console.print(f"🔍 Querying dependents of '{dependents_of}'…")
         result = q.dependents_of(dependents_of).execute()
         _print_query_result(result, f"Dependents of '{dependents_of}'")
     elif cycles:
+        console.print("🔄 Detecting circular dependencies…")
         cycle_list = store.find_cycles()
-        console.print(f"[bold]Found {len(cycle_list)} cycles:[/bold]")
-        for i, cycle in enumerate(cycle_list[:20], 1):
-            console.print(f"  {i}. {' → '.join(cycle)}")
-        if len(cycle_list) > 20:
-            console.print(f"  ... and {len(cycle_list) - 20} more")
+        if cycle_list:
+            console.print(f"⚠️  Found {len(cycle_list)} cycles:")
+            for i, cycle in enumerate(cycle_list[:20], 1):
+                console.print(f"  {i}. {' → '.join(cycle)}")
+            if len(cycle_list) > 20:
+                console.print(f"  … and {len(cycle_list) - 20} more")
+        else:
+            console.print("✅ No circular dependencies found!")
     else:
-        console.print("[yellow]Specify a query option. Use --help for available queries.[/yellow]")
+        console.print("⚠️  Specify a query option. Use --help for available queries.")
 
 
-def _print_query_result(store: "GraphStore", title: str) -> None:
-    from code_intelligence.graph.store import GraphStore
+def _print_query_result(store: "GraphStore", title: str) -> None:  # noqa: F821
     nodes = store.all_nodes()
-    console.print(f"[bold]{title} ({len(nodes)} results):[/bold]")
+    console.print(f"📊 [bold]{title}[/bold] ({len(nodes)} results):")
     for node in nodes:
         loc = f" ({node.location.file_path}:{node.location.line_start})" if node.location else ""
         console.print(f"  [{node.kind.value}] {node.label}{loc}")
@@ -207,22 +262,24 @@ def cache(
 
     if action == "clear":
         if cache_path.exists():
+            console.print("🗑️  Clearing cache…")
             cache_path.unlink()
-            console.print("[green]Cache cleared.[/green]")
+            console.print("✅ Cache cleared!")
         else:
-            console.print("[yellow]No cache found.[/yellow]")
+            console.print("⚠️  No cache found.")
     elif action == "stats":
         if not cache_path.exists():
-            console.print("[yellow]No cache found. Run 'code-intelligence analyze' first.[/yellow]")
+            console.print("⚠️  No cache found. Run 'code-intelligence analyze' first.")
             return
+        console.print("📊 Loading cache statistics…")
         from code_intelligence.cache.store import CacheStore
         cs = CacheStore(cache_path)
         stats = cs.get_stats()
-        console.print("[bold]Cache Statistics:[/bold]")
+        console.print("📊 [bold]Cache Statistics:[/bold]")
         for key, value in stats.items():
-            console.print(f"  {key}: {value}")
+            console.print(f"   {key}: {value}")
     else:
-        console.print(f"[red]Unknown action: {action}. Use 'stats' or 'clear'.[/red]")
+        console.print(f"❌ Unknown action: {action}. Use 'stats' or 'clear'.")
 
 
 @app.command()
@@ -233,25 +290,26 @@ def plugins(
     """Manage detector plugins."""
     from code_intelligence.detectors.registry import DetectorRegistry
 
+    console.print("🔌 Loading detectors…")
     registry = DetectorRegistry()
     registry.load_builtin_detectors()
     registry.load_plugin_detectors()
 
     if action == "list":
         detectors = registry.all_detectors()
-        console.print(f"[bold]Registered detectors ({len(detectors)}):[/bold]")
+        console.print(f"📋 [bold]Registered detectors ({len(detectors)}):[/bold]")
         for det in detectors:
             langs = ", ".join(det.supported_languages)
-            console.print(f"  {det.name} [{langs}]")
+            console.print(f"   🔹 {det.name} [{langs}]")
     elif action == "info" and name:
         det = registry.get(name)
         if det:
-            console.print(f"[bold]{det.name}[/bold]")
-            console.print(f"  Languages: {', '.join(det.supported_languages)}")
+            console.print(f"🔹 [bold]{det.name}[/bold]")
+            console.print(f"   Languages: {', '.join(det.supported_languages)}")
         else:
-            console.print(f"[red]Detector '{name}' not found.[/red]")
+            console.print(f"❌ Detector '{name}' not found.")
     else:
-        console.print("[yellow]Use 'list' or 'info <name>'.[/yellow]")
+        console.print("⚠️  Use 'list' or 'info <name>'.")
 
 
 if __name__ == "__main__":

@@ -17,6 +17,13 @@ class DiscoveryConfig(BaseModel):
         ".xml", ".yaml", ".yml", ".json", ".properties",
         ".gradle", ".gradle.kts", ".sql", ".graphql", ".gql",
         ".proto", ".md",
+        ".cs", ".go", ".tf", ".tfvars", ".hcl",
+        ".cpp", ".cc", ".cxx", ".hpp", ".c", ".h",
+        ".sh", ".bash", ".zsh", ".ps1", ".psm1", ".psd1",
+        ".bat", ".cmd", ".bicep",
+        ".rb", ".rs", ".kt", ".kts", ".scala", ".swift",
+        ".r", ".R", ".pl", ".pm", ".lua", ".dart",
+        ".toml", ".ini", ".cfg", ".conf",
     ])
     exclude_patterns: list[str] = Field(default_factory=lambda: [
         "**/node_modules/**",

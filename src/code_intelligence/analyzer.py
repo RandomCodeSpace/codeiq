@@ -28,7 +28,13 @@ logger = logging.getLogger(__name__)
 _TREESITTER_LANGUAGES = {"java", "python", "typescript", "javascript"}
 
 # Languages handled by structured parsers
-_STRUCTURED_LANGUAGES = {"xml", "yaml", "json", "properties", "gradle", "sql"}
+_STRUCTURED_LANGUAGES = {
+    "xml", "yaml", "json", "properties", "gradle", "sql",
+    "bicep", "terraform", "csharp", "go", "cpp", "c",
+    "bash", "powershell", "batch", "ruby", "rust", "kotlin",
+    "scala", "swift", "r", "perl", "lua", "dart",
+    "dockerfile", "toml", "ini", "dotenv", "csv",
+}
 
 
 @dataclass
@@ -39,6 +45,10 @@ class AnalysisResult:
     files_analyzed: int
     files_cached: int
     total_files: int
+    language_breakdown: dict[str, int]
+    node_breakdown: dict[str, int]
+    files_with_detectors: int
+    files_without_detectors: int
 
 
 def _parse_structured(language: str, content: bytes, file_path: str) -> Any:
@@ -186,19 +196,43 @@ class Analyzer:
             logger.warning("ParserManager unavailable, tree-sitter parsing disabled", exc_info=True)
 
     def run(
-        self, repo_path: Path, incremental: bool = True
+        self,
+        repo_path: Path,
+        incremental: bool = True,
+        on_progress: Any | None = None,
     ) -> AnalysisResult:
-        """Execute the analysis pipeline on *repo_path*."""
+        """Execute the analysis pipeline on *repo_path*.
+
+        *on_progress*, when provided, is called with a status string at
+        each major pipeline milestone.
+        """
+        def _report(msg: str) -> None:
+            if on_progress is not None:
+                on_progress(msg)
+
         repo_path = repo_path.resolve()
 
         # ----------------------------------------------------------
         # 1. Discover files
         # ----------------------------------------------------------
+        _report("🔍 Discovering files…")
         discovery = FileDiscovery(self._config)
         all_files = discovery.discover(repo_path)
         current_commit = discovery.current_commit
         total_files = len(all_files)
 
+        # Compute language breakdown and detector coverage
+        language_breakdown: dict[str, int] = {}
+        files_with_detectors = 0
+        files_without_detectors = 0
+        for f in all_files:
+            language_breakdown[f.language] = language_breakdown.get(f.language, 0) + 1
+            if self._registry.detectors_for_language(f.language):
+                files_with_detectors += 1
+            else:
+                files_without_detectors += 1
+
+        _report(f"📁 Found {total_files} files")
         logger.info("Discovered %d files in %s", total_files, repo_path)
 
         # ----------------------------------------------------------
@@ -242,6 +276,7 @@ class Analyzer:
                 else:
                     files_to_analyze.append(f)
 
+            _report(f"💾 {files_cached} cached, {len(files_to_analyze)} to analyze")
             logger.info(
                 "Incremental: %d cached, %d to analyze",
                 files_cached,
@@ -253,6 +288,8 @@ class Analyzer:
         # ----------------------------------------------------------
         # 3 & 4. Parse and run detectors
         # ----------------------------------------------------------
+        if files_to_analyze:
+            _report(f"⚙️  Analyzing {files_analyzed} files…")
         parallelism = self._config.analysis.parallelism
 
         pm = self._parser_manager
@@ -309,6 +346,7 @@ class Analyzer:
         # ----------------------------------------------------------
         # 6. Run cross-file linkers
         # ----------------------------------------------------------
+        _report("🔗 Linking cross-file relationships…")
         builder.run_linkers()
 
         # ----------------------------------------------------------
@@ -326,6 +364,14 @@ class Analyzer:
                 cache.close()
 
         graph = builder.build()
+
+        # Compute node breakdown
+        node_breakdown: dict[str, int] = {}
+        for node in graph.all_nodes():
+            kind = node.kind.value
+            node_breakdown[kind] = node_breakdown.get(kind, 0) + 1
+
+        _report(f"✅ Analysis complete — {graph.node_count} nodes, {graph.edge_count} edges")
         logger.info(
             "Analysis complete: %d nodes, %d edges",
             graph.node_count,
@@ -337,4 +383,8 @@ class Analyzer:
             files_analyzed=files_analyzed,
             files_cached=files_cached,
             total_files=total_files,
+            language_breakdown=language_breakdown,
+            node_breakdown=node_breakdown,
+            files_with_detectors=files_with_detectors,
+            files_without_detectors=files_without_detectors,
         )

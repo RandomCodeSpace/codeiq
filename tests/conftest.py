@@ -71,3 +71,23 @@ def nestjs_controller_source() -> bytes:
 @pytest.fixture
 def typeorm_entity_source() -> bytes:
     return (TS_FIXTURES / "user.entity.ts").read_bytes()
+
+
+@pytest.fixture
+def fetch_request_source() -> bytes:
+    return (JAVA_FIXTURES / "FetchRequest.java").read_bytes()
+
+
+@pytest.fixture
+def fetch_response_source() -> bytes:
+    return (JAVA_FIXTURES / "FetchResponse.java").read_bytes()
+
+
+@pytest.fixture
+def connectors_resource_source() -> bytes:
+    return (JAVA_FIXTURES / "ConnectorsResource.java").read_bytes()
+
+
+@pytest.fixture
+def consumer_config_source() -> bytes:
+    return (JAVA_FIXTURES / "ConsumerConfig.java").read_bytes()

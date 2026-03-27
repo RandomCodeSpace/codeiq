@@ -2,10 +2,13 @@
 
 from __future__ import annotations
 
+import logging
 from collections.abc import Callable
 from typing import Any
 
 import networkx as nx
+
+logger = logging.getLogger(__name__)
 
 from code_intelligence.models.graph import (
     CodeGraph,
@@ -35,6 +38,9 @@ class GraphStore:
         return self._g.number_of_edges()
 
     def add_node(self, node: GraphNode) -> None:
+        if node.id in self._g:
+            logger.debug("Duplicate node ID %s, keeping first", node.id)
+            return
         self._g.add_node(node.id, **node.model_dump())
 
     def add_edge(self, edge: GraphEdge) -> None:

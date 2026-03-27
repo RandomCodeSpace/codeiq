@@ -44,6 +44,33 @@ class DetectorRegistry:
             "code_intelligence.detectors.java.jms",
             "code_intelligence.detectors.java.rabbitmq",
             "code_intelligence.detectors.java.websocket",
+            # Generic Java detectors
+            "code_intelligence.detectors.java.class_hierarchy",
+            "code_intelligence.detectors.java.public_api",
+            "code_intelligence.detectors.java.jaxrs",
+            "code_intelligence.detectors.java.kafka_protocol",
+            "code_intelligence.detectors.java.config_def",
+            "code_intelligence.detectors.java.jdbc",
+            "code_intelligence.detectors.java.ibm_mq",
+            "code_intelligence.detectors.java.tibco_ems",
+            "code_intelligence.detectors.java.azure_messaging",
+            "code_intelligence.detectors.java.azure_functions",
+            "code_intelligence.detectors.java.cosmos_db",
+            # IaC detectors
+            "code_intelligence.detectors.iac.bicep",
+            "code_intelligence.detectors.iac.terraform",
+            "code_intelligence.detectors.iac.dockerfile",
+            # Go detectors
+            "code_intelligence.detectors.go.go_structures",
+            # C# detectors
+            "code_intelligence.detectors.csharp.csharp_structures",
+            # C/C++ detectors
+            "code_intelligence.detectors.cpp.cpp_structures",
+            # Shell detectors
+            "code_intelligence.detectors.shell.bash_detector",
+            "code_intelligence.detectors.shell.powershell_detector",
+            # Generic multi-language
+            "code_intelligence.detectors.generic.imports_detector",
             # Python detectors
             "code_intelligence.detectors.python.flask_routes",
             "code_intelligence.detectors.python.django_views",
