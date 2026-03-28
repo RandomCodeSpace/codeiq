@@ -42,6 +42,11 @@ class TestBuildKindCardData:
         assert result["icon"] == "circle"
         assert result["color"].startswith("#")
 
+    def test_missing_count_defaults_zero(self) -> None:
+        kind_info = {"kind": "endpoint"}
+        result = build_kind_card_data(kind_info)
+        assert result["count"] == 0
+
 
 class TestBuildNodeCardData:
     def test_basic_transform(self) -> None:
@@ -92,6 +97,23 @@ class TestBuildNodeCardData:
         assert result["title"] == "utils"
         assert result["module"] is None
         assert result["properties"] == {}
+
+    def test_subtitle_empty_when_no_details(self) -> None:
+        node_info = {
+            "id": "mod:x.py:module:x",
+            "name": "x",
+        }
+        result = build_node_card_data(node_info)
+        assert result["subtitle"] == ""
+
+    def test_edge_count_zero(self) -> None:
+        node_info = {
+            "id": "cls:a.py:class:A",
+            "name": "A",
+            "edge_count": 0,
+        }
+        result = build_node_card_data(node_info)
+        assert "0 edges" in result["subtitle"]
 
 
 class TestBuildDetailData:
@@ -172,6 +194,41 @@ class TestBuildDetailData:
         assert "5" in loc_value
         assert "50" in loc_value
 
+    def test_location_with_start_line_only(self) -> None:
+        """Cover the branch where start_line is set but end_line is None (lines 98-99)."""
+        detail = {
+            "id": "cls:app.py:class:Bar",
+            "name": "Bar",
+            "kind": "class",
+            "file_path": "app.py",
+            "start_line": 42,
+            # end_line deliberately omitted
+            "properties": {},
+            "edges_out": [],
+            "edges_in": [],
+        }
+        result = build_detail_data(detail)
+        location_props = [p for p in result["properties"] if p[0] == "Location"]
+        assert len(location_props) == 1
+        loc_value = location_props[0][1]
+        assert loc_value == "app.py:42"
+
+    def test_location_with_file_path_only(self) -> None:
+        """Cover the branch where file_path is set but no line numbers."""
+        detail = {
+            "id": "mod:lib.py:module:lib",
+            "name": "lib",
+            "kind": "module",
+            "file_path": "lib.py",
+            "properties": {},
+            "edges_out": [],
+            "edges_in": [],
+        }
+        result = build_detail_data(detail)
+        location_props = [p for p in result["properties"] if p[0] == "Location"]
+        assert len(location_props) == 1
+        assert location_props[0][1] == "lib.py"
+
     def test_empty_edges(self) -> None:
         detail = {
             "id": "mod:x.py:module:x",
@@ -199,3 +256,14 @@ class TestBuildDetailData:
         prop_keys = [p[0] for p in result["properties"]]
         # FQN, Module, Layer may be absent but should not error
         assert isinstance(result["properties"], list)
+
+    def test_missing_edges_defaults_empty(self) -> None:
+        detail = {
+            "id": "mod:y.py:module:y",
+            "name": "y",
+            "kind": "module",
+            "properties": {},
+        }
+        result = build_detail_data(detail)
+        assert result["edges_out"] == []
+        assert result["edges_in"] == []

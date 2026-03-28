@@ -69,8 +69,13 @@ def parse_mcp_command(raw: str) -> tuple[str, dict[str, Any]]:
 # ── MCP tool lookup table ──────────────────────────────────────────────────
 
 
-def _get_tool_fn(name: str):
-    """Import and return the MCP tool function by *name*, or None."""
+def get_tool_map() -> dict[str, Any]:
+    """Build and return the MCP tool name -> function mapping.
+
+    This is separated from ``_get_tool_fn`` so it can be tested without a
+    NiceGUI context.  The import is deferred so the module can be loaded
+    without the full server stack at import time.
+    """
     from osscodeiq.server.mcp_server import (  # noqa: C0415
         find_callers,
         find_component_by_file,
@@ -78,6 +83,7 @@ def _get_tool_fn(name: str):
         find_cycles,
         find_dependencies,
         find_dependents,
+        find_producers,
         find_related_endpoints,
         find_shortest_path,
         generate_flow,
@@ -91,7 +97,7 @@ def _get_tool_fn(name: str):
         trace_impact,
     )
 
-    _TOOL_MAP: dict[str, Any] = {
+    return {
         "get_stats": get_stats,
         "query_nodes": query_nodes,
         "query_edges": query_edges,
@@ -100,7 +106,7 @@ def _get_tool_fn(name: str):
         "find_cycles": find_cycles,
         "find_shortest_path": find_shortest_path,
         "find_consumers": find_consumers,
-        "find_producers": find_producers,  # noqa: F841 — not importable separately
+        "find_producers": find_producers,
         "find_callers": find_callers,
         "find_dependencies": find_dependencies,
         "find_dependents": find_dependents,
@@ -112,12 +118,10 @@ def _get_tool_fn(name: str):
         "read_file": read_file,
     }
 
-    # find_producers is imported via find_consumers' sibling — fix the map
-    from osscodeiq.server.mcp_server import find_producers  # noqa: C0415
 
-    _TOOL_MAP["find_producers"] = find_producers
-
-    return _TOOL_MAP.get(name)
+def _get_tool_fn(name: str):
+    """Import and return the MCP tool function by *name*, or None."""
+    return get_tool_map().get(name)
 
 
 # ── Console builder ────────────────────────────────────────────────────────

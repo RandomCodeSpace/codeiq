@@ -65,23 +65,43 @@ class ExplorerState:
 # Search filter JavaScript (client-side, no server round-trip)
 # ---------------------------------------------------------------------------
 
-_SEARCH_JS = """
-(function(query) {
-    const cards = document.querySelectorAll('.explorer-card');
+_SEARCH_JS_TEMPLATE = """
+(function(query) {{
+    const cards = document.querySelectorAll('{container}');
     const lower = query.toLowerCase();
-    cards.forEach(function(card) {
+    cards.forEach(function(card) {{
         const text = card.textContent.toLowerCase();
-        if (!lower || text.includes(lower)) {
+        if (!lower || text.includes(lower)) {{
             card.style.opacity = '1';
             card.style.pointerEvents = 'auto';
             card.style.display = '';
-        } else {
+        }} else {{
             card.style.opacity = '0.15';
             card.style.pointerEvents = 'none';
-        }
-    });
-})("{query}")
+        }}
+    }});
+}})("{query}")
 """
+
+
+def build_filter_js(query: str, container_selector: str = ".explorer-card") -> str:
+    """Build a JavaScript snippet that filters cards by text content.
+
+    Parameters
+    ----------
+    query:
+        The search string to filter by. Double-quotes are escaped.
+    container_selector:
+        CSS selector for the card elements to filter.
+
+    Returns
+    -------
+    A self-executing JavaScript string.
+    """
+    safe_query = query.replace("\\", "\\\\").replace('"', '\\"')
+    return _SEARCH_JS_TEMPLATE.format(
+        container=container_selector, query=safe_query
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -332,7 +352,7 @@ def create_explorer_page(service: Any) -> None:
         search_input.on(
             "update:model-value",
             lambda e: ui.run_javascript(
-                _SEARCH_JS.replace("{query}", str(e.args or "").replace('"', '\\"'))
+                build_filter_js(str(e.args or ""))
             ),
         )
 
