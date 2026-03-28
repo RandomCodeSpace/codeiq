@@ -34,30 +34,26 @@ jobs:
         id: version
         run: |
           # Derive base version from latest stable release tag (e.g. v0.0.1 -> 0.0.1)
-          STABLE_TAG=$(git tag -l "v[0-9]*.[0-9]*.[0-9]*" --sort=-v:refname | grep -v beta | head -n1)
+          STABLE_TAG=$(git tag -l "v[0-9]*.[0-9]*.[0-9]*" --sort=-v:refname | grep -vE 'b[0-9]+$' | head -n1)
           if [ -n "$STABLE_TAG" ]; then
             BASE="${STABLE_TAG#v}"
           else
             BASE=$(python3 -c "import tomli; print(tomli.load(open('pyproject.toml','rb'))['project']['version'])")
           fi
-          # Find latest beta tag number and increment by 1 (starts at 0)
-          LATEST=$(git tag -l "v${BASE}-beta.*" --sort=-v:refname | head -n1)
+          # Find latest beta tag number (PEP 440: v0.0.1b0, v0.0.1b1, ...)
+          LATEST=$(git tag -l "v${BASE}b*" --sort=-v:refname | head -n1)
           if [ -n "$LATEST" ]; then
-            LAST_NUM=$(echo "$LATEST" | sed "s/v${BASE}-beta\.//")
+            LAST_NUM=$(echo "$LATEST" | sed "s/v${BASE}b//")
             BETA_NUM=$((LAST_NUM + 1))
           else
             BETA_NUM=0
           fi
-          # PEP 440 beta: 0.1.0b0, 0.1.0b1, ...
           PEP_VERSION="${BASE}b${BETA_NUM}"
-          # Display: 0.1.0-beta.0, 0.1.0-beta.1, ...
-          DISPLAY_VERSION="${BASE}-beta.${BETA_NUM}"
           SHORT_SHA=$(git rev-parse --short HEAD)
           echo "version=$PEP_VERSION" >> "$GITHUB_OUTPUT"
-          echo "display=$DISPLAY_VERSION" >> "$GITHUB_OUTPUT"
-          echo "tag=v${DISPLAY_VERSION}" >> "$GITHUB_OUTPUT"
+          echo "tag=v${PEP_VERSION}" >> "$GITHUB_OUTPUT"
           echo "sha=$SHORT_SHA" >> "$GITHUB_OUTPUT"
-          echo "Beta version: $DISPLAY_VERSION ($PEP_VERSION) @ ${SHORT_SHA}"
+          echo "Beta version: v${PEP_VERSION} @ ${SHORT_SHA}"
 
       - name: Patch version in pyproject.toml
         env:
@@ -93,13 +89,12 @@ jobs:
       - name: Create beta release with wheel
         env:
           BETA_TAG: ${{ steps.version.outputs.tag }}
-          BETA_DISPLAY: ${{ steps.version.outputs.display }}
           BETA_PEP: ${{ steps.version.outputs.version }}
           BETA_SHA: ${{ steps.version.outputs.sha }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release create "$BETA_TAG" dist/* \
-            --title "$BETA_DISPLAY ($BETA_SHA)" \
+            --title "${BETA_PEP} (${BETA_SHA})" \
             --notes "Auto-generated beta build from commit $BETA_SHA.
 
           **Install:**
