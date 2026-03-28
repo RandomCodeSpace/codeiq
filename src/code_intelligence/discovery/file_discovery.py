@@ -82,6 +82,8 @@ _EXTENSION_MAP: dict[str, str] = {
     ".conf": "ini",
     ".env": "dotenv",
     ".csv": "csv",
+    ".vue": "vue",
+    ".svelte": "svelte",
 }
 
 

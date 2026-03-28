@@ -25,6 +25,7 @@ class DiscoveryConfig(BaseModel):
         ".r", ".R", ".pl", ".pm", ".lua", ".dart",
         ".toml", ".ini", ".cfg", ".conf",
         ".env", ".csv", ".dockerfile",
+        ".vue", ".svelte",
     ])
     exclude_patterns: list[str] = Field(default_factory=lambda: [
         "**/node_modules/**",

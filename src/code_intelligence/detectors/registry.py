@@ -101,6 +101,22 @@ class DetectorRegistry:
             "code_intelligence.detectors.docs.markdown_structure",
             # Protocol Buffer detectors
             "code_intelligence.detectors.proto.proto_structure",
+            # Auth detectors
+            "code_intelligence.detectors.java.spring_security",
+            "code_intelligence.detectors.python.django_auth",
+            "code_intelligence.detectors.python.fastapi_auth",
+            "code_intelligence.detectors.typescript.nestjs_guards",
+            "code_intelligence.detectors.typescript.passport_jwt",
+            "code_intelligence.detectors.config.kubernetes_rbac",
+            "code_intelligence.detectors.auth.ldap_auth",
+            "code_intelligence.detectors.auth.certificate_auth",
+            "code_intelligence.detectors.auth.session_header_auth",
+            # Frontend detectors
+            "code_intelligence.detectors.frontend.react_components",
+            "code_intelligence.detectors.frontend.vue_components",
+            "code_intelligence.detectors.frontend.angular_components",
+            "code_intelligence.detectors.frontend.svelte_components",
+            "code_intelligence.detectors.frontend.frontend_routes",
         ]
         for module_path in builtin_modules:
             try:

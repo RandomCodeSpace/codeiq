@@ -34,6 +34,7 @@ _STRUCTURED_LANGUAGES = {
     "bash", "powershell", "batch", "ruby", "rust", "kotlin",
     "scala", "swift", "r", "perl", "lua", "dart",
     "dockerfile", "toml", "ini", "dotenv", "csv",
+    "vue", "svelte",
 }
 
 
@@ -98,6 +99,10 @@ def _parse_structured(language: str, content: bytes, file_path: str) -> Any:
     elif language == "proto":
         # Return raw text for regex-based detection
         return {"type": "proto", "file": file_path, "data": content.decode("utf-8", errors="replace")}
+    elif language == "vue":
+        return {"type": "vue", "file": file_path, "data": content.decode("utf-8", errors="replace")}
+    elif language == "svelte":
+        return {"type": "svelte", "file": file_path, "data": content.decode("utf-8", errors="replace")}
     return None
 
 
