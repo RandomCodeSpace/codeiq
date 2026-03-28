@@ -69,7 +69,7 @@ def test_render_html():
     html = render_html(views, {"total_nodes": 100, "total_edges": 200})
     assert "<!DOCTYPE html>" in html
     assert "Code IQ" in html
-    assert "VIEWS_MERMAID" in html or "graph LR" in html
+    assert "VIEWS_DATA" in html or "cytoscape" in html
     assert "100" in html
 
 

@@ -101,21 +101,27 @@ def render_json(diagram: FlowDiagram) -> str:
     return json.dumps(diagram.to_dict(), indent=2)
 
 
-def render_html(views: dict[str, FlowDiagram], stats: dict[str, Any]) -> str:
+def render_html(views: dict[str, FlowDiagram], stats: dict[str, Any], project_name: str = "Project") -> str:
     """Render all views into a self-contained interactive HTML file."""
-    # Generate Mermaid strings for each view
-    views_mermaid = {}
     views_data = {}
     for name, diagram in sorted(views.items()):
-        views_mermaid[name] = render_mermaid(diagram)
         views_data[name] = diagram.to_dict()
 
     template_path = Path(__file__).parent / "templates" / "interactive.html"
     template = template_path.read_text()
 
-    # Inject data
-    html = template.replace("{{VIEWS_MERMAID}}", json.dumps(views_mermaid, indent=2))
-    html = html.replace("{{VIEWS_DATA}}", json.dumps(views_data, indent=2))
+    # Inline vendor JS for offline/firewall use
+    vendor_dir = Path(__file__).parent / "vendor"
+    for placeholder, filename in [
+        ("{{VENDOR_DAGRE}}", "dagre.min.js"),
+        ("{{VENDOR_CYTOSCAPE}}", "cytoscape.min.js"),
+        ("{{VENDOR_CYTOSCAPE_DAGRE}}", "cytoscape-dagre.min.js"),
+    ]:
+        vendor_path = vendor_dir / filename
+        template = template.replace(placeholder, vendor_path.read_text())
+
+    html = template.replace("{{VIEWS_DATA}}", json.dumps(views_data, indent=2))
     html = html.replace("{{STATS}}", json.dumps(stats, indent=2))
+    html = html.replace("{{PROJECT_NAME}}", json.dumps(project_name))
 
     return html

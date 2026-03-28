@@ -666,7 +666,7 @@ def flow(
     engine = FlowEngine(store)
 
     if format == "html":
-        content = engine.render_interactive()
+        content = engine.render_interactive(project_name=path.resolve().name)
         out_path = output or Path("flow.html")
         out_path.write_text(content)
         console.print(f"Interactive flow diagram saved to [bold]{out_path}[/bold]")

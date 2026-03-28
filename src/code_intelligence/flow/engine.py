@@ -68,11 +68,11 @@ class FlowEngine:
         else:
             raise ValueError(f"Unknown format: {format}. Available: mermaid, json")
 
-    def render_interactive(self) -> str:
+    def render_interactive(self, project_name: str = "Project") -> str:
         """Generate all views and bake into a self-contained interactive HTML file."""
         all_views = self.generate_all()
         stats = {
             "total_nodes": self._store.node_count,
             "total_edges": self._store.edge_count,
         }
-        return render_html(all_views, stats)
+        return render_html(all_views, stats, project_name=project_name)

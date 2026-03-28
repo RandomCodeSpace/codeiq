@@ -40,6 +40,9 @@ code-intelligence = "code_intelligence.cli:app"
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+code_intelligence = ["flow/templates/*.html", "flow/vendor/*.js"]
+
 [tool.pytest.ini_options]
 testpaths = ["tests"]
 pythonpath = ["src"]
