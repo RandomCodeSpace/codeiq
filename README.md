@@ -23,8 +23,8 @@
   <!-- DYNAMIC:detectors --><a href="https://github.com/RandomCodeSpace/code-iq"><img src="https://img.shields.io/badge/detectors-72-brightgreen?style=flat-square&logo=codefactor&logoColor=white" alt="72 Detectors"></a><!-- /DYNAMIC:detectors -->
   <!-- DYNAMIC:languages --><a href="https://github.com/RandomCodeSpace/code-iq"><img src="https://img.shields.io/badge/languages-35-blue?style=flat-square&logo=stackblitz&logoColor=white" alt="35 Languages"></a><!-- /DYNAMIC:languages -->
   <!-- DYNAMIC:tests --><a href="https://github.com/RandomCodeSpace/code-iq"><img src="https://img.shields.io/badge/tests-361%20passed-brightgreen?style=flat-square&logo=pytest&logoColor=white" alt="361 passed Tests"></a><!-- /DYNAMIC:tests -->
-  <!-- DYNAMIC:files --><a href="https://github.com/RandomCodeSpace/code-iq"><img src="https://img.shields.io/badge/files-178-informational?style=flat-square&logo=files&logoColor=white" alt="178 Files"></a><!-- /DYNAMIC:files -->
-  <!-- DYNAMIC:loc --><a href="https://github.com/RandomCodeSpace/code-iq"><img src="https://img.shields.io/badge/LOC-20%2C884-informational?style=flat-square&logo=codacy&logoColor=white" alt="20,884 Loc"></a><!-- /DYNAMIC:loc -->
+  <!-- DYNAMIC:files --><a href="https://github.com/RandomCodeSpace/code-iq"><img src="https://img.shields.io/badge/files-183-informational?style=flat-square&logo=files&logoColor=white" alt="183 Files"></a><!-- /DYNAMIC:files -->
+  <!-- DYNAMIC:loc --><a href="https://github.com/RandomCodeSpace/code-iq"><img src="https://img.shields.io/badge/LOC-22%2C029-informational?style=flat-square&logo=codacy&logoColor=white" alt="22,029 Loc"></a><!-- /DYNAMIC:loc -->
 </p>
 
 ---
