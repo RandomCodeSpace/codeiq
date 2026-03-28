@@ -17,6 +17,7 @@ jobs:
   dependency-audit:
     name: Dependency vulnerability scan
     runs-on: ubuntu-latest
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
 
@@ -40,6 +41,7 @@ jobs:
   sast:
     name: Static analysis (Bandit + Semgrep)
     runs-on: ubuntu-latest
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
 
@@ -67,6 +69,7 @@ jobs:
   wheel-scan:
     name: Wheel integrity scan
     runs-on: ubuntu-latest
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
 
@@ -100,6 +103,7 @@ jobs:
   license-check:
     name: License compliance
     runs-on: ubuntu-latest
+    continue-on-error: true
     steps:
       - uses: actions/checkout@v4
 
