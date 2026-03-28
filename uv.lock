@@ -214,6 +214,8 @@ name = "code-intelligence"
 version = "0.0.0"
 source = { editable = "." }
 dependencies = [
+    { name = "fastapi" },
+    { name = "fastmcp" },
     { name = "lxml" },
     { name = "networkx" },
     { name = "pathspec" },
@@ -227,6 +229,7 @@ dependencies = [
     { name = "tree-sitter-python" },
     { name = "tree-sitter-typescript" },
     { name = "typer" },
+    { name = "uvicorn", extra = ["standard"] },
 ]
 
 [package.optional-dependencies]
@@ -240,16 +243,11 @@ dev = [
 kuzu = [
     { name = "kuzu" },
 ]
-server = [
-    { name = "fastapi" },
-    { name = "fastmcp" },
-    { name = "uvicorn", extra = ["standard"] },
-]
 
 [package.metadata]
 requires-dist = [
-    { name = "fastapi", marker = "extra == 'server'", specifier = ">=0.115" },
-    { name = "fastmcp", marker = "extra == 'server'", specifier = ">=2.0" },
+    { name = "fastapi", specifier = ">=0.115" },
+    { name = "fastmcp", specifier = ">=2.0" },
     { name = "kuzu", marker = "extra == 'all-backends'", specifier = ">=0.6" },
     { name = "kuzu", marker = "extra == 'kuzu'", specifier = ">=0.6" },
     { name = "lxml", specifier = ">=5.0" },
@@ -267,9 +265,9 @@ requires-dist = [
     { name = "tree-sitter-python", specifier = ">=0.23" },
     { name = "tree-sitter-typescript", specifier = ">=0.23" },
     { name = "typer", specifier = ">=0.9" },
-    { name = "uvicorn", extras = ["standard"], marker = "extra == 'server'", specifier = ">=0.34" },
+    { name = "uvicorn", extras = ["standard"], specifier = ">=0.34" },
 ]
-provides-extras = ["dev", "kuzu", "all-backends", "server"]
+provides-extras = ["dev", "kuzu", "all-backends"]
 
 [[package]]
 name = "colorama"

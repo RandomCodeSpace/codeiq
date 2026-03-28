@@ -21,6 +21,9 @@ dependencies = [
     "sqlparse>=0.5",
     "pydantic>=2.0",
     "pathspec>=0.11",
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.34",
+    "fastmcp>=2.0",
 ]
 
 [project.optional-dependencies]
@@ -30,11 +33,6 @@ dev = [
 ]
 kuzu = ["kuzu>=0.6"]
 all-backends = ["kuzu>=0.6"]
-server = [
-    "fastapi>=0.115",
-    "uvicorn[standard]>=0.34",
-    "fastmcp>=2.0",
-]
 
 [project.scripts]
 code-iq = "code_intelligence.cli:app"

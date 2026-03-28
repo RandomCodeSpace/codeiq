@@ -693,11 +693,7 @@ def serve(
     config: Annotated[Optional[Path], typer.Option("--config", "-c")] = None,
 ) -> None:
     """Start the Code IQ server (API + MCP on one port)."""
-    try:
-        import uvicorn
-    except ImportError:
-        console.print("Server dependencies not installed. Run: pip install code-intelligence[server]")
-        raise typer.Exit(1)
+    import uvicorn
     from code_intelligence.server.app import create_app
 
     console.print(f"[bold]Code IQ Server[/bold]")
