@@ -11,11 +11,36 @@ from rich.console import Console
 from code_intelligence.config import Config
 
 app = typer.Typer(
-    name="code-intelligence",
+    name="code-iq",
     help="Intelligent code graph discovery and analysis CLI.",
     no_args_is_help=True,
 )
 console = Console()
+
+
+def _get_version() -> str:
+    """Get package version from metadata."""
+    try:
+        from importlib.metadata import version
+        return version("code-intelligence")
+    except Exception:
+        return "0.1.0"
+
+
+@app.command()
+def version() -> None:
+    """Show version information."""
+    ver = _get_version()
+    from code_intelligence.detectors.registry import DetectorRegistry
+    r = DetectorRegistry()
+    r.load_builtin_detectors()
+    console.print(f"code-iq v{ver}")
+    console.print(f"  Detectors: {len(r.all_detectors())}")
+    langs = set()
+    for d in r.all_detectors():
+        for l in d.supported_languages:
+            langs.add(l)
+    console.print(f"  Languages: {len(langs)}")
 
 
 def _load_config(config: Path | None, project_path: Path | None = None) -> Config:

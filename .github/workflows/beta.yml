@@ -39,12 +39,16 @@ jobs:
           else
             BETA_NUM=$(git rev-list HEAD --count)
           fi
-          VERSION="${BASE}.dev${BETA_NUM}"
+          # PEP 440 beta: 0.1.0b0, 0.1.0b1, ...
+          PEP_VERSION="${BASE}b${BETA_NUM}"
+          # Display: 0.1.0-beta.0, 0.1.0-beta.1, ...
+          DISPLAY_VERSION="${BASE}-beta.${BETA_NUM}"
           SHORT_SHA=$(git rev-parse --short HEAD)
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-          echo "tag=v${VERSION}" >> "$GITHUB_OUTPUT"
+          echo "version=$PEP_VERSION" >> "$GITHUB_OUTPUT"
+          echo "display=$DISPLAY_VERSION" >> "$GITHUB_OUTPUT"
+          echo "tag=v${DISPLAY_VERSION}" >> "$GITHUB_OUTPUT"
           echo "sha=$SHORT_SHA" >> "$GITHUB_OUTPUT"
-          echo "Beta version: $VERSION (${SHORT_SHA})"
+          echo "Beta version: $DISPLAY_VERSION ($PEP_VERSION) @ ${SHORT_SHA}"
 
       - name: Patch version in pyproject.toml
         env:
@@ -80,11 +84,23 @@ jobs:
       - name: Create beta release with wheel
         env:
           BETA_TAG: ${{ steps.version.outputs.tag }}
-          BETA_VERSION: ${{ steps.version.outputs.version }}
+          BETA_DISPLAY: ${{ steps.version.outputs.display }}
+          BETA_PEP: ${{ steps.version.outputs.version }}
           BETA_SHA: ${{ steps.version.outputs.sha }}
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release create "$BETA_TAG" dist/* \
-            --title "Beta $BETA_VERSION ($BETA_SHA)" \
-            --notes "Auto-generated beta build from commit $BETA_SHA. Install with: pip install https://github.com/RandomCodeSpace/code-iq/releases/download/$BETA_TAG/code_intelligence-${BETA_VERSION}-py3-none-any.whl" \
+            --title "$BETA_DISPLAY ($BETA_SHA)" \
+            --notes "Auto-generated beta build from commit $BETA_SHA.
+
+          **Install:**
+          \`\`\`bash
+          pip install https://github.com/RandomCodeSpace/code-iq/releases/download/${BETA_TAG}/code_intelligence-${BETA_PEP}-py3-none-any.whl
+          \`\`\`
+
+          **Or with code-iq CLI:**
+          \`\`\`bash
+          code-iq version
+          code-iq analyze /path/to/repo
+          \`\`\`" \
             --prerelease

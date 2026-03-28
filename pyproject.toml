@@ -31,6 +31,7 @@ kuzu = ["kuzu>=0.6"]
 all-backends = ["kuzu>=0.6"]
 
 [project.scripts]
+code-iq = "code_intelligence.cli:app"
 code-intelligence = "code_intelligence.cli:app"
 
 [project.entry-points."code_intelligence.detectors"]
