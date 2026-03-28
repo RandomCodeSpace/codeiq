@@ -34,10 +34,13 @@ jobs:
         id: version
         run: |
           BASE=$(python3 -c "import tomli; print(tomli.load(open('pyproject.toml','rb'))['project']['version'])")
-          if git describe --tags --match "v*" HEAD 2>/dev/null; then
-            BETA_NUM=$(git rev-list "$(git describe --tags --match 'v*' --abbrev=0 HEAD)"..HEAD --count)
+          # Find latest beta tag number and increment by 1 (starts at 0)
+          LATEST=$(git tag -l "v${BASE}-beta.*" --sort=-v:refname | head -n1)
+          if [ -n "$LATEST" ]; then
+            LAST_NUM=$(echo "$LATEST" | sed "s/v${BASE}-beta\.//")
+            BETA_NUM=$((LAST_NUM + 1))
           else
-            BETA_NUM=$(git rev-list HEAD --count)
+            BETA_NUM=0
           fi
           # PEP 440 beta: 0.1.0b0, 0.1.0b1, ...
           PEP_VERSION="${BASE}b${BETA_NUM}"
