@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 
 from code_intelligence.detectors.base import DetectorContext, DetectorResult
+from code_intelligence.detectors.utils import decode_text, find_line_number
 from code_intelligence.models.graph import (
     EdgeKind,
     GraphEdge,
@@ -19,10 +20,6 @@ _ENV_RE = re.compile(r'^ENV\s+(\w+)[=\s]', re.MULTILINE)
 _LABEL_RE = re.compile(r'^LABEL\s+(\S+)=', re.MULTILINE)
 
 
-def _find_line_number(text: str, pos: int) -> int:
-    """Return the 1-based line number for a character offset."""
-    return text[:pos].count("\n") + 1
-
 
 class DockerfileDetector:
     """Detects infrastructure resources from Dockerfile definitions."""
@@ -32,7 +29,7 @@ class DockerfileDetector:
 
     def detect(self, ctx: DetectorContext) -> DetectorResult:
         result = DetectorResult()
-        text = ctx.content.decode("utf-8", errors="replace")
+        text = decode_text(ctx)
 
         stages: dict[str, str] = {}  # stage alias -> base image
 
@@ -40,7 +37,7 @@ class DockerfileDetector:
         for m in _FROM_RE.finditer(text):
             image = m.group(1)
             alias = m.group(2)
-            line = _find_line_number(text, m.start())
+            line = find_line_number(text, m.start())
 
             # Track stage aliases for multi-stage build references
             if alias:
@@ -85,7 +82,7 @@ class DockerfileDetector:
         # Detect EXPOSE instructions (exposed ports)
         for m in _EXPOSE_RE.finditer(text):
             port = m.group(1)
-            line = _find_line_number(text, m.start())
+            line = find_line_number(text, m.start())
 
             result.nodes.append(GraphNode(
                 id=f"docker:{ctx.file_path}:expose:{port}",
@@ -102,7 +99,7 @@ class DockerfileDetector:
         # Detect ENV instructions (configuration definitions)
         for m in _ENV_RE.finditer(text):
             key = m.group(1)
-            line = _find_line_number(text, m.start())
+            line = find_line_number(text, m.start())
 
             result.nodes.append(GraphNode(
                 id=f"docker:{ctx.file_path}:env:{key}",
@@ -119,7 +116,7 @@ class DockerfileDetector:
         # Detect LABEL instructions
         for m in _LABEL_RE.finditer(text):
             label_key = m.group(1)
-            line = _find_line_number(text, m.start())
+            line = find_line_number(text, m.start())
 
             result.nodes.append(GraphNode(
                 id=f"docker:{ctx.file_path}:label:{label_key}",

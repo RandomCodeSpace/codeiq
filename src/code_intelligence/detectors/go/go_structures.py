@@ -6,6 +6,7 @@ import re
 from typing import Any
 
 from code_intelligence.detectors.base import DetectorContext, DetectorResult
+from code_intelligence.detectors.utils import decode_text, find_line_number
 from code_intelligence.models.graph import (
     EdgeKind,
     GraphEdge,
@@ -24,10 +25,6 @@ _IMPORT_BLOCK_RE = re.compile(r'import\s*\((.*?)\)', re.DOTALL)
 _IMPORT_PATH_RE = re.compile(r'"([^"]+)"')
 
 
-def _find_line_number(text: str, pos: int) -> int:
-    """Return the 1-based line number for a character offset."""
-    return text[:pos].count("\n") + 1
-
 
 class GoStructuresDetector:
     """Detects Go structs, interfaces, methods, functions, and packages."""
@@ -37,7 +34,7 @@ class GoStructuresDetector:
 
     def detect(self, ctx: DetectorContext) -> DetectorResult:
         result = DetectorResult()
-        text = ctx.content.decode("utf-8", errors="replace")
+        text = decode_text(ctx)
 
         # Package declaration (one per file)
         pkg_match = _PACKAGE_RE.search(text)
@@ -52,7 +49,7 @@ class GoStructuresDetector:
                 module=ctx.module_name,
                 location=SourceLocation(
                     file_path=ctx.file_path,
-                    line_start=_find_line_number(text, pkg_match.start()),
+                    line_start=find_line_number(text, pkg_match.start()),
                 ),
                 properties={"package": pkg_name},
             ))
@@ -92,7 +89,7 @@ class GoStructuresDetector:
                 module=ctx.module_name,
                 location=SourceLocation(
                     file_path=ctx.file_path,
-                    line_start=_find_line_number(text, m.start()),
+                    line_start=find_line_number(text, m.start()),
                 ),
                 properties={"exported": exported, "type": "struct"},
             ))
@@ -110,7 +107,7 @@ class GoStructuresDetector:
                 module=ctx.module_name,
                 location=SourceLocation(
                     file_path=ctx.file_path,
-                    line_start=_find_line_number(text, m.start()),
+                    line_start=find_line_number(text, m.start()),
                 ),
                 properties={"exported": exported},
             ))
@@ -130,7 +127,7 @@ class GoStructuresDetector:
                 module=ctx.module_name,
                 location=SourceLocation(
                     file_path=ctx.file_path,
-                    line_start=_find_line_number(text, m.start()),
+                    line_start=find_line_number(text, m.start()),
                 ),
                 properties={"exported": exported, "receiver_type": receiver_type},
             ))
@@ -157,7 +154,7 @@ class GoStructuresDetector:
                 module=ctx.module_name,
                 location=SourceLocation(
                     file_path=ctx.file_path,
-                    line_start=_find_line_number(text, m.start()),
+                    line_start=find_line_number(text, m.start()),
                 ),
                 properties={"exported": exported, "type": "function"},
             ))

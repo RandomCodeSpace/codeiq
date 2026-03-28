@@ -6,6 +6,7 @@ import re
 from pathlib import PurePosixPath
 
 from code_intelligence.detectors.base import DetectorContext, DetectorResult
+from code_intelligence.detectors.utils import decode_text
 from code_intelligence.models.graph import GraphNode, NodeKind, SourceLocation
 
 
@@ -29,7 +30,7 @@ class SvelteComponentDetector:
 
     def detect(self, ctx: DetectorContext) -> DetectorResult:
         result = DetectorResult()
-        text = ctx.content.decode("utf-8", errors="replace")
+        text = decode_text(ctx)
 
         has_props = bool(self._PROP_PATTERN.search(text))
         has_reactive = bool(self._REACTIVE_PATTERN.search(text))

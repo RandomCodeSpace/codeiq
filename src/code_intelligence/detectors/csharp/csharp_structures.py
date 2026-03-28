@@ -6,6 +6,7 @@ import re
 from typing import Any
 
 from code_intelligence.detectors.base import DetectorContext, DetectorResult
+from code_intelligence.detectors.utils import decode_text, find_line_number
 from code_intelligence.models.graph import (
     EdgeKind,
     GraphEdge,
@@ -36,10 +37,6 @@ _API_CONTROLLER_RE = re.compile(r'\[ApiController\]')
 _FUNCTION_RE = re.compile(r'\[Function\("([^"]+)"\)\]')
 _HTTP_TRIGGER_RE = re.compile(r'\[HttpTrigger\(')
 
-
-def _find_line_number(text: str, pos: int) -> int:
-    """Return the 1-based line number for a character offset."""
-    return text[:pos].count("\n") + 1
 
 
 def _parse_base_types(base_str: str | None) -> tuple[str | None, list[str]]:
@@ -77,7 +74,7 @@ class CSharpStructuresDetector:
 
     def detect(self, ctx: DetectorContext) -> DetectorResult:
         result = DetectorResult()
-        text = ctx.content.decode("utf-8", errors="replace")
+        text = decode_text(ctx)
         lines = text.split("\n")
 
         # Namespace
@@ -93,7 +90,7 @@ class CSharpStructuresDetector:
                 module=ctx.module_name,
                 location=SourceLocation(
                     file_path=ctx.file_path,
-                    line_start=_find_line_number(text, ns_match.start()),
+                    line_start=find_line_number(text, ns_match.start()),
                 ),
                 properties={},
             ))
@@ -116,7 +113,7 @@ class CSharpStructuresDetector:
         for m in _CLASS_RE.finditer(text):
             class_name = m.group(1)
             base_str = m.group(2)
-            line_num = _find_line_number(text, m.start())
+            line_num = find_line_number(text, m.start())
 
             # Check if abstract
             match_text = text[max(0, m.start() - 60):m.start() + len(m.group(0))]
@@ -201,7 +198,7 @@ class CSharpStructuresDetector:
                 module=ctx.module_name,
                 location=SourceLocation(
                     file_path=ctx.file_path,
-                    line_start=_find_line_number(text, m.start()),
+                    line_start=find_line_number(text, m.start()),
                 ),
                 properties=properties,
             ))
@@ -227,7 +224,7 @@ class CSharpStructuresDetector:
                 module=ctx.module_name,
                 location=SourceLocation(
                     file_path=ctx.file_path,
-                    line_start=_find_line_number(text, m.start()),
+                    line_start=find_line_number(text, m.start()),
                 ),
                 properties={},
             ))

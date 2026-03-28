@@ -6,6 +6,7 @@ import re
 from typing import Any
 
 from code_intelligence.detectors.base import DetectorContext, DetectorResult
+from code_intelligence.detectors.utils import decode_text, find_line_number
 from code_intelligence.models.graph import (
     EdgeKind,
     GraphEdge,
@@ -22,10 +23,6 @@ _OUTPUT_RE = re.compile(r'output\s+"([^"]+)"')
 _PROVIDER_RE = re.compile(r'provider\s+"([^"]+)"')
 _SOURCE_RE = re.compile(r'source\s*=\s*"([^"]+)"')
 
-
-def _find_line_number(text: str, pos: int) -> int:
-    """Return the 1-based line number for a character offset."""
-    return text[:pos].count("\n") + 1
 
 
 def _extract_provider(resource_type: str) -> str | None:
@@ -54,7 +51,7 @@ class TerraformDetector:
 
     def detect(self, ctx: DetectorContext) -> DetectorResult:
         result = DetectorResult()
-        text = ctx.content.decode("utf-8", errors="replace")
+        text = decode_text(ctx)
 
         # Resource declarations
         for m in _RESOURCE_RE.finditer(text):
@@ -75,7 +72,7 @@ class TerraformDetector:
                 module=ctx.module_name,
                 location=SourceLocation(
                     file_path=ctx.file_path,
-                    line_start=_find_line_number(text, m.start()),
+                    line_start=find_line_number(text, m.start()),
                 ),
                 properties=properties,
             ))
@@ -99,7 +96,7 @@ class TerraformDetector:
                 module=ctx.module_name,
                 location=SourceLocation(
                     file_path=ctx.file_path,
-                    line_start=_find_line_number(text, m.start()),
+                    line_start=find_line_number(text, m.start()),
                 ),
                 properties=properties,
             ))
@@ -122,7 +119,7 @@ class TerraformDetector:
                 module=ctx.module_name,
                 location=SourceLocation(
                     file_path=ctx.file_path,
-                    line_start=_find_line_number(text, m.start()),
+                    line_start=find_line_number(text, m.start()),
                 ),
                 properties=properties,
             ))
@@ -149,7 +146,7 @@ class TerraformDetector:
                 module=ctx.module_name,
                 location=SourceLocation(
                     file_path=ctx.file_path,
-                    line_start=_find_line_number(text, m.start()),
+                    line_start=find_line_number(text, m.start()),
                 ),
                 properties={"config_type": "variable"},
             ))
@@ -166,7 +163,7 @@ class TerraformDetector:
                 module=ctx.module_name,
                 location=SourceLocation(
                     file_path=ctx.file_path,
-                    line_start=_find_line_number(text, m.start()),
+                    line_start=find_line_number(text, m.start()),
                 ),
                 properties={"config_type": "output"},
             ))
@@ -183,7 +180,7 @@ class TerraformDetector:
                 module=ctx.module_name,
                 location=SourceLocation(
                     file_path=ctx.file_path,
-                    line_start=_find_line_number(text, m.start()),
+                    line_start=find_line_number(text, m.start()),
                 ),
                 properties={"resource_type": "provider", "provider": provider_name},
             ))

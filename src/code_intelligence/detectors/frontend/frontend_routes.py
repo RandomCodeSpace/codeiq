@@ -6,6 +6,7 @@ import re
 from pathlib import PurePosixPath
 
 from code_intelligence.detectors.base import DetectorContext, DetectorResult
+from code_intelligence.detectors.utils import decode_text
 from code_intelligence.models.graph import EdgeKind, GraphEdge, GraphNode, NodeKind, SourceLocation
 
 
@@ -56,7 +57,7 @@ class FrontendRouteDetector:
 
     def detect(self, ctx: DetectorContext) -> DetectorResult:
         result = DetectorResult()
-        text = ctx.content.decode("utf-8", errors="replace")
+        text = decode_text(ctx)
 
         self._detect_nextjs_file_routes(ctx, result)
         self._detect_react_router(ctx, text, result)

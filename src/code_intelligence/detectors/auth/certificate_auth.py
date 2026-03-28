@@ -6,6 +6,7 @@ import re
 from dataclasses import dataclass
 
 from code_intelligence.detectors.base import DetectorContext, DetectorResult
+from code_intelligence.detectors.utils import decode_text
 from code_intelligence.models.graph import GraphNode, NodeKind, SourceLocation
 
 
@@ -83,7 +84,7 @@ class CertificateAuthDetector:
 
     def detect(self, ctx: DetectorContext) -> DetectorResult:
         result = DetectorResult()
-        text = ctx.content.decode("utf-8", errors="replace")
+        text = decode_text(ctx)
         lines = text.split("\n")
 
         # Track which lines already produced a node (first match wins per line).

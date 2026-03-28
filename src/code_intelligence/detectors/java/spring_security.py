@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 
 from code_intelligence.detectors.base import DetectorContext, DetectorResult
+from code_intelligence.detectors.utils import decode_text
 from code_intelligence.models.graph import GraphNode, NodeKind, SourceLocation
 
 # @Secured("ROLE_ADMIN") or @Secured({"ROLE_ADMIN", "ROLE_USER"})
@@ -82,7 +83,7 @@ class SpringSecurityDetector:
 
     def detect(self, ctx: DetectorContext) -> DetectorResult:
         result = DetectorResult()
-        text = ctx.content.decode("utf-8", errors="replace")
+        text = decode_text(ctx)
 
         # @Secured annotations
         for m in _SECURED_RE.finditer(text):

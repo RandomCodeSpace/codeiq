@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 
 from code_intelligence.detectors.base import DetectorContext, DetectorResult
+from code_intelligence.detectors.utils import decode_text
 from code_intelligence.models.graph import EdgeKind, GraphEdge, GraphNode, NodeKind, SourceLocation
 
 
@@ -27,7 +28,7 @@ class NestJSControllerDetector:
 
     def detect(self, ctx: DetectorContext) -> DetectorResult:
         result = DetectorResult()
-        text = ctx.content.decode("utf-8", errors="replace")
+        text = decode_text(ctx)
 
         # Find controllers and their base paths
         controllers: dict[str, str] = {}

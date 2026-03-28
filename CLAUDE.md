@@ -59,9 +59,32 @@ FileDiscovery → Parsers → Detectors → GraphBuilder (buffered) → Linkers 
 
 ## Testing
 
-- `pytest tests/ -x -q` — must always pass (currently 361 tests)
+- `pytest tests/ -x -q` — must always pass (currently 565 tests)
 - Every detector needs: positive match test, negative match test, determinism test
-- Benchmark on spring-boot (10K files) for performance regression checks
+- All detectors use shared `detectors/utils.py` — decode_text, find_line_number, etc.
+
+## Benchmark Requirements
+
+**After every change**, run a clean benchmark on a small project to verify:
+1. No performance regression (time should not increase significantly)
+2. 100% determinism (2 runs produce identical node/edge counts)
+3. Coverage doesn't decrease (file/node/edge counts should not drop)
+
+**Benchmark procedure:**
+```bash
+rm -rf ~/projects/testDir/contoso-real-estate/.code-intelligence/
+find ~/projects/testDir/contoso-real-estate -name ".code_intelligence_cache*" -delete
+# Run twice
+time code-intelligence analyze ~/projects/testDir/contoso-real-estate --full -j 8
+time code-intelligence analyze ~/projects/testDir/contoso-real-estate --full -j 8
+```
+
+If `testDir/contoso-real-estate` is not available, clone an official secure project:
+```bash
+git clone --depth 1 https://github.com/Azure-Samples/contoso-real-estate.git ~/projects/testDir/contoso-real-estate
+```
+
+**Baseline (contoso-real-estate, 488 files):** 2,313 nodes, 2,905 edges, ~3.7s
 - Cross-backend parity test on contoso-real-estate for data quality
 
 ## Key Files

@@ -6,6 +6,7 @@ import os
 import re
 
 from code_intelligence.detectors.base import DetectorContext, DetectorResult
+from code_intelligence.detectors.utils import decode_text
 from code_intelligence.models.graph import (
     EdgeKind,
     GraphEdge,
@@ -29,7 +30,7 @@ class MarkdownStructureDetector:
         result = DetectorResult()
 
         try:
-            text = ctx.content.decode("utf-8", errors="replace")
+            text = decode_text(ctx)
         except Exception:
             return result
 

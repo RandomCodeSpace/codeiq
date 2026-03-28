@@ -6,6 +6,7 @@ import re
 from dataclasses import dataclass
 
 from code_intelligence.detectors.base import DetectorContext, DetectorResult
+from code_intelligence.detectors.utils import decode_text
 from code_intelligence.models.graph import GraphNode, NodeKind, SourceLocation
 
 
@@ -84,7 +85,7 @@ class SessionHeaderAuthDetector:
         if ctx.language not in self.supported_languages:
             return result
 
-        text = ctx.content.decode("utf-8", errors="replace")
+        text = decode_text(ctx)
         lines = text.split("\n")
         seen_lines: set[int] = set()
 

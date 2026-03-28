@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 
 from code_intelligence.detectors.base import DetectorContext, DetectorResult
+from code_intelligence.detectors.utils import decode_text, find_line_number
 from code_intelligence.models.graph import (
     EdgeKind,
     GraphEdge,
@@ -33,10 +34,6 @@ _RUST_ENUM_RE = re.compile(r'^\s*(?:pub\s+)?enum\s+(\w+)', re.MULTILINE)
 _RUST_MACRO_RE = re.compile(r'^\s*macro_rules!\s+(\w+)', re.MULTILINE)
 
 
-def _find_line_number(text: str, pos: int) -> int:
-    """Return the 1-based line number for a character offset."""
-    return text[:pos].count("\n") + 1
-
 
 class RustStructuresDetector:
     """Detects Rust imports, structs, traits, impls, functions, enums, modules, and macros."""
@@ -46,7 +43,7 @@ class RustStructuresDetector:
 
     def detect(self, ctx: DetectorContext) -> DetectorResult:
         result = DetectorResult()
-        text = ctx.content.decode("utf-8", errors="replace")
+        text = decode_text(ctx)
         file_node_id = ctx.file_path
 
         for m in _RUST_USE_RE.finditer(text):
@@ -68,7 +65,7 @@ class RustStructuresDetector:
                 module=ctx.module_name,
                 location=SourceLocation(
                     file_path=ctx.file_path,
-                    line_start=_find_line_number(text, m.start()),
+                    line_start=find_line_number(text, m.start()),
                 ),
             ))
 
@@ -82,7 +79,7 @@ class RustStructuresDetector:
                 module=ctx.module_name,
                 location=SourceLocation(
                     file_path=ctx.file_path,
-                    line_start=_find_line_number(text, m.start()),
+                    line_start=find_line_number(text, m.start()),
                 ),
                 properties={"type": "struct"},
             ))
@@ -97,7 +94,7 @@ class RustStructuresDetector:
                 module=ctx.module_name,
                 location=SourceLocation(
                     file_path=ctx.file_path,
-                    line_start=_find_line_number(text, m.start()),
+                    line_start=find_line_number(text, m.start()),
                 ),
                 properties={"type": "trait"},
             ))
@@ -112,7 +109,7 @@ class RustStructuresDetector:
                 module=ctx.module_name,
                 location=SourceLocation(
                     file_path=ctx.file_path,
-                    line_start=_find_line_number(text, m.start()),
+                    line_start=find_line_number(text, m.start()),
                 ),
             ))
 
@@ -153,7 +150,7 @@ class RustStructuresDetector:
                 module=ctx.module_name,
                 location=SourceLocation(
                     file_path=ctx.file_path,
-                    line_start=_find_line_number(text, m.start()),
+                    line_start=find_line_number(text, m.start()),
                 ),
                 properties={"type": "function"},
             ))
@@ -169,7 +166,7 @@ class RustStructuresDetector:
                 module=ctx.module_name,
                 location=SourceLocation(
                     file_path=ctx.file_path,
-                    line_start=_find_line_number(text, m.start()),
+                    line_start=find_line_number(text, m.start()),
                 ),
                 properties={"type": "macro"},
             ))

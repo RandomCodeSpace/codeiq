@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 
 from code_intelligence.detectors.base import DetectorContext, DetectorResult
+from code_intelligence.detectors.utils import decode_text
 from code_intelligence.models.graph import GraphNode, NodeKind, SourceLocation
 
 # Depends(get_current_user) or Depends(get_current_active_user) etc.
@@ -46,7 +47,7 @@ class FastAPIAuthDetector:
 
     def detect(self, ctx: DetectorContext) -> DetectorResult:
         result = DetectorResult()
-        text = ctx.content.decode("utf-8", errors="replace")
+        text = decode_text(ctx)
 
         # Depends(get_current_user) and similar auth dependencies
         for m in _DEPENDS_AUTH_RE.finditer(text):

@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 
 from code_intelligence.detectors.base import DetectorContext, DetectorResult
+from code_intelligence.detectors.utils import decode_text, find_line_number
 from code_intelligence.models.graph import (
     EdgeKind,
     GraphEdge,
@@ -23,10 +24,6 @@ _SCALA_OBJECT_RE = re.compile(r'^\s*object\s+(\w+)', re.MULTILINE)
 _SCALA_DEF_RE = re.compile(r'^\s*def\s+(\w+)\s*[\[(]', re.MULTILINE)
 
 
-def _find_line_number(text: str, pos: int) -> int:
-    """Return the 1-based line number for a character offset."""
-    return text[:pos].count("\n") + 1
-
 
 class ScalaStructuresDetector:
     """Detects Scala imports, classes, traits, objects, and methods."""
@@ -36,7 +33,7 @@ class ScalaStructuresDetector:
 
     def detect(self, ctx: DetectorContext) -> DetectorResult:
         result = DetectorResult()
-        text = ctx.content.decode("utf-8", errors="replace")
+        text = decode_text(ctx)
         file_node_id = ctx.file_path
 
         for m in _SCALA_IMPORT_RE.finditer(text):
@@ -61,7 +58,7 @@ class ScalaStructuresDetector:
                 module=ctx.module_name,
                 location=SourceLocation(
                     file_path=ctx.file_path,
-                    line_start=_find_line_number(text, m.start()),
+                    line_start=find_line_number(text, m.start()),
                 ),
             ))
             if base_class:
@@ -92,7 +89,7 @@ class ScalaStructuresDetector:
                 module=ctx.module_name,
                 location=SourceLocation(
                     file_path=ctx.file_path,
-                    line_start=_find_line_number(text, m.start()),
+                    line_start=find_line_number(text, m.start()),
                 ),
                 properties={"type": "trait"},
             ))
@@ -107,7 +104,7 @@ class ScalaStructuresDetector:
                 module=ctx.module_name,
                 location=SourceLocation(
                     file_path=ctx.file_path,
-                    line_start=_find_line_number(text, m.start()),
+                    line_start=find_line_number(text, m.start()),
                 ),
                 properties={"type": "object"},
             ))
@@ -122,7 +119,7 @@ class ScalaStructuresDetector:
                 module=ctx.module_name,
                 location=SourceLocation(
                     file_path=ctx.file_path,
-                    line_start=_find_line_number(text, m.start()),
+                    line_start=find_line_number(text, m.start()),
                 ),
             ))
 

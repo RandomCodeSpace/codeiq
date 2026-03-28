@@ -7,6 +7,7 @@ from typing import Any
 from xml.etree import ElementTree
 
 from code_intelligence.detectors.base import DetectorContext, DetectorResult
+from code_intelligence.detectors.utils import decode_text
 from code_intelligence.models.graph import (
     EdgeKind,
     GraphEdge,
@@ -43,7 +44,7 @@ class ModuleDepsDetector:
 
     def _detect_maven(self, ctx: DetectorContext) -> DetectorResult:
         result = DetectorResult()
-        text = ctx.content.decode("utf-8", errors="replace")
+        text = decode_text(ctx)
 
         try:
             root = ElementTree.fromstring(text)
@@ -123,7 +124,7 @@ class ModuleDepsDetector:
 
     def _detect_gradle(self, ctx: DetectorContext) -> DetectorResult:
         result = DetectorResult()
-        text = ctx.content.decode("utf-8", errors="replace")
+        text = decode_text(ctx)
         lines = text.split("\n")
 
         # Try to infer module name from file path
@@ -173,7 +174,7 @@ class ModuleDepsDetector:
 
     def _detect_gradle_settings(self, ctx: DetectorContext) -> DetectorResult:
         result = DetectorResult()
-        text = ctx.content.decode("utf-8", errors="replace")
+        text = decode_text(ctx)
 
         for m in _GRADLE_SETTINGS_MODULE_RE.finditer(text):
             module_path = m.group(1).lstrip(":")

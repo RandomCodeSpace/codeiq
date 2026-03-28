@@ -13,6 +13,7 @@ import re
 from typing import Callable
 
 from code_intelligence.detectors.base import DetectorContext, DetectorResult
+from code_intelligence.detectors.utils import decode_text, find_line_number
 from code_intelligence.models.graph import (
     EdgeKind,
     GraphEdge,
@@ -21,10 +22,6 @@ from code_intelligence.models.graph import (
     SourceLocation,
 )
 
-
-def _find_line_number(text: str, pos: int) -> int:
-    """Return the 1-based line number for a character offset."""
-    return text[:pos].count("\n") + 1
 
 
 # ---------------------------------------------------------------------------
@@ -106,7 +103,7 @@ def _detect_ruby(ctx: DetectorContext, text: str, result: DetectorResult) -> Non
             module=ctx.module_name,
             location=SourceLocation(
                 file_path=ctx.file_path,
-                line_start=_find_line_number(text, m.start()),
+                line_start=find_line_number(text, m.start()),
             ),
         ))
 
@@ -122,7 +119,7 @@ def _detect_ruby(ctx: DetectorContext, text: str, result: DetectorResult) -> Non
             module=ctx.module_name,
             location=SourceLocation(
                 file_path=ctx.file_path,
-                line_start=_find_line_number(text, m.start()),
+                line_start=find_line_number(text, m.start()),
             ),
             properties={"base_class": base_class} if base_class else {},
         ))
@@ -144,7 +141,7 @@ def _detect_ruby(ctx: DetectorContext, text: str, result: DetectorResult) -> Non
             module=ctx.module_name,
             location=SourceLocation(
                 file_path=ctx.file_path,
-                line_start=_find_line_number(text, m.start()),
+                line_start=find_line_number(text, m.start()),
             ),
         ))
 
@@ -173,7 +170,7 @@ def _detect_swift(ctx: DetectorContext, text: str, result: DetectorResult) -> No
             module=ctx.module_name,
             location=SourceLocation(
                 file_path=ctx.file_path,
-                line_start=_find_line_number(text, m.start()),
+                line_start=find_line_number(text, m.start()),
             ),
         ))
         if supertypes_str:
@@ -197,7 +194,7 @@ def _detect_swift(ctx: DetectorContext, text: str, result: DetectorResult) -> No
             module=ctx.module_name,
             location=SourceLocation(
                 file_path=ctx.file_path,
-                line_start=_find_line_number(text, m.start()),
+                line_start=find_line_number(text, m.start()),
             ),
             properties={"type": "protocol"},
         ))
@@ -212,7 +209,7 @@ def _detect_swift(ctx: DetectorContext, text: str, result: DetectorResult) -> No
             module=ctx.module_name,
             location=SourceLocation(
                 file_path=ctx.file_path,
-                line_start=_find_line_number(text, m.start()),
+                line_start=find_line_number(text, m.start()),
             ),
             properties={"type": "struct"},
         ))
@@ -227,7 +224,7 @@ def _detect_swift(ctx: DetectorContext, text: str, result: DetectorResult) -> No
             module=ctx.module_name,
             location=SourceLocation(
                 file_path=ctx.file_path,
-                line_start=_find_line_number(text, m.start()),
+                line_start=find_line_number(text, m.start()),
             ),
         ))
 
@@ -241,7 +238,7 @@ def _detect_swift(ctx: DetectorContext, text: str, result: DetectorResult) -> No
             module=ctx.module_name,
             location=SourceLocation(
                 file_path=ctx.file_path,
-                line_start=_find_line_number(text, m.start()),
+                line_start=find_line_number(text, m.start()),
             ),
         ))
 
@@ -268,7 +265,7 @@ def _detect_perl(ctx: DetectorContext, text: str, result: DetectorResult) -> Non
             module=ctx.module_name,
             location=SourceLocation(
                 file_path=ctx.file_path,
-                line_start=_find_line_number(text, m.start()),
+                line_start=find_line_number(text, m.start()),
             ),
         ))
 
@@ -282,7 +279,7 @@ def _detect_perl(ctx: DetectorContext, text: str, result: DetectorResult) -> Non
             module=ctx.module_name,
             location=SourceLocation(
                 file_path=ctx.file_path,
-                line_start=_find_line_number(text, m.start()),
+                line_start=find_line_number(text, m.start()),
             ),
         ))
 
@@ -309,7 +306,7 @@ def _detect_lua(ctx: DetectorContext, text: str, result: DetectorResult) -> None
             module=ctx.module_name,
             location=SourceLocation(
                 file_path=ctx.file_path,
-                line_start=_find_line_number(text, m.start()),
+                line_start=find_line_number(text, m.start()),
             ),
         ))
 
@@ -339,7 +336,7 @@ def _detect_dart(ctx: DetectorContext, text: str, result: DetectorResult) -> Non
             module=ctx.module_name,
             location=SourceLocation(
                 file_path=ctx.file_path,
-                line_start=_find_line_number(text, m.start()),
+                line_start=find_line_number(text, m.start()),
             ),
         ))
         if base_class:
@@ -383,7 +380,7 @@ def _detect_r(ctx: DetectorContext, text: str, result: DetectorResult) -> None:
             module=ctx.module_name,
             location=SourceLocation(
                 file_path=ctx.file_path,
-                line_start=_find_line_number(text, m.start()),
+                line_start=find_line_number(text, m.start()),
             ),
         ))
 
@@ -411,6 +408,6 @@ class GenericImportsDetector:
         if handler is None:
             return result
 
-        text = ctx.content.decode("utf-8", errors="replace")
+        text = decode_text(ctx)
         handler(ctx, text, result)
         return result

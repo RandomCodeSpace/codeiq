@@ -6,6 +6,7 @@ import re
 from typing import Any
 
 from code_intelligence.detectors.base import DetectorContext, DetectorResult
+from code_intelligence.detectors.utils import decode_text
 from code_intelligence.models.graph import (
     EdgeKind,
     GraphEdge,
@@ -46,9 +47,6 @@ def _extract_attr(attr_str: str | None, pattern: re.Pattern[str]) -> str | None:
     return m.group(1) if m else None
 
 
-def _find_line_number(content: bytes, byte_offset: int) -> int:
-    return content[:byte_offset].count(b"\n") + 1
-
 
 class SpringRestDetector:
     """Detects Spring REST endpoints from mapping annotations."""
@@ -58,7 +56,7 @@ class SpringRestDetector:
 
     def detect(self, ctx: DetectorContext) -> DetectorResult:
         result = DetectorResult()
-        text = ctx.content.decode("utf-8", errors="replace")
+        text = decode_text(ctx)
         lines = text.split("\n")
 
         # Find class name

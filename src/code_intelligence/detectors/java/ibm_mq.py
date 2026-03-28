@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 
 from code_intelligence.detectors.base import DetectorContext, DetectorResult
+from code_intelligence.detectors.utils import decode_text
 from code_intelligence.models.graph import (
     EdgeKind,
     GraphEdge,
@@ -45,7 +46,7 @@ class IbmMqDetector:
 
     def detect(self, ctx: DetectorContext) -> DetectorResult:
         result = DetectorResult()
-        text = ctx.content.decode("utf-8", errors="replace")
+        text = decode_text(ctx)
         lines = text.split("\n")
 
         if "MQQueueManager" not in text and "JmsConnectionFactory" not in text and "com.ibm.mq" not in text and "MQQueue" not in text:

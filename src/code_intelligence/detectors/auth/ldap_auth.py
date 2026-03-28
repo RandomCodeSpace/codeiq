@@ -5,6 +5,7 @@ from __future__ import annotations
 import re
 
 from code_intelligence.detectors.base import DetectorContext, DetectorResult
+from code_intelligence.detectors.utils import decode_text
 from code_intelligence.models.graph import GraphNode, NodeKind, SourceLocation
 
 # -- Java patterns --
@@ -56,7 +57,7 @@ class LdapAuthDetector:
         if ctx.language not in _LANGUAGE_PATTERNS:
             return result
 
-        text = ctx.content.decode("utf-8", errors="replace")
+        text = decode_text(ctx)
         lines = text.split("\n")
         patterns = _LANGUAGE_PATTERNS[ctx.language]
         seen_lines: set[int] = set()
