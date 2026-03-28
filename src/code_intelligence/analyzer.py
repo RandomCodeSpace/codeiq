@@ -327,25 +327,28 @@ class Analyzer:
                 for f in files_to_analyze
             ]
         else:
-            results = []
             max_workers = min(parallelism, len(files_to_analyze))
+            # Use a list aligned with files_to_analyze to preserve
+            # deterministic ordering regardless of thread completion order.
+            result_slots: list[tuple[DiscoveredFile, DetectorResult] | None] = [None] * len(files_to_analyze)
             with ThreadPoolExecutor(max_workers=max_workers) as executor:
                 futures = {
                     executor.submit(
                         _analyze_file, f, repo_path, self._registry, pm
-                    ): f
-                    for f in files_to_analyze
+                    ): idx
+                    for idx, f in enumerate(files_to_analyze)
                 }
                 for future in as_completed(futures):
+                    idx = futures[future]
                     try:
-                        results.append(future.result())
+                        result_slots[idx] = future.result()
                     except Exception:
-                        src_file = futures[future]
                         logger.warning(
                             "Analysis failed for %s",
-                            src_file.path,
+                            files_to_analyze[idx].path,
                             exc_info=True,
                         )
+            results = [r for r in result_slots if r is not None]
 
         # ----------------------------------------------------------
         # 5. Aggregate results into graph builder

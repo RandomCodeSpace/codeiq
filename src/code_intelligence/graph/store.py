@@ -110,7 +110,7 @@ class GraphStore:
             for source, _, data in self._g.in_edges(node_id, data=True):
                 if edge_kinds is None or EdgeKind(data.get("kind", "")) in edge_kinds:
                     result.add(source)
-        return list(result)
+        return sorted(result)
 
     def subgraph(self, node_ids: set[str]) -> GraphStore:
         """Create a new GraphStore containing only the specified nodes and edges between them."""

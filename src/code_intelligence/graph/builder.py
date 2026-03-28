@@ -59,8 +59,8 @@ class TopicLinker:
                 producers.update(producers_by_topic.get(tid, []))
                 consumers.update(consumers_by_topic.get(tid, []))
 
-            for prod in producers:
-                for cons in consumers:
+            for prod in sorted(producers):
+                for cons in sorted(consumers):
                     if prod != cons:
                         edges.append(
                             GraphEdge(
