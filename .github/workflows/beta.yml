@@ -99,7 +99,7 @@ jobs:
 
           **Install:**
           \`\`\`bash
-          pip install https://github.com/RandomCodeSpace/osscodeiq/releases/download/${BETA_TAG}/osscodeiq-${BETA_PEP}-py3-none-any.whl
+          pip install https://github.com/RandomCodeSpace/code-iq/releases/download/${BETA_TAG}/osscodeiq-${BETA_PEP}-py3-none-any.whl
           \`\`\`
 
           **Or with osscodeiq CLI:**
