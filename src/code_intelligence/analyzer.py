@@ -71,6 +71,33 @@ def _parse_structured(language: str, content: bytes, file_path: str) -> Any:
     elif language == "sql":
         from code_intelligence.parsing.structured.sql_parser import SqlParser
         return SqlParser().parse(content, file_path)
+    elif language == "toml":
+        try:
+            import tomllib
+        except ModuleNotFoundError:
+            import tomli as tomllib  # type: ignore[no-redef]
+        try:
+            text = content.decode("utf-8", errors="replace")
+            data = tomllib.loads(text)
+        except Exception as exc:
+            return {"error": "invalid_toml", "file": file_path, "detail": str(exc)}
+        return {"type": "toml", "file": file_path, "data": data}
+    elif language == "ini":
+        import configparser
+        try:
+            text = content.decode("utf-8", errors="replace")
+            parser = configparser.ConfigParser()
+            parser.read_string(text)
+            data = {section: dict(parser[section]) for section in parser.sections()}
+        except Exception as exc:
+            return {"error": "invalid_ini", "file": file_path, "detail": str(exc)}
+        return {"type": "ini", "file": file_path, "data": data}
+    elif language == "markdown":
+        # Return raw text for regex-based detection
+        return {"type": "markdown", "file": file_path, "data": content.decode("utf-8", errors="replace")}
+    elif language == "proto":
+        # Return raw text for regex-based detection
+        return {"type": "proto", "file": file_path, "data": content.decode("utf-8", errors="replace")}
     return None
 
 

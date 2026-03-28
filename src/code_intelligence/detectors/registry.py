@@ -82,6 +82,25 @@ class DetectorRegistry:
             "code_intelligence.detectors.typescript.nestjs_controllers",
             "code_intelligence.detectors.typescript.graphql_resolvers",
             "code_intelligence.detectors.typescript.typeorm_entities",
+            # Config/structured data detectors
+            "code_intelligence.detectors.config.json_structure",
+            "code_intelligence.detectors.config.yaml_structure",
+            "code_intelligence.detectors.config.toml_structure",
+            "code_intelligence.detectors.config.ini_structure",
+            "code_intelligence.detectors.config.package_json",
+            "code_intelligence.detectors.config.tsconfig_json",
+            "code_intelligence.detectors.config.openapi",
+            "code_intelligence.detectors.config.docker_compose",
+            "code_intelligence.detectors.config.github_actions",
+            "code_intelligence.detectors.config.kubernetes",
+            "code_intelligence.detectors.config.pyproject_toml",
+            "code_intelligence.detectors.config.sql_structure",
+            "code_intelligence.detectors.config.batch_structure",
+            "code_intelligence.detectors.config.properties_detector",
+            # Documentation detectors
+            "code_intelligence.detectors.docs.markdown_structure",
+            # Protocol Buffer detectors
+            "code_intelligence.detectors.proto.proto_structure",
         ]
         for module_path in builtin_modules:
             try:
