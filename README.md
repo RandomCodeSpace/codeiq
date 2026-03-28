@@ -6,25 +6,23 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/RandomCodeSpace/code-iq/actions"><img src="https://img.shields.io/github/actions/workflow/status/RandomCodeSpace/code-iq/ci.yml?branch=main&style=flat-square&logo=github&label=CI" alt="CI"></a>
+  <a href="https://github.com/RandomCodeSpace/code-iq/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/RandomCodeSpace/code-iq/ci.yml?branch=main&style=flat-square&logo=github&label=CI" alt="CI"></a>
+  <a href="https://github.com/RandomCodeSpace/code-iq/actions/workflows/beta.yml"><img src="https://img.shields.io/github/actions/workflow/status/RandomCodeSpace/code-iq/beta.yml?branch=main&style=flat-square&logo=github&label=Beta" alt="Beta Build"></a>
   <a href="https://github.com/RandomCodeSpace/code-iq/releases"><img src="https://img.shields.io/github/v/release/RandomCodeSpace/code-iq?include_prereleases&style=flat-square&logo=github&label=Release" alt="Release"></a>
-  <a href="https://github.com/RandomCodeSpace/code-iq"><img src="https://img.shields.io/badge/PyPI-coming%20soon-lightgrey?style=flat-square&logo=pypi&logoColor=white" alt="PyPI"></a>
   <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.11%2B-blue?style=flat-square&logo=python&logoColor=white" alt="Python 3.11+"></a>
   <a href="https://github.com/RandomCodeSpace/code-iq/blob/main/LICENSE"><img src="https://img.shields.io/github/license/RandomCodeSpace/code-iq?style=flat-square&label=License" alt="MIT License"></a>
+  <a href="https://snyk.io/test/github/RandomCodeSpace/code-iq"><img src="https://snyk.io/test/github/RandomCodeSpace/code-iq/badge.svg?style=flat-square" alt="Snyk Vulnerabilities"></a>
+  <a href="https://sonarcloud.io/summary/overall?id=RandomCodeSpace_code-iq"><img src="https://sonarcloud.io/api/project_badges/measure?project=RandomCodeSpace_code-iq&metric=security_rating&style=flat-square" alt="Sonarcloud Security"></a>
+  <a href="https://sonarcloud.io/summary/overall?id=RandomCodeSpace_code-iq"><img src="https://sonarcloud.io/api/project_badges/measure?project=RandomCodeSpace_code-iq&metric=reliability_rating" alt="Sonarcloud Reliability"></a>
+  <a href="https://sonarcloud.io/summary/overall?id=RandomCodeSpace_code-iq"><img src="https://sonarcloud.io/api/project_badges/measure?project=RandomCodeSpace_code-iq&metric=sqale_rating" alt="Sonarcloud Maintainability"></a>
+  <a href="https://sonarcloud.io/summary/overall?id=RandomCodeSpace_code-iq"><img src="https://sonarcloud.io/api/project_badges/measure?project=RandomCodeSpace_code-iq&metric=bugs" alt="Sonarcloud Bugs"></a>
+  <a href="https://sonarcloud.io/summary/overall?id=RandomCodeSpace_code-iq"><img src="https://sonarcloud.io/api/project_badges/measure?project=RandomCodeSpace_code-iq&metric=vulnerabilities" alt="Sonarcloud Vulnerabilities"></a>
   <a href="https://github.com/RandomCodeSpace/code-iq"><img src="https://img.shields.io/github/stars/RandomCodeSpace/code-iq?style=flat-square&logo=github&label=Stars" alt="Stars"></a>
   <a href="https://github.com/RandomCodeSpace/code-iq/issues"><img src="https://img.shields.io/github/issues/RandomCodeSpace/code-iq?style=flat-square&logo=github&label=Issues" alt="Issues"></a>
-  <a href="https://github.com/RandomCodeSpace/code-iq/pulls"><img src="https://img.shields.io/github/issues-pr/RandomCodeSpace/code-iq?style=flat-square&logo=github&label=PRs" alt="Pull Requests"></a>
   <a href="https://github.com/RandomCodeSpace/code-iq/commits/main"><img src="https://img.shields.io/github/last-commit/RandomCodeSpace/code-iq?style=flat-square&logo=github&label=Last%20Commit" alt="Last Commit"></a>
-  <a href="https://github.com/RandomCodeSpace/code-iq"><img src="https://img.shields.io/github/repo-size/RandomCodeSpace/code-iq?style=flat-square&logo=github&label=Repo%20Size" alt="Repo Size"></a>
-  <a href="https://github.com/RandomCodeSpace/code-iq/actions/workflows/security.yml"><img src="https://img.shields.io/github/actions/workflow/status/RandomCodeSpace/code-iq/security.yml?branch=main&style=flat-square&logo=shieldsdotio&logoColor=white&label=Security%20Scan" alt="Security Scan"></a>
-  <a href="https://github.com/RandomCodeSpace/code-iq/security/dependabot"><img src="https://img.shields.io/badge/dependabot-enabled-brightgreen?style=flat-square&logo=dependabot&logoColor=white" alt="Dependabot enabled"></a>
-  <a href="https://github.com/RandomCodeSpace/code-iq/actions/workflows/beta.yml"><img src="https://img.shields.io/github/actions/workflow/status/RandomCodeSpace/code-iq/beta.yml?branch=main&style=flat-square&logo=github&label=Beta" alt="Beta Build"></a>
-  <!-- DYNAMIC:vulnerabilities --><a href="https://github.com/RandomCodeSpace/code-iq/security/dependabot"><img src="https://img.shields.io/badge/vulnerabilities-0-brightgreen?style=flat-square&logo=hackthebox&logoColor=white" alt="0 Vulnerabilities"></a><!-- /DYNAMIC:vulnerabilities -->
-  <!-- DYNAMIC:detectors --><a href="https://github.com/RandomCodeSpace/code-iq"><img src="https://img.shields.io/badge/detectors-97-brightgreen?style=flat-square&logo=codefactor&logoColor=white" alt="97 Detectors"></a><!-- /DYNAMIC:detectors -->
-  <!-- DYNAMIC:languages --><a href="https://github.com/RandomCodeSpace/code-iq"><img src="https://img.shields.io/badge/languages-35-blue?style=flat-square&logo=stackblitz&logoColor=white" alt="35 Languages"></a><!-- /DYNAMIC:languages -->
-  <!-- DYNAMIC:tests --><a href="https://github.com/RandomCodeSpace/code-iq"><img src="https://img.shields.io/badge/tests-1662%20passed-brightgreen?style=flat-square&logo=pytest&logoColor=white" alt="1662 passed Tests"></a><!-- /DYNAMIC:tests -->
-  <!-- DYNAMIC:files --><a href="https://github.com/RandomCodeSpace/code-iq"><img src="https://img.shields.io/badge/files-286-informational?style=flat-square&logo=files&logoColor=white" alt="286 Files"></a><!-- /DYNAMIC:files -->
-  <!-- DYNAMIC:loc --><a href="https://github.com/RandomCodeSpace/code-iq"><img src="https://img.shields.io/badge/LOC-36%2C201-informational?style=flat-square&logo=codacy&logoColor=white" alt="36,201 LOC"></a><!-- /DYNAMIC:loc -->
+  <a href="https://github.com/RandomCodeSpace/code-iq"><img src="https://img.shields.io/badge/detectors-97-brightgreen?style=flat-square&logo=codefactor&logoColor=white" alt="97 Detectors"></a>
+  <a href="https://github.com/RandomCodeSpace/code-iq"><img src="https://img.shields.io/badge/languages-35-blue?style=flat-square&logo=stackblitz&logoColor=white" alt="35 Languages"></a>
+  <a href="https://github.com/RandomCodeSpace/code-iq"><img src="https://img.shields.io/badge/tests-1662-brightgreen?style=flat-square&logo=pytest&logoColor=white" alt="1662 Tests"></a>
 </p>
 
 ---
