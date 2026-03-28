@@ -8,7 +8,7 @@
 <p align="center">
   <a href="https://github.com/RandomCodeSpace/code-iq/actions"><img src="https://img.shields.io/github/actions/workflow/status/RandomCodeSpace/code-iq/ci.yml?branch=main&style=flat-square&logo=github&label=CI" alt="CI"></a>
   <a href="https://github.com/RandomCodeSpace/code-iq/releases"><img src="https://img.shields.io/github/v/release/RandomCodeSpace/code-iq?style=flat-square&logo=github&label=Release" alt="Release"></a>
-  <a href="https://pypi.org/project/code-intelligence/"><img src="https://img.shields.io/pypi/v/code-intelligence?style=flat-square&logo=pypi&logoColor=white&label=PyPI" alt="PyPI"></a>
+  <a href="https://github.com/RandomCodeSpace/code-iq"><img src="https://img.shields.io/badge/PyPI-coming%20soon-lightgrey?style=flat-square&logo=pypi&logoColor=white" alt="PyPI"></a>
   <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.11%2B-blue?style=flat-square&logo=python&logoColor=white" alt="Python 3.11+"></a>
   <a href="https://github.com/RandomCodeSpace/code-iq/blob/main/LICENSE"><img src="https://img.shields.io/github/license/RandomCodeSpace/code-iq?style=flat-square&label=License" alt="MIT License"></a>
   <a href="https://github.com/RandomCodeSpace/code-iq"><img src="https://img.shields.io/github/stars/RandomCodeSpace/code-iq?style=flat-square&logo=github&label=Stars" alt="Stars"></a>
@@ -19,25 +19,13 @@
   <a href="https://github.com/RandomCodeSpace/code-iq"><img src="https://img.shields.io/badge/detectors-58-brightgreen?style=flat-square&logo=codefactor&logoColor=white" alt="58 Detectors"></a>
   <a href="https://github.com/RandomCodeSpace/code-iq"><img src="https://img.shields.io/badge/languages-33-blue?style=flat-square&logo=stackblitz&logoColor=white" alt="33 Languages"></a>
   <a href="https://github.com/RandomCodeSpace/code-iq"><img src="https://img.shields.io/badge/tests-113%20passed-brightgreen?style=flat-square&logo=pytest&logoColor=white" alt="113 Tests"></a>
+  <a href="https://github.com/RandomCodeSpace/code-iq"><img src="https://img.shields.io/badge/files-137-informational?style=flat-square&logo=files&logoColor=white" alt="137 Files"></a>
+  <a href="https://github.com/RandomCodeSpace/code-iq"><img src="https://img.shields.io/badge/LOC-15%2C277-informational?style=flat-square&logo=codacy&logoColor=white" alt="15,277 LOC"></a>
 </p>
 
 ---
 
 **Code Intelligence** scans codebases to build a rich knowledge graph of code relationships — classes, methods, endpoints, entities, dependencies, infrastructure resources, configurations, and more. It understands 33 programming languages and frameworks with 58 specialized detectors, incremental caching for fast re-analysis, and parallel processing.
-
-## Project Stats
-
-| Metric | Count |
-|--------|-------|
-| Source files | 109 |
-| Test files | 28 |
-| Total files | 137 |
-| Source LOC | 13,202 |
-| Test LOC | 2,075 |
-| Total LOC | 15,277 |
-| Detectors | 58 |
-| Languages supported | 33 |
-| Tests | 113 |
 
 ## Features
 
