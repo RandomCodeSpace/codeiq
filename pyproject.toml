@@ -30,6 +30,11 @@ dev = [
 ]
 kuzu = ["kuzu>=0.6"]
 all-backends = ["kuzu>=0.6"]
+server = [
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.34",
+    "fastmcp>=2.0",
+]
 
 [project.scripts]
 code-iq = "code_intelligence.cli:app"
@@ -41,7 +46,7 @@ code-intelligence = "code_intelligence.cli:app"
 where = ["src"]
 
 [tool.setuptools.package-data]
-code_intelligence = ["flow/templates/*.html", "flow/vendor/*.js"]
+code_intelligence = ["flow/templates/*.html", "flow/vendor/*.js", "server/templates/*.html"]
 
 [tool.pytest.ini_options]
 testpaths = ["tests"]

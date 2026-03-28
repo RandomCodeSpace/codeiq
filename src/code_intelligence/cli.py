@@ -684,5 +684,34 @@ def flow(
     store.close()
 
 
+@app.command()
+def serve(
+    path: Annotated[Path, typer.Argument(help="Path to the codebase")] = Path("."),
+    port: Annotated[int, typer.Option("--port", "-p", help="Port to listen on")] = 8080,
+    host: Annotated[str, typer.Option("--host", help="Host to bind to")] = "0.0.0.0",
+    backend: Annotated[str, typer.Option("--backend", "-b", help="Graph backend")] = "networkx",
+    config: Annotated[Optional[Path], typer.Option("--config", "-c")] = None,
+) -> None:
+    """Start the Code IQ server (API + MCP on one port)."""
+    try:
+        import uvicorn
+    except ImportError:
+        console.print("Server dependencies not installed. Run: pip install code-intelligence[server]")
+        raise typer.Exit(1)
+    from code_intelligence.server.app import create_app
+
+    console.print(f"[bold]Code IQ Server[/bold]")
+    console.print(f"  Codebase: {path.resolve()}")
+    console.print(f"  Backend:  {backend}")
+    console.print(f"  API docs: http://{host}:{port}/docs")
+    console.print(f"  MCP:      http://{host}:{port}/mcp")
+    console.print()
+
+    application = create_app(
+        codebase_path=path.resolve(), backend=backend, config_path=config
+    )
+    uvicorn.run(application, host=host, port=port)
+
+
 if __name__ == "__main__":
     app()
