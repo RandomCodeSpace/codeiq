@@ -33,7 +33,7 @@ jobs:
           pytest tests/ --cov=code_intelligence --cov-report=xml:coverage.xml --junitxml=test-results.xml -q || true
 
       - name: SonarCloud Scan
-        uses: SonarSource/sonarqube-scan-action@v5
+        uses: SonarSource/sonarqube-scan-action@v6
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
