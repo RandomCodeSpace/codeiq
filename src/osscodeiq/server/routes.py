@@ -113,8 +113,8 @@ def create_router(service: CodeIQService) -> APIRouter:
     # ── Flow ─────────────────────────────────────────────────────────────
 
     @router.get("/flow/{view}")
-    async def generate_flow(view: str, format: str = "json"):
-        return service.generate_flow(view, format=format)
+    async def generate_flow(view: str, fmt: str = "json"):
+        return service.generate_flow(view, fmt=fmt)
 
     @router.get("/flow")
     async def generate_all_flows():
