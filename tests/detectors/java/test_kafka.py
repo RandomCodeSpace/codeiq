@@ -1,8 +1,8 @@
 """Tests for Kafka producer/consumer detector."""
 
-from code_intelligence.detectors.base import DetectorContext, DetectorResult
-from code_intelligence.detectors.java.kafka import KafkaDetector
-from code_intelligence.models.graph import NodeKind, EdgeKind
+from osscodeiq.detectors.base import DetectorContext, DetectorResult
+from osscodeiq.detectors.java.kafka import KafkaDetector
+from osscodeiq.models.graph import NodeKind, EdgeKind
 
 
 def _ctx(content: str, path: str = "OrderEventHandler.java", language: str = "java") -> DetectorContext:

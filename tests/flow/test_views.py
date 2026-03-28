@@ -1,15 +1,15 @@
 """Tests for flow view generators."""
 
-from code_intelligence.flow.models import FlowDiagram
-from code_intelligence.flow.views import (
+from osscodeiq.flow.models import FlowDiagram
+from osscodeiq.flow.views import (
     build_auth_view,
     build_ci_view,
     build_deploy_view,
     build_overview,
     build_runtime_view,
 )
-from code_intelligence.graph.store import GraphStore
-from code_intelligence.models.graph import EdgeKind, GraphEdge, GraphNode, NodeKind, SourceLocation
+from osscodeiq.graph.store import GraphStore
+from osscodeiq.models.graph import EdgeKind, GraphEdge, GraphNode, NodeKind, SourceLocation
 
 
 # ---------------------------------------------------------------------------

@@ -1,8 +1,8 @@
 """Tests for gRPC service detector."""
 
-from code_intelligence.detectors.base import DetectorContext, DetectorResult
-from code_intelligence.detectors.java.grpc_service import GrpcServiceDetector
-from code_intelligence.models.graph import NodeKind, EdgeKind
+from osscodeiq.detectors.base import DetectorContext, DetectorResult
+from osscodeiq.detectors.java.grpc_service import GrpcServiceDetector
+from osscodeiq.models.graph import NodeKind, EdgeKind
 
 
 def _ctx(content: str, path: str = "UserServiceImpl.java", language: str = "java") -> DetectorContext:

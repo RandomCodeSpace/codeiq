@@ -30,7 +30,7 @@ jobs:
 
       - name: Run tests with coverage
         run: |
-          pytest tests/ --cov=code_intelligence --cov-report=xml:coverage.xml --junitxml=test-results.xml -q || true
+          pytest tests/ --cov=osscodeiq --cov-report=xml:coverage.xml --junitxml=test-results.xml -q || true
 
       - name: SonarCloud Scan
         uses: SonarSource/sonarqube-scan-action@v6

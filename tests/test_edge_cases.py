@@ -6,7 +6,7 @@ They may return empty results (correct behavior) or detect something
 """
 
 import pytest
-from code_intelligence.detectors.base import DetectorResult
+from osscodeiq.detectors.base import DetectorResult
 
 
 def _make_ctx_for_detector(detector, factory):

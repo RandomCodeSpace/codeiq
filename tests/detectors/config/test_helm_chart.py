@@ -1,8 +1,8 @@
 """Tests for Helm chart detector."""
 
-from code_intelligence.detectors.base import DetectorContext, DetectorResult
-from code_intelligence.detectors.config.helm_chart import HelmChartDetector
-from code_intelligence.models.graph import NodeKind, EdgeKind
+from osscodeiq.detectors.base import DetectorContext, DetectorResult
+from osscodeiq.detectors.config.helm_chart import HelmChartDetector
+from osscodeiq.models.graph import NodeKind, EdgeKind
 
 
 def _ctx(

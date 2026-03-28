@@ -1,6 +1,6 @@
 """Tests for shell detectors."""
-from code_intelligence.detectors.base import DetectorContext
-from code_intelligence.models.graph import NodeKind
+from osscodeiq.detectors.base import DetectorContext
+from osscodeiq.models.graph import NodeKind
 
 
 class TestBashDetector:
@@ -16,7 +16,7 @@ cleanup() {
 export DB_HOST=localhost
 '''
         ctx = DetectorContext(file_path="deploy.sh", language="bash", content=source, module_name="scripts")
-        from code_intelligence.detectors.shell.bash_detector import BashDetector
+        from osscodeiq.detectors.shell.bash_detector import BashDetector
         result = BashDetector().detect(ctx)
         methods = [n for n in result.nodes if n.kind == NodeKind.METHOD]
         assert len(methods) >= 2  # deploy_app + cleanup
@@ -39,7 +39,7 @@ function Get-ServiceHealth {
 }
 '''
         ctx = DetectorContext(file_path="deploy.ps1", language="powershell", content=source, module_name="scripts")
-        from code_intelligence.detectors.shell.powershell_detector import PowerShellDetector
+        from osscodeiq.detectors.shell.powershell_detector import PowerShellDetector
         result = PowerShellDetector().detect(ctx)
         methods = [n for n in result.nodes if n.kind == NodeKind.METHOD]
         assert len(methods) >= 2

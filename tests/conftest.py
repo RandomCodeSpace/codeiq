@@ -6,8 +6,8 @@ from pathlib import Path
 
 import pytest
 
-from code_intelligence.detectors.base import DetectorContext, DetectorResult
-from code_intelligence.detectors.registry import DetectorRegistry
+from osscodeiq.detectors.base import DetectorContext, DetectorResult
+from osscodeiq.detectors.registry import DetectorRegistry
 
 
 FIXTURES_DIR = Path(__file__).parent / "fixtures"

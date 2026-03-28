@@ -1,8 +1,8 @@
 """Tests for the frontend route detector."""
 
-from code_intelligence.detectors.base import DetectorContext, DetectorResult
-from code_intelligence.detectors.frontend.frontend_routes import FrontendRouteDetector
-from code_intelligence.models.graph import NodeKind, EdgeKind
+from osscodeiq.detectors.base import DetectorContext, DetectorResult
+from osscodeiq.detectors.frontend.frontend_routes import FrontendRouteDetector
+from osscodeiq.models.graph import NodeKind, EdgeKind
 
 
 def _ctx(content: str, file_path: str = "routes.tsx") -> DetectorContext:

@@ -1,7 +1,7 @@
 """Tests for Python detectors."""
 
-from code_intelligence.detectors.base import DetectorContext
-from code_intelligence.models.graph import NodeKind, EdgeKind
+from osscodeiq.detectors.base import DetectorContext
+from osscodeiq.models.graph import NodeKind, EdgeKind
 
 
 def _ctx(content: bytes, file_path: str = "test.py") -> DetectorContext:
@@ -15,7 +15,7 @@ def _ctx(content: bytes, file_path: str = "test.py") -> DetectorContext:
 
 class TestFastAPIRouteDetector:
     def test_detect_routes(self, fastapi_source):
-        from code_intelligence.detectors.python.fastapi_routes import FastAPIRouteDetector
+        from osscodeiq.detectors.python.fastapi_routes import FastAPIRouteDetector
         detector = FastAPIRouteDetector()
         result = detector.detect(_ctx(fastapi_source, file_path="app.py"))
         endpoints = [n for n in result.nodes if n.kind == NodeKind.ENDPOINT]
@@ -26,7 +26,7 @@ class TestFastAPIRouteDetector:
 
 class TestSQLAlchemyModelDetector:
     def test_detect_models(self, sqlalchemy_source):
-        from code_intelligence.detectors.python.sqlalchemy_models import SQLAlchemyModelDetector
+        from osscodeiq.detectors.python.sqlalchemy_models import SQLAlchemyModelDetector
         detector = SQLAlchemyModelDetector()
         result = detector.detect(_ctx(sqlalchemy_source, file_path="models.py"))
         entities = [n for n in result.nodes if n.kind == NodeKind.ENTITY]

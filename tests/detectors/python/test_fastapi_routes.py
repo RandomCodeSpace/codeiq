@@ -1,8 +1,8 @@
 """Tests for FastAPI route detector."""
 
-from code_intelligence.detectors.base import DetectorContext, DetectorResult
-from code_intelligence.detectors.python.fastapi_routes import FastAPIRouteDetector
-from code_intelligence.models.graph import NodeKind
+from osscodeiq.detectors.base import DetectorContext, DetectorResult
+from osscodeiq.detectors.python.fastapi_routes import FastAPIRouteDetector
+from osscodeiq.models.graph import NodeKind
 
 
 def _ctx(content: str, path: str = "main.py", language: str = "python") -> DetectorContext:

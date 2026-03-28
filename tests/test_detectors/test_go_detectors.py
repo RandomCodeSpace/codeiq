@@ -1,7 +1,7 @@
 """Tests for Go detectors."""
 
-from code_intelligence.detectors.base import DetectorContext
-from code_intelligence.models.graph import NodeKind, EdgeKind
+from osscodeiq.detectors.base import DetectorContext
+from osscodeiq.models.graph import NodeKind, EdgeKind
 
 
 def _ctx(content, file_path="main.go"):
@@ -34,7 +34,7 @@ func NewUserService(db *sql.DB) *UserService {
     return &UserService{db: db}
 }
 '''
-        from code_intelligence.detectors.go.go_structures import GoStructuresDetector
+        from osscodeiq.detectors.go.go_structures import GoStructuresDetector
 
         result = GoStructuresDetector().detect(_ctx(source))
         classes = [n for n in result.nodes if n.kind == NodeKind.CLASS]
@@ -51,7 +51,7 @@ package main
 func main() {
 }
 '''
-        from code_intelligence.detectors.go.go_structures import GoStructuresDetector
+        from osscodeiq.detectors.go.go_structures import GoStructuresDetector
 
         result = GoStructuresDetector().detect(_ctx(source))
         modules = [n for n in result.nodes if n.kind == NodeKind.MODULE]
@@ -72,7 +72,7 @@ import "os"
 func main() {
 }
 '''
-        from code_intelligence.detectors.go.go_structures import GoStructuresDetector
+        from osscodeiq.detectors.go.go_structures import GoStructuresDetector
 
         result = GoStructuresDetector().detect(_ctx(source))
         import_edges = [e for e in result.edges if e.kind == EdgeKind.IMPORTS]
@@ -91,7 +91,7 @@ type privateStruct struct {}
 func PublicFunc() {}
 func privateFunc() {}
 '''
-        from code_intelligence.detectors.go.go_structures import GoStructuresDetector
+        from osscodeiq.detectors.go.go_structures import GoStructuresDetector
 
         result = GoStructuresDetector().detect(_ctx(source))
         node_map = {n.label: n for n in result.nodes if n.kind in (NodeKind.CLASS, NodeKind.METHOD)}
@@ -109,7 +109,7 @@ type Server struct {}
 func (s *Server) Start() {}
 func (s Server) Stop() {}
 '''
-        from code_intelligence.detectors.go.go_structures import GoStructuresDetector
+        from osscodeiq.detectors.go.go_structures import GoStructuresDetector
 
         result = GoStructuresDetector().detect(_ctx(source))
         defines_edges = [e for e in result.edges if e.kind == EdgeKind.DEFINES]
@@ -118,7 +118,7 @@ func (s Server) Stop() {}
         assert "main.go:Server" in sources
 
     def test_supported_languages(self):
-        from code_intelligence.detectors.go.go_structures import GoStructuresDetector
+        from osscodeiq.detectors.go.go_structures import GoStructuresDetector
 
         d = GoStructuresDetector()
         assert "go" in d.supported_languages

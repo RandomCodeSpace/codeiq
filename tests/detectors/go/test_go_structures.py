@@ -1,8 +1,8 @@
 """Tests for GoStructuresDetector."""
 
-from code_intelligence.detectors.base import DetectorContext, DetectorResult
-from code_intelligence.detectors.go.go_structures import GoStructuresDetector
-from code_intelligence.models.graph import EdgeKind, NodeKind
+from osscodeiq.detectors.base import DetectorContext, DetectorResult
+from osscodeiq.detectors.go.go_structures import GoStructuresDetector
+from osscodeiq.models.graph import EdgeKind, NodeKind
 
 
 def _ctx(content, path="main.go"):

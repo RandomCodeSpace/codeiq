@@ -1,8 +1,8 @@
 """Tests for CSharpEfcoreDetector."""
 
-from code_intelligence.detectors.base import DetectorContext, DetectorResult
-from code_intelligence.detectors.csharp.csharp_efcore import CSharpEfcoreDetector
-from code_intelligence.models.graph import EdgeKind, NodeKind
+from osscodeiq.detectors.base import DetectorContext, DetectorResult
+from osscodeiq.detectors.csharp.csharp_efcore import CSharpEfcoreDetector
+from osscodeiq.models.graph import EdgeKind, NodeKind
 
 
 def _ctx(content, path="AppDbContext.cs"):

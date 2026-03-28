@@ -1,8 +1,8 @@
 """Tests for PowerShell detector."""
 
-from code_intelligence.detectors.base import DetectorContext, DetectorResult
-from code_intelligence.detectors.shell.powershell_detector import PowerShellDetector
-from code_intelligence.models.graph import NodeKind, EdgeKind
+from osscodeiq.detectors.base import DetectorContext, DetectorResult
+from osscodeiq.detectors.shell.powershell_detector import PowerShellDetector
+from osscodeiq.models.graph import NodeKind, EdgeKind
 
 
 def _ctx(content: str, path: str = "script.ps1", language: str = "powershell") -> DetectorContext:

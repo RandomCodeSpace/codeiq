@@ -1,8 +1,8 @@
 """Tests for ArchitectView and DomainView."""
 
-from code_intelligence.graph.store import GraphStore
-from code_intelligence.graph.views import ArchitectView
-from code_intelligence.models.graph import (
+from osscodeiq.graph.store import GraphStore
+from osscodeiq.graph.views import ArchitectView
+from osscodeiq.models.graph import (
     EdgeKind,
     GraphEdge,
     GraphNode,

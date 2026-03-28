@@ -1,8 +1,8 @@
 """Tests for Django model detector."""
 
-from code_intelligence.detectors.base import DetectorContext, DetectorResult
-from code_intelligence.detectors.python.django_models import DjangoModelDetector
-from code_intelligence.models.graph import NodeKind, EdgeKind
+from osscodeiq.detectors.base import DetectorContext, DetectorResult
+from osscodeiq.detectors.python.django_models import DjangoModelDetector
+from osscodeiq.models.graph import NodeKind, EdgeKind
 
 
 def _ctx(content: str, path: str = "models.py", language: str = "python") -> DetectorContext:

@@ -37,7 +37,7 @@ jobs:
       - name: Verify wheel contents
         run: |
           pip install dist/*.whl
-          python -c "from code_intelligence.detectors.registry import DetectorRegistry; r = DetectorRegistry(); r.load_builtin_detectors(); print(f'Build OK: {len(r.all_detectors())} detectors')"
+          python -c "from osscodeiq.detectors.registry import DetectorRegistry; r = DetectorRegistry(); r.load_builtin_detectors(); print(f'Build OK: {len(r.all_detectors())} detectors')"
 
       - name: Upload build artifacts
         uses: actions/upload-artifact@v4
@@ -84,10 +84,10 @@ jobs:
         run: pip install dist/*.whl
 
       - name: Verify CLI
-        run: code-intelligence --help
+        run: osscodeiq --help
 
       - name: Verify detectors
-        run: python -c "from code_intelligence.detectors.registry import DetectorRegistry; r = DetectorRegistry(); r.load_builtin_detectors(); print(f'{len(r.all_detectors())} detectors')"
+        run: python -c "from osscodeiq.detectors.registry import DetectorRegistry; r = DetectorRegistry(); r.load_builtin_detectors(); print(f'{len(r.all_detectors())} detectors')"
 
   test-container:
     name: "${{ matrix.name }}"
@@ -128,10 +128,10 @@ jobs:
         run: pip install dist/*.whl || pip3 install dist/*.whl
 
       - name: Verify CLI
-        run: code-intelligence --help || python3 -m code_intelligence.cli --help
+        run: osscodeiq --help || python3 -m osscodeiq.cli --help
 
       - name: Verify detectors
-        run: python3 -c "from code_intelligence.detectors.registry import DetectorRegistry; r = DetectorRegistry(); r.load_builtin_detectors(); print(f'{len(r.all_detectors())} detectors')"
+        run: python3 -c "from osscodeiq.detectors.registry import DetectorRegistry; r = DetectorRegistry(); r.load_builtin_detectors(); print(f'{len(r.all_detectors())} detectors')"
 
   publish-pypi:
     name: Publish to PyPI

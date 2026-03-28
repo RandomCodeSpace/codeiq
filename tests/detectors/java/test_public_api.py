@@ -3,9 +3,9 @@
 import tree_sitter
 import tree_sitter_java
 
-from code_intelligence.detectors.base import DetectorContext, DetectorResult
-from code_intelligence.detectors.java.public_api import PublicApiDetector
-from code_intelligence.models.graph import NodeKind, EdgeKind
+from osscodeiq.detectors.base import DetectorContext, DetectorResult
+from osscodeiq.detectors.java.public_api import PublicApiDetector
+from osscodeiq.models.graph import NodeKind, EdgeKind
 
 
 def _ctx(content: str, path: str = "Service.java", language: str = "java") -> DetectorContext:

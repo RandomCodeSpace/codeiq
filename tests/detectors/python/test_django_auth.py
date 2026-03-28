@@ -1,8 +1,8 @@
 """Tests for Django auth detector."""
 
-from code_intelligence.detectors.base import DetectorContext, DetectorResult
-from code_intelligence.detectors.python.django_auth import DjangoAuthDetector
-from code_intelligence.models.graph import NodeKind
+from osscodeiq.detectors.base import DetectorContext, DetectorResult
+from osscodeiq.detectors.python.django_auth import DjangoAuthDetector
+from osscodeiq.models.graph import NodeKind
 
 
 def _ctx(content: str, file_path: str = "views.py") -> DetectorContext:

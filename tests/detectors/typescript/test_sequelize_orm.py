@@ -1,8 +1,8 @@
 """Tests for Sequelize ORM detector."""
 
-from code_intelligence.detectors.base import DetectorContext, DetectorResult
-from code_intelligence.detectors.typescript.sequelize_orm import SequelizeORMDetector
-from code_intelligence.models.graph import NodeKind, EdgeKind
+from osscodeiq.detectors.base import DetectorContext, DetectorResult
+from osscodeiq.detectors.typescript.sequelize_orm import SequelizeORMDetector
+from osscodeiq.models.graph import NodeKind, EdgeKind
 
 
 def _ctx(content: str, path: str = "src/models.ts", language: str = "typescript") -> DetectorContext:

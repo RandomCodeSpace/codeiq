@@ -1,8 +1,8 @@
 """Tests for Kubernetes RBAC detector."""
 
-from code_intelligence.detectors.base import DetectorContext, DetectorResult
-from code_intelligence.detectors.config.kubernetes_rbac import KubernetesRBACDetector
-from code_intelligence.models.graph import EdgeKind, NodeKind
+from osscodeiq.detectors.base import DetectorContext, DetectorResult
+from osscodeiq.detectors.config.kubernetes_rbac import KubernetesRBACDetector
+from osscodeiq.models.graph import EdgeKind, NodeKind
 
 
 def _ctx(parsed_data, file_path: str = "rbac.yml") -> DetectorContext:

@@ -1,8 +1,8 @@
 """Tests for AWS CloudFormation detector."""
 
-from code_intelligence.detectors.base import DetectorContext, DetectorResult
-from code_intelligence.detectors.config.cloudformation import CloudFormationDetector
-from code_intelligence.models.graph import NodeKind, EdgeKind
+from osscodeiq.detectors.base import DetectorContext, DetectorResult
+from osscodeiq.detectors.config.cloudformation import CloudFormationDetector
+from osscodeiq.models.graph import NodeKind, EdgeKind
 
 
 def _ctx(

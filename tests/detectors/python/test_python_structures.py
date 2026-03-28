@@ -1,8 +1,8 @@
 """Tests for PythonStructuresDetector."""
 
-from code_intelligence.detectors.base import DetectorContext, DetectorResult
-from code_intelligence.detectors.python.python_structures import PythonStructuresDetector
-from code_intelligence.models.graph import EdgeKind, NodeKind
+from osscodeiq.detectors.base import DetectorContext, DetectorResult
+from osscodeiq.detectors.python.python_structures import PythonStructuresDetector
+from osscodeiq.models.graph import EdgeKind, NodeKind
 
 
 def _ctx(content, path="app/service.py"):

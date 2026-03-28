@@ -1,8 +1,8 @@
 """Tests for GraphQL resolver detector."""
 
-from code_intelligence.detectors.base import DetectorContext, DetectorResult
-from code_intelligence.detectors.typescript.graphql_resolvers import GraphQLResolverDetector
-from code_intelligence.models.graph import NodeKind
+from osscodeiq.detectors.base import DetectorContext, DetectorResult
+from osscodeiq.detectors.typescript.graphql_resolvers import GraphQLResolverDetector
+from osscodeiq.models.graph import NodeKind
 
 
 def _ctx(content: str, path: str = "user.resolver.ts", language: str = "typescript") -> DetectorContext:

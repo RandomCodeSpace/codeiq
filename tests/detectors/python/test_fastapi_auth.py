@@ -1,8 +1,8 @@
 """Tests for FastAPI auth detector."""
 
-from code_intelligence.detectors.base import DetectorContext, DetectorResult
-from code_intelligence.detectors.python.fastapi_auth import FastAPIAuthDetector
-from code_intelligence.models.graph import NodeKind
+from osscodeiq.detectors.base import DetectorContext, DetectorResult
+from osscodeiq.detectors.python.fastapi_auth import FastAPIAuthDetector
+from osscodeiq.models.graph import NodeKind
 
 
 def _ctx(content: str, file_path: str = "main.py") -> DetectorContext:

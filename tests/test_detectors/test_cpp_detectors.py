@@ -1,6 +1,6 @@
 """Tests for C/C++ detectors."""
-from code_intelligence.detectors.base import DetectorContext
-from code_intelligence.models.graph import NodeKind
+from osscodeiq.detectors.base import DetectorContext
+from osscodeiq.models.graph import NodeKind
 
 
 def _ctx(content, language="cpp", file_path="main.cpp"):
@@ -24,7 +24,7 @@ struct Config {
 enum class Status { Active, Inactive };
 }
 '''
-        from code_intelligence.detectors.cpp.cpp_structures import CppStructuresDetector
+        from osscodeiq.detectors.cpp.cpp_structures import CppStructuresDetector
         result = CppStructuresDetector().detect(_ctx(source))
         classes = [n for n in result.nodes if n.kind == NodeKind.CLASS]
         enums = [n for n in result.nodes if n.kind == NodeKind.ENUM]
@@ -42,7 +42,7 @@ void process_data(int* data, int size) {
     }
 }
 '''
-        from code_intelligence.detectors.cpp.cpp_structures import CppStructuresDetector
+        from osscodeiq.detectors.cpp.cpp_structures import CppStructuresDetector
         result = CppStructuresDetector().detect(_ctx(source, language="c", file_path="main.c"))
         methods = [n for n in result.nodes if n.kind == NodeKind.METHOD]
         assert len(methods) >= 1

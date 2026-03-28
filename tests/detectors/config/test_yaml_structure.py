@@ -1,8 +1,8 @@
 """Tests for YamlStructureDetector."""
 
-from code_intelligence.detectors.base import DetectorContext, DetectorResult
-from code_intelligence.detectors.config.yaml_structure import YamlStructureDetector
-from code_intelligence.models.graph import NodeKind
+from osscodeiq.detectors.base import DetectorContext, DetectorResult
+from osscodeiq.detectors.config.yaml_structure import YamlStructureDetector
+from osscodeiq.models.graph import NodeKind
 
 
 def _ctx(parsed_data, path="config.yml"):

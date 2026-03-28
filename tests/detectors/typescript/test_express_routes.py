@@ -1,8 +1,8 @@
 """Tests for Express.js route detector."""
 
-from code_intelligence.detectors.base import DetectorContext, DetectorResult
-from code_intelligence.detectors.typescript.express_routes import ExpressRouteDetector
-from code_intelligence.models.graph import NodeKind
+from osscodeiq.detectors.base import DetectorContext, DetectorResult
+from osscodeiq.detectors.typescript.express_routes import ExpressRouteDetector
+from osscodeiq.models.graph import NodeKind
 
 
 def _ctx(content: str, path: str = "routes.ts", language: str = "typescript") -> DetectorContext:

@@ -1,8 +1,8 @@
 """Tests for GitLabCIDetector."""
 
-from code_intelligence.detectors.config.gitlab_ci import GitLabCIDetector
-from code_intelligence.detectors.base import DetectorContext
-from code_intelligence.models.graph import NodeKind, EdgeKind
+from osscodeiq.detectors.config.gitlab_ci import GitLabCIDetector
+from osscodeiq.detectors.base import DetectorContext
+from osscodeiq.models.graph import NodeKind, EdgeKind
 
 
 def _ctx(data, path=".gitlab-ci.yml"):

@@ -2,9 +2,9 @@
 
 import pytest
 
-from code_intelligence.graph.store import GraphStore
-from code_intelligence.models.graph import GraphNode, NodeKind
-from code_intelligence.output.safety import check_graph_size
+from osscodeiq.graph.store import GraphStore
+from osscodeiq.models.graph import GraphNode, NodeKind
+from osscodeiq.output.safety import check_graph_size
 
 
 def test_check_graph_size_under_limit():

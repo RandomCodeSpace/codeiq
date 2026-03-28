@@ -1,8 +1,8 @@
 """Tests for Mermaid renderer."""
 
-from code_intelligence.graph.store import GraphStore
-from code_intelligence.models.graph import EdgeKind, GraphEdge, GraphNode, NodeKind
-from code_intelligence.output.mermaid import MermaidRenderer
+from osscodeiq.graph.store import GraphStore
+from osscodeiq.models.graph import EdgeKind, GraphEdge, GraphNode, NodeKind
+from osscodeiq.output.mermaid import MermaidRenderer
 
 
 def _build_sample_store() -> GraphStore:

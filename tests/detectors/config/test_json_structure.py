@@ -2,9 +2,9 @@
 
 import json
 
-from code_intelligence.detectors.base import DetectorContext, DetectorResult
-from code_intelligence.detectors.config.json_structure import JsonStructureDetector
-from code_intelligence.models.graph import NodeKind
+from osscodeiq.detectors.base import DetectorContext, DetectorResult
+from osscodeiq.detectors.config.json_structure import JsonStructureDetector
+from osscodeiq.models.graph import NodeKind
 
 
 def _ctx(content, path="test.json"):

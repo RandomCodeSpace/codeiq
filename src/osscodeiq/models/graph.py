@@ -1,0 +1,116 @@
+"""Core graph data models for OSSCodeIQ."""
+
+from __future__ import annotations
+
+from enum import Enum
+from typing import Any
+
+from pydantic import BaseModel, Field
+
+
+class NodeKind(str, Enum):
+    """Types of nodes in the OSSCodeIQ graph."""
+
+    MODULE = "module"
+    PACKAGE = "package"
+    CLASS = "class"
+    METHOD = "method"
+    ENDPOINT = "endpoint"
+    ENTITY = "entity"
+    REPOSITORY = "repository"
+    QUERY = "query"
+    MIGRATION = "migration"
+    TOPIC = "topic"
+    QUEUE = "queue"
+    EVENT = "event"
+    RMI_INTERFACE = "rmi_interface"
+    CONFIG_FILE = "config_file"
+    CONFIG_KEY = "config_key"
+    WEBSOCKET_ENDPOINT = "websocket_endpoint"
+    INTERFACE = "interface"
+    ABSTRACT_CLASS = "abstract_class"
+    ENUM = "enum"
+    ANNOTATION_TYPE = "annotation_type"
+    PROTOCOL_MESSAGE = "protocol_message"
+    CONFIG_DEFINITION = "config_definition"
+    DATABASE_CONNECTION = "database_connection"
+    AZURE_RESOURCE = "azure_resource"
+    AZURE_FUNCTION = "azure_function"
+    MESSAGE_QUEUE = "message_queue"
+    INFRA_RESOURCE = "infra_resource"
+    COMPONENT = "component"
+    GUARD = "guard"
+    MIDDLEWARE = "middleware"
+    HOOK = "hook"
+
+
+class EdgeKind(str, Enum):
+    """Types of edges (relationships) in the OSSCodeIQ graph."""
+
+    DEPENDS_ON = "depends_on"
+    IMPORTS = "imports"
+    EXTENDS = "extends"
+    IMPLEMENTS = "implements"
+    CALLS = "calls"
+    INJECTS = "injects"
+    EXPOSES = "exposes"
+    QUERIES = "queries"
+    MAPS_TO = "maps_to"
+    PRODUCES = "produces"
+    CONSUMES = "consumes"
+    PUBLISHES = "publishes"
+    LISTENS = "listens"
+    INVOKES_RMI = "invokes_rmi"
+    EXPORTS_RMI = "exports_rmi"
+    READS_CONFIG = "reads_config"
+    MIGRATES = "migrates"
+    CONTAINS = "contains"
+    DEFINES = "defines"
+    OVERRIDES = "overrides"
+    CONNECTS_TO = "connects_to"
+    TRIGGERS = "triggers"
+    PROVISIONS = "provisions"
+    SENDS_TO = "sends_to"
+    RECEIVES_FROM = "receives_from"
+    PROTECTS = "protects"
+    RENDERS = "renders"
+
+
+class SourceLocation(BaseModel):
+    """Source code location reference."""
+
+    file_path: str
+    line_start: int | None = None
+    line_end: int | None = None
+
+
+class GraphNode(BaseModel):
+    """A node in the OSSCodeIQ graph."""
+
+    id: str
+    kind: NodeKind
+    label: str
+    fqn: str | None = None
+    module: str | None = None
+    location: SourceLocation | None = None
+    annotations: list[str] = Field(default_factory=list)
+    properties: dict[str, Any] = Field(default_factory=dict)
+
+
+class GraphEdge(BaseModel):
+    """An edge (relationship) in the OSSCodeIQ graph."""
+
+    source: str
+    target: str
+    kind: EdgeKind
+    label: str | None = None
+    properties: dict[str, Any] = Field(default_factory=dict)
+
+
+class CodeGraph(BaseModel):
+    """Top-level serializable graph container."""
+
+    version: str = "1.0.0"
+    metadata: dict[str, Any] = Field(default_factory=dict)
+    nodes: list[GraphNode] = Field(default_factory=list)
+    edges: list[GraphEdge] = Field(default_factory=list)

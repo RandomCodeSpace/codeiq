@@ -1,8 +1,8 @@
 """Tests for C/C++ structures detector."""
 
-from code_intelligence.detectors.base import DetectorContext, DetectorResult
-from code_intelligence.detectors.cpp.cpp_structures import CppStructuresDetector
-from code_intelligence.models.graph import NodeKind, EdgeKind
+from osscodeiq.detectors.base import DetectorContext, DetectorResult
+from osscodeiq.detectors.cpp.cpp_structures import CppStructuresDetector
+from osscodeiq.models.graph import NodeKind, EdgeKind
 
 
 def _ctx(content: str, path: str = "main.cpp", language: str = "cpp") -> DetectorContext:

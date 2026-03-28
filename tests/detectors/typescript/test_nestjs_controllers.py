@@ -1,8 +1,8 @@
 """Tests for NestJS controller detector."""
 
-from code_intelligence.detectors.base import DetectorContext, DetectorResult
-from code_intelligence.detectors.typescript.nestjs_controllers import NestJSControllerDetector
-from code_intelligence.models.graph import NodeKind, EdgeKind
+from osscodeiq.detectors.base import DetectorContext, DetectorResult
+from osscodeiq.detectors.typescript.nestjs_controllers import NestJSControllerDetector
+from osscodeiq.models.graph import NodeKind, EdgeKind
 
 
 def _ctx(content: str, path: str = "user.controller.ts", language: str = "typescript") -> DetectorContext:

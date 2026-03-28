@@ -1,8 +1,8 @@
 """Tests for Spring application events detector."""
 
-from code_intelligence.detectors.base import DetectorContext, DetectorResult
-from code_intelligence.detectors.java.spring_events import SpringEventsDetector
-from code_intelligence.models.graph import NodeKind, EdgeKind
+from osscodeiq.detectors.base import DetectorContext, DetectorResult
+from osscodeiq.detectors.java.spring_events import SpringEventsDetector
+from osscodeiq.models.graph import NodeKind, EdgeKind
 
 
 def _ctx(content: str, path: str = "EventHandler.java", language: str = "java") -> DetectorContext:

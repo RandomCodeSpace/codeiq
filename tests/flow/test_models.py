@@ -1,6 +1,6 @@
 """Tests for flow diagram models."""
 
-from code_intelligence.flow.models import FlowDiagram, FlowEdge, FlowNode, FlowSubgraph
+from osscodeiq.flow.models import FlowDiagram, FlowEdge, FlowNode, FlowSubgraph
 
 
 def test_flow_node_creation():

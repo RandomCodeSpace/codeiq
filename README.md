@@ -1,33 +1,33 @@
 <p align="center">
-  <h1 align="center">Code Intelligence</h1>
+  <h1 align="center">OSSCodeIQ</h1>
   <p align="center">
     <strong>Deterministic code graph discovery and analysis CLI — no AI, pure pattern matching</strong>
   </p>
 </p>
 
 <p align="center">
-  <a href="https://github.com/RandomCodeSpace/code-iq/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/RandomCodeSpace/code-iq/ci.yml?branch=main&style=flat-square&logo=github&label=CI" alt="CI"></a>
-  <a href="https://github.com/RandomCodeSpace/code-iq/actions/workflows/beta.yml"><img src="https://img.shields.io/github/actions/workflow/status/RandomCodeSpace/code-iq/beta.yml?branch=main&style=flat-square&logo=github&label=Beta" alt="Beta Build"></a>
-  <a href="https://github.com/RandomCodeSpace/code-iq/releases"><img src="https://img.shields.io/github/v/release/RandomCodeSpace/code-iq?include_prereleases&style=flat-square&logo=github&label=Release" alt="Release"></a>
+  <a href="https://github.com/RandomCodeSpace/osscodeiq/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/RandomCodeSpace/osscodeiq/ci.yml?branch=main&style=flat-square&logo=github&label=CI" alt="CI"></a>
+  <a href="https://github.com/RandomCodeSpace/osscodeiq/actions/workflows/beta.yml"><img src="https://img.shields.io/github/actions/workflow/status/RandomCodeSpace/osscodeiq/beta.yml?branch=main&style=flat-square&logo=github&label=Beta" alt="Beta Build"></a>
+  <a href="https://github.com/RandomCodeSpace/osscodeiq/releases"><img src="https://img.shields.io/github/v/release/RandomCodeSpace/osscodeiq?include_prereleases&style=flat-square&logo=github&label=Release" alt="Release"></a>
   <a href="https://www.python.org/downloads/"><img src="https://img.shields.io/badge/python-3.11%2B-blue?style=flat-square&logo=python&logoColor=white" alt="Python 3.11+"></a>
-  <a href="https://github.com/RandomCodeSpace/code-iq/blob/main/LICENSE"><img src="https://img.shields.io/github/license/RandomCodeSpace/code-iq?style=flat-square&label=License" alt="MIT License"></a>
-  <a href="https://github.com/RandomCodeSpace/code-iq/actions/workflows/sbom.yml"><img src="https://img.shields.io/github/actions/workflow/status/RandomCodeSpace/code-iq/sbom.yml?branch=main&style=flat-square&logo=shieldsdotio&logoColor=white&label=SBOM%20%2B%20Audit" alt="SBOM + Dependency Audit"></a>
-  <a href="https://sonarcloud.io/summary/overall?id=RandomCodeSpace_code-iq"><img src="https://sonarcloud.io/api/project_badges/measure?project=RandomCodeSpace_code-iq&metric=security_rating&style=flat-square" alt="Sonarcloud Security"></a>
-  <a href="https://sonarcloud.io/summary/overall?id=RandomCodeSpace_code-iq"><img src="https://sonarcloud.io/api/project_badges/measure?project=RandomCodeSpace_code-iq&metric=reliability_rating" alt="Sonarcloud Reliability"></a>
-  <a href="https://sonarcloud.io/summary/overall?id=RandomCodeSpace_code-iq"><img src="https://sonarcloud.io/api/project_badges/measure?project=RandomCodeSpace_code-iq&metric=sqale_rating" alt="Sonarcloud Maintainability"></a>
-  <a href="https://sonarcloud.io/summary/overall?id=RandomCodeSpace_code-iq"><img src="https://sonarcloud.io/api/project_badges/measure?project=RandomCodeSpace_code-iq&metric=bugs" alt="Sonarcloud Bugs"></a>
-  <a href="https://sonarcloud.io/summary/overall?id=RandomCodeSpace_code-iq"><img src="https://sonarcloud.io/api/project_badges/measure?project=RandomCodeSpace_code-iq&metric=vulnerabilities" alt="Sonarcloud Vulnerabilities"></a>
-  <a href="https://github.com/RandomCodeSpace/code-iq"><img src="https://img.shields.io/github/stars/RandomCodeSpace/code-iq?style=flat-square&logo=github&label=Stars" alt="Stars"></a>
-  <a href="https://github.com/RandomCodeSpace/code-iq/issues"><img src="https://img.shields.io/github/issues/RandomCodeSpace/code-iq?style=flat-square&logo=github&label=Issues" alt="Issues"></a>
-  <a href="https://github.com/RandomCodeSpace/code-iq/commits/main"><img src="https://img.shields.io/github/last-commit/RandomCodeSpace/code-iq?style=flat-square&logo=github&label=Last%20Commit" alt="Last Commit"></a>
-  <a href="https://github.com/RandomCodeSpace/code-iq"><img src="https://img.shields.io/badge/detectors-97-brightgreen?style=flat-square&logo=codefactor&logoColor=white" alt="97 Detectors"></a>
-  <a href="https://github.com/RandomCodeSpace/code-iq"><img src="https://img.shields.io/badge/languages-35-blue?style=flat-square&logo=stackblitz&logoColor=white" alt="35 Languages"></a>
-  <a href="https://github.com/RandomCodeSpace/code-iq"><img src="https://img.shields.io/badge/tests-1662-brightgreen?style=flat-square&logo=pytest&logoColor=white" alt="1662 Tests"></a>
+  <a href="https://github.com/RandomCodeSpace/osscodeiq/blob/main/LICENSE"><img src="https://img.shields.io/github/license/RandomCodeSpace/osscodeiq?style=flat-square&label=License" alt="MIT License"></a>
+  <a href="https://github.com/RandomCodeSpace/osscodeiq/actions/workflows/sbom.yml"><img src="https://img.shields.io/github/actions/workflow/status/RandomCodeSpace/osscodeiq/sbom.yml?branch=main&style=flat-square&logo=shieldsdotio&logoColor=white&label=SBOM%20%2B%20Audit" alt="SBOM + Dependency Audit"></a>
+  <a href="https://sonarcloud.io/summary/overall?id=RandomCodeSpace_osscodeiq"><img src="https://sonarcloud.io/api/project_badges/measure?project=RandomCodeSpace_osscodeiq&metric=security_rating&style=flat-square" alt="Sonarcloud Security"></a>
+  <a href="https://sonarcloud.io/summary/overall?id=RandomCodeSpace_osscodeiq"><img src="https://sonarcloud.io/api/project_badges/measure?project=RandomCodeSpace_osscodeiq&metric=reliability_rating" alt="Sonarcloud Reliability"></a>
+  <a href="https://sonarcloud.io/summary/overall?id=RandomCodeSpace_osscodeiq"><img src="https://sonarcloud.io/api/project_badges/measure?project=RandomCodeSpace_osscodeiq&metric=sqale_rating" alt="Sonarcloud Maintainability"></a>
+  <a href="https://sonarcloud.io/summary/overall?id=RandomCodeSpace_osscodeiq"><img src="https://sonarcloud.io/api/project_badges/measure?project=RandomCodeSpace_osscodeiq&metric=bugs" alt="Sonarcloud Bugs"></a>
+  <a href="https://sonarcloud.io/summary/overall?id=RandomCodeSpace_osscodeiq"><img src="https://sonarcloud.io/api/project_badges/measure?project=RandomCodeSpace_osscodeiq&metric=vulnerabilities" alt="Sonarcloud Vulnerabilities"></a>
+  <a href="https://github.com/RandomCodeSpace/osscodeiq"><img src="https://img.shields.io/github/stars/RandomCodeSpace/osscodeiq?style=flat-square&logo=github&label=Stars" alt="Stars"></a>
+  <a href="https://github.com/RandomCodeSpace/osscodeiq/issues"><img src="https://img.shields.io/github/issues/RandomCodeSpace/osscodeiq?style=flat-square&logo=github&label=Issues" alt="Issues"></a>
+  <a href="https://github.com/RandomCodeSpace/osscodeiq/commits/main"><img src="https://img.shields.io/github/last-commit/RandomCodeSpace/osscodeiq?style=flat-square&logo=github&label=Last%20Commit" alt="Last Commit"></a>
+  <a href="https://github.com/RandomCodeSpace/osscodeiq"><img src="https://img.shields.io/badge/detectors-97-brightgreen?style=flat-square&logo=codefactor&logoColor=white" alt="97 Detectors"></a>
+  <a href="https://github.com/RandomCodeSpace/osscodeiq"><img src="https://img.shields.io/badge/languages-35-blue?style=flat-square&logo=stackblitz&logoColor=white" alt="35 Languages"></a>
+  <a href="https://github.com/RandomCodeSpace/osscodeiq"><img src="https://img.shields.io/badge/tests-1662-brightgreen?style=flat-square&logo=pytest&logoColor=white" alt="1662 Tests"></a>
 </p>
 
 ---
 
-**Code Intelligence** scans codebases to build a deterministic knowledge graph of code relationships — classes, methods, endpoints, entities, dependencies, infrastructure resources, auth patterns, and more. 97 detectors across 35 languages, 3 storage backends (NetworkX, SQLite, KuzuDB), interactive flow diagrams, and zero AI dependency.
+**OSSCodeIQ** scans codebases to build a deterministic knowledge graph of code relationships — classes, methods, endpoints, entities, dependencies, infrastructure resources, auth patterns, and more. 97 detectors across 35 languages, 3 storage backends (NetworkX, SQLite, KuzuDB), interactive flow diagrams, and zero AI dependency.
 
 ## Features
 
@@ -50,22 +50,22 @@
 pip install -e .
 
 # Analyze a codebase
-code-intelligence analyze /path/to/repo
+osscodeiq analyze /path/to/repo
 
 # Generate architecture flow diagram
-code-intelligence flow /path/to/repo --format html --output flow.html
+osscodeiq flow /path/to/repo --format html --output flow.html
 
 # Query the graph
-code-intelligence find endpoints /path/to/repo
-code-intelligence find guards /path/to/repo
-code-intelligence find unprotected /path/to/repo
+osscodeiq find endpoints /path/to/repo
+osscodeiq find guards /path/to/repo
+osscodeiq find unprotected /path/to/repo
 
 # Use Cypher queries (KuzuDB backend)
-code-intelligence analyze /path/to/repo --backend kuzu
-code-intelligence cypher "MATCH (e:CodeNode {kind: 'endpoint'})-[]->(s:CodeNode) RETURN e.label, s.label LIMIT 20" /path/to/repo --backend kuzu
+osscodeiq analyze /path/to/repo --backend kuzu
+osscodeiq cypher "MATCH (e:CodeNode {kind: 'endpoint'})-[]->(s:CodeNode) RETURN e.label, s.label LIMIT 20" /path/to/repo --backend kuzu
 
 # Bundle for distribution
-code-intelligence bundle /path/to/repo --tag v2.1.0 --backend kuzu
+osscodeiq bundle /path/to/repo --tag v2.1.0 --backend kuzu
 ```
 
 ## Supported Languages & Frameworks
@@ -100,7 +100,7 @@ Spring Security, Django Auth, FastAPI Auth, NestJS Guards, Passport/JWT, K8s RBA
 ## Architecture
 
 ```
-code-intelligence analyze /path/to/repo
+osscodeiq analyze /path/to/repo
         |
         v
 +------------------+
@@ -145,16 +145,16 @@ Generate architecture flow diagrams with drill-down views:
 
 ```bash
 # High-level overview
-code-intelligence flow ./my-project --format mermaid
+osscodeiq flow ./my-project --format mermaid
 
 # Drill into specific layers
-code-intelligence flow ./my-project --view ci       # CI/CD pipeline
-code-intelligence flow ./my-project --view deploy   # Deployment topology
-code-intelligence flow ./my-project --view runtime  # Service architecture
-code-intelligence flow ./my-project --view auth     # Security coverage
+osscodeiq flow ./my-project --view ci       # CI/CD pipeline
+osscodeiq flow ./my-project --view deploy   # Deployment topology
+osscodeiq flow ./my-project --view runtime  # Service architecture
+osscodeiq flow ./my-project --view auth     # Security coverage
 
 # Interactive HTML with click-to-drill
-code-intelligence flow ./my-project --format html --output flow.html
+osscodeiq flow ./my-project --format html --output flow.html
 ```
 
 ## Graph Model
@@ -174,18 +174,18 @@ code-intelligence flow ./my-project --format html --output flow.html
 | **KuzuDB** | File | Yes | Directory | Cypher queries, agentic AI |
 
 ```bash
-code-intelligence analyze ./repo --backend kuzu
-code-intelligence analyze ./repo --backend sqlite
+osscodeiq analyze ./repo --backend kuzu
+osscodeiq analyze ./repo --backend sqlite
 ```
 
 ## Development
 
 ```bash
-git clone https://github.com/RandomCodeSpace/code-iq.git
-cd code-iq
+git clone https://github.com/RandomCodeSpace/osscodeiq.git
+cd osscodeiq
 pip install -e ".[dev]"
 pytest                    # 1,662 tests
-code-intelligence analyze . # Analyze this repo
+osscodeiq analyze . # Analyze this repo
 ```
 
 ### Adding a New Detector
@@ -193,10 +193,10 @@ code-intelligence analyze . # Analyze this repo
 Just create a file — auto-discovered, zero registration:
 
 ```python
-# src/code_intelligence/detectors/python/my_detector.py
-from code_intelligence.detectors.base import DetectorContext, DetectorResult
-from code_intelligence.detectors.utils import decode_text
-from code_intelligence.models.graph import GraphNode, NodeKind, SourceLocation
+# src/osscodeiq/detectors/python/my_detector.py
+from osscodeiq.detectors.base import DetectorContext, DetectorResult
+from osscodeiq.detectors.utils import decode_text
+from osscodeiq.models.graph import GraphNode, NodeKind, SourceLocation
 
 class MyDetector:
     name = "my_detector"

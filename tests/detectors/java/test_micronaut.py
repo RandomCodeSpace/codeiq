@@ -1,8 +1,8 @@
 """Tests for Micronaut framework detector."""
 
-from code_intelligence.detectors.base import DetectorContext, DetectorResult
-from code_intelligence.detectors.java.micronaut import MicronautDetector
-from code_intelligence.models.graph import NodeKind, EdgeKind
+from osscodeiq.detectors.base import DetectorContext, DetectorResult
+from osscodeiq.detectors.java.micronaut import MicronautDetector
+from osscodeiq.models.graph import NodeKind, EdgeKind
 
 
 def _ctx(content: str, path: str = "HelloController.java", language: str = "java") -> DetectorContext:

@@ -2,9 +2,9 @@
 
 from __future__ import annotations
 
-from code_intelligence.detectors.auth.certificate_auth import CertificateAuthDetector
-from code_intelligence.detectors.base import DetectorContext
-from code_intelligence.models.graph import NodeKind
+from osscodeiq.detectors.auth.certificate_auth import CertificateAuthDetector
+from osscodeiq.detectors.base import DetectorContext
+from osscodeiq.models.graph import NodeKind
 
 
 def _ctx(content: str, language: str, file_path: str = "test_file") -> DetectorContext:

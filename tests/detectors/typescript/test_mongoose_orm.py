@@ -1,8 +1,8 @@
 """Tests for Mongoose ODM detector."""
 
-from code_intelligence.detectors.base import DetectorContext, DetectorResult
-from code_intelligence.detectors.typescript.mongoose_orm import MongooseORMDetector
-from code_intelligence.models.graph import NodeKind, EdgeKind
+from osscodeiq.detectors.base import DetectorContext, DetectorResult
+from osscodeiq.detectors.typescript.mongoose_orm import MongooseORMDetector
+from osscodeiq.models.graph import NodeKind, EdgeKind
 
 
 def _ctx(content: str, path: str = "src/models.ts", language: str = "typescript") -> DetectorContext:

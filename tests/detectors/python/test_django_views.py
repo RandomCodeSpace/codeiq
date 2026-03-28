@@ -1,8 +1,8 @@
 """Tests for Django view detector."""
 
-from code_intelligence.detectors.base import DetectorContext, DetectorResult
-from code_intelligence.detectors.python.django_views import DjangoViewDetector
-from code_intelligence.models.graph import NodeKind
+from osscodeiq.detectors.base import DetectorContext, DetectorResult
+from osscodeiq.detectors.python.django_views import DjangoViewDetector
+from osscodeiq.models.graph import NodeKind
 
 
 def _ctx(content: str, path: str = "urls.py", language: str = "python") -> DetectorContext:

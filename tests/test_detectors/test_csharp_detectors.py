@@ -1,7 +1,7 @@
 """Tests for C# detectors."""
 
-from code_intelligence.detectors.base import DetectorContext
-from code_intelligence.models.graph import NodeKind, EdgeKind
+from osscodeiq.detectors.base import DetectorContext
+from osscodeiq.models.graph import NodeKind, EdgeKind
 
 
 def _ctx(content, file_path="Test.cs"):
@@ -26,7 +26,7 @@ public class UserService : IUserService {
     public async Task<User> GetUserAsync(int id) { return null; }
 }
 '''
-        from code_intelligence.detectors.csharp.csharp_structures import CSharpStructuresDetector
+        from osscodeiq.detectors.csharp.csharp_structures import CSharpStructuresDetector
 
         result = CSharpStructuresDetector().detect(_ctx(source))
         classes = [n for n in result.nodes if n.kind == NodeKind.CLASS]
@@ -46,7 +46,7 @@ public class UsersController : ControllerBase {
     public IActionResult Create([FromBody] User user) { return Ok(); }
 }
 '''
-        from code_intelligence.detectors.csharp.csharp_structures import CSharpStructuresDetector
+        from osscodeiq.detectors.csharp.csharp_structures import CSharpStructuresDetector
 
         result = CSharpStructuresDetector().detect(_ctx(source))
         endpoints = [n for n in result.nodes if n.kind == NodeKind.ENDPOINT]
@@ -60,7 +60,7 @@ public class Order {
     public int Id { get; set; }
 }
 '''
-        from code_intelligence.detectors.csharp.csharp_structures import CSharpStructuresDetector
+        from osscodeiq.detectors.csharp.csharp_structures import CSharpStructuresDetector
 
         result = CSharpStructuresDetector().detect(_ctx(source))
         modules = [n for n in result.nodes if n.kind == NodeKind.MODULE]
@@ -78,7 +78,7 @@ public enum OrderStatus {
     Delivered
 }
 '''
-        from code_intelligence.detectors.csharp.csharp_structures import CSharpStructuresDetector
+        from osscodeiq.detectors.csharp.csharp_structures import CSharpStructuresDetector
 
         result = CSharpStructuresDetector().detect(_ctx(source))
         enums = [n for n in result.nodes if n.kind == NodeKind.ENUM]
@@ -90,7 +90,7 @@ public enum OrderStatus {
 public class Dog : Animal, IWalkable, IFeedable {
 }
 '''
-        from code_intelligence.detectors.csharp.csharp_structures import CSharpStructuresDetector
+        from osscodeiq.detectors.csharp.csharp_structures import CSharpStructuresDetector
 
         result = CSharpStructuresDetector().detect(_ctx(source))
         extends_edges = [e for e in result.edges if e.kind == EdgeKind.EXTENDS]
@@ -107,7 +107,7 @@ using MyApp.Services;
 
 public class Foo {}
 '''
-        from code_intelligence.detectors.csharp.csharp_structures import CSharpStructuresDetector
+        from osscodeiq.detectors.csharp.csharp_structures import CSharpStructuresDetector
 
         result = CSharpStructuresDetector().detect(_ctx(source))
         import_edges = [e for e in result.edges if e.kind == EdgeKind.IMPORTS]
@@ -128,7 +128,7 @@ public class UserFunctions {
     }
 }
 '''
-        from code_intelligence.detectors.csharp.csharp_structures import CSharpStructuresDetector
+        from osscodeiq.detectors.csharp.csharp_structures import CSharpStructuresDetector
 
         result = CSharpStructuresDetector().detect(_ctx(source))
         funcs = [n for n in result.nodes if n.kind == NodeKind.AZURE_FUNCTION]
@@ -136,7 +136,7 @@ public class UserFunctions {
         assert any("GetUsers" in n.label for n in funcs)
 
     def test_supported_languages(self):
-        from code_intelligence.detectors.csharp.csharp_structures import CSharpStructuresDetector
+        from osscodeiq.detectors.csharp.csharp_structures import CSharpStructuresDetector
 
         d = CSharpStructuresDetector()
         assert "csharp" in d.supported_languages

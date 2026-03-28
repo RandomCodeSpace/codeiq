@@ -1,8 +1,8 @@
 """Tests for SQLAlchemy model detector."""
 
-from code_intelligence.detectors.base import DetectorContext, DetectorResult
-from code_intelligence.detectors.python.sqlalchemy_models import SQLAlchemyModelDetector
-from code_intelligence.models.graph import NodeKind, EdgeKind
+from osscodeiq.detectors.base import DetectorContext, DetectorResult
+from osscodeiq.detectors.python.sqlalchemy_models import SQLAlchemyModelDetector
+from osscodeiq.models.graph import NodeKind, EdgeKind
 
 
 def _ctx(content: str, path: str = "models.py", language: str = "python") -> DetectorContext:

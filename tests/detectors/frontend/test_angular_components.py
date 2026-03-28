@@ -1,8 +1,8 @@
 """Tests for Angular component, service, directive, pipe, and module detector."""
 
-from code_intelligence.detectors.base import DetectorContext
-from code_intelligence.detectors.frontend.angular_components import AngularComponentDetector
-from code_intelligence.models.graph import NodeKind
+from osscodeiq.detectors.base import DetectorContext
+from osscodeiq.detectors.frontend.angular_components import AngularComponentDetector
+from osscodeiq.models.graph import NodeKind
 
 
 def _ctx(content: str, file_path: str = "src/app/app.component.ts") -> DetectorContext:

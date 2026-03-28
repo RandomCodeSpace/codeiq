@@ -4,8 +4,8 @@ import json
 
 import yaml
 
-from code_intelligence.models.graph import CodeGraph, EdgeKind, GraphEdge, GraphNode, NodeKind
-from code_intelligence.output.serializers import JsonSerializer, YamlSerializer
+from osscodeiq.models.graph import CodeGraph, EdgeKind, GraphEdge, GraphNode, NodeKind
+from osscodeiq.output.serializers import JsonSerializer, YamlSerializer
 
 
 def _sample_graph() -> CodeGraph:

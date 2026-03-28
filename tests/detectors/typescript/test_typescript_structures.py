@@ -1,8 +1,8 @@
 """Tests for TypeScriptStructuresDetector."""
 
-from code_intelligence.detectors.base import DetectorContext, DetectorResult
-from code_intelligence.detectors.typescript.typescript_structures import TypeScriptStructuresDetector
-from code_intelligence.models.graph import EdgeKind, NodeKind
+from osscodeiq.detectors.base import DetectorContext, DetectorResult
+from osscodeiq.detectors.typescript.typescript_structures import TypeScriptStructuresDetector
+from osscodeiq.models.graph import EdgeKind, NodeKind
 
 
 def _ctx(content, path="src/app.ts", language="typescript"):

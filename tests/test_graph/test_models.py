@@ -2,7 +2,7 @@
 
 import json
 
-from code_intelligence.models.graph import (
+from osscodeiq.models.graph import (
     CodeGraph,
     EdgeKind,
     GraphEdge,

@@ -1,8 +1,8 @@
 """Tests for KafkaJS detector (TypeScript/JavaScript)."""
 
-from code_intelligence.detectors.base import DetectorContext, DetectorResult
-from code_intelligence.detectors.typescript.kafka_js import KafkaJSDetector
-from code_intelligence.models.graph import NodeKind, EdgeKind
+from osscodeiq.detectors.base import DetectorContext, DetectorResult
+from osscodeiq.detectors.typescript.kafka_js import KafkaJSDetector
+from osscodeiq.models.graph import NodeKind, EdgeKind
 
 
 def _ctx(content: str, path: str = "services/kafka-client.ts", language: str = "typescript") -> DetectorContext:

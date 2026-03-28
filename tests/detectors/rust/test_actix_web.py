@@ -1,8 +1,8 @@
 """Tests for Actix-web and Axum web framework detector."""
 
-from code_intelligence.detectors.base import DetectorContext, DetectorResult
-from code_intelligence.detectors.rust.actix_web import ActixWebDetector
-from code_intelligence.models.graph import NodeKind
+from osscodeiq.detectors.base import DetectorContext, DetectorResult
+from osscodeiq.detectors.rust.actix_web import ActixWebDetector
+from osscodeiq.models.graph import NodeKind
 
 
 def _ctx(content: str, path: str = "main.rs", language: str = "rust") -> DetectorContext:

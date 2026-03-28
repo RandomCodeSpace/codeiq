@@ -1,8 +1,8 @@
 """Tests for Quarkus framework detector."""
 
-from code_intelligence.detectors.base import DetectorContext, DetectorResult
-from code_intelligence.detectors.java.quarkus import QuarkusDetector
-from code_intelligence.models.graph import NodeKind
+from osscodeiq.detectors.base import DetectorContext, DetectorResult
+from osscodeiq.detectors.java.quarkus import QuarkusDetector
+from osscodeiq.models.graph import NodeKind
 
 
 def _ctx(content: str, path: str = "MyService.java", language: str = "java") -> DetectorContext:

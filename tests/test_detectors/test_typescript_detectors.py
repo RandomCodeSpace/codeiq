@@ -1,7 +1,7 @@
 """Tests for TypeScript detectors."""
 
-from code_intelligence.detectors.base import DetectorContext
-from code_intelligence.models.graph import NodeKind, EdgeKind
+from osscodeiq.detectors.base import DetectorContext
+from osscodeiq.models.graph import NodeKind, EdgeKind
 
 
 def _ctx(content: bytes, file_path: str = "test.ts") -> DetectorContext:
@@ -15,7 +15,7 @@ def _ctx(content: bytes, file_path: str = "test.ts") -> DetectorContext:
 
 class TestNestJSControllerDetector:
     def test_detect_controllers(self, nestjs_controller_source):
-        from code_intelligence.detectors.typescript.nestjs_controllers import NestJSControllerDetector
+        from osscodeiq.detectors.typescript.nestjs_controllers import NestJSControllerDetector
         detector = NestJSControllerDetector()
         result = detector.detect(_ctx(nestjs_controller_source, file_path="user.controller.ts"))
         endpoints = [n for n in result.nodes if n.kind == NodeKind.ENDPOINT]
@@ -27,7 +27,7 @@ class TestNestJSControllerDetector:
 
 class TestTypeORMEntityDetector:
     def test_detect_entities(self, typeorm_entity_source):
-        from code_intelligence.detectors.typescript.typeorm_entities import TypeORMEntityDetector
+        from osscodeiq.detectors.typescript.typeorm_entities import TypeORMEntityDetector
         detector = TypeORMEntityDetector()
         result = detector.detect(_ctx(typeorm_entity_source, file_path="user.entity.ts"))
         entities = [n for n in result.nodes if n.kind == NodeKind.ENTITY]

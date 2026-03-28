@@ -1,8 +1,8 @@
 """Tests for Fastify route detector."""
 
-from code_intelligence.detectors.base import DetectorContext, DetectorResult
-from code_intelligence.detectors.typescript.fastify_routes import FastifyRouteDetector
-from code_intelligence.models.graph import NodeKind, EdgeKind
+from osscodeiq.detectors.base import DetectorContext, DetectorResult
+from osscodeiq.detectors.typescript.fastify_routes import FastifyRouteDetector
+from osscodeiq.models.graph import NodeKind, EdgeKind
 
 
 def _ctx(content: str, path: str = "routes.ts", language: str = "typescript") -> DetectorContext:

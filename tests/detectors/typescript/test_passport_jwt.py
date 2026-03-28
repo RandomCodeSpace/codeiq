@@ -1,8 +1,8 @@
 """Tests for Passport.js / JWT detector."""
 
-from code_intelligence.detectors.base import DetectorContext, DetectorResult
-from code_intelligence.detectors.typescript.passport_jwt import PassportJwtDetector
-from code_intelligence.models.graph import NodeKind
+from osscodeiq.detectors.base import DetectorContext, DetectorResult
+from osscodeiq.detectors.typescript.passport_jwt import PassportJwtDetector
+from osscodeiq.models.graph import NodeKind
 
 
 def _ctx(

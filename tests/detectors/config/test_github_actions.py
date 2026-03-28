@@ -1,8 +1,8 @@
 """Tests for GitHubActionsDetector."""
 
-from code_intelligence.detectors.base import DetectorContext, DetectorResult
-from code_intelligence.detectors.config.github_actions import GitHubActionsDetector
-from code_intelligence.models.graph import EdgeKind, NodeKind
+from osscodeiq.detectors.base import DetectorContext, DetectorResult
+from osscodeiq.detectors.config.github_actions import GitHubActionsDetector
+from osscodeiq.models.graph import EdgeKind, NodeKind
 
 
 def _ctx(parsed_data, path=".github/workflows/ci.yml"):

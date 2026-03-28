@@ -1,8 +1,8 @@
 """Tests for Spring Security auth detector."""
 
-from code_intelligence.detectors.base import DetectorContext, DetectorResult
-from code_intelligence.detectors.java.spring_security import SpringSecurityDetector
-from code_intelligence.models.graph import NodeKind
+from osscodeiq.detectors.base import DetectorContext, DetectorResult
+from osscodeiq.detectors.java.spring_security import SpringSecurityDetector
+from osscodeiq.models.graph import NodeKind
 
 
 def _ctx(content: str, file_path: str = "SecurityConfig.java") -> DetectorContext:

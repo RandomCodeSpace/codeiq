@@ -2,10 +2,10 @@
 
 import pytest
 
-from code_intelligence.graph.store import GraphStore
-from code_intelligence.graph.backends.networkx import NetworkXBackend
-from code_intelligence.graph.backends.sqlite_backend import SqliteGraphBackend
-from code_intelligence.models.graph import GraphNode, GraphEdge, NodeKind, EdgeKind
+from osscodeiq.graph.store import GraphStore
+from osscodeiq.graph.backends.networkx import NetworkXBackend
+from osscodeiq.graph.backends.sqlite_backend import SqliteGraphBackend
+from osscodeiq.models.graph import GraphNode, GraphEdge, NodeKind, EdgeKind
 
 
 @pytest.fixture(params=["networkx", "sqlite"])

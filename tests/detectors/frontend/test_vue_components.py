@@ -1,8 +1,8 @@
 """Tests for Vue component and composable detector."""
 
-from code_intelligence.detectors.base import DetectorContext
-from code_intelligence.detectors.frontend.vue_components import VueComponentDetector
-from code_intelligence.models.graph import NodeKind
+from osscodeiq.detectors.base import DetectorContext
+from osscodeiq.detectors.frontend.vue_components import VueComponentDetector
+from osscodeiq.models.graph import NodeKind
 
 
 def _ctx(content: str, file_path: str = "src/components/App.vue") -> DetectorContext:

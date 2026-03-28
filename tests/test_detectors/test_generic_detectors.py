@@ -1,6 +1,6 @@
 """Tests for generic multi-language detectors."""
-from code_intelligence.detectors.base import DetectorContext
-from code_intelligence.models.graph import NodeKind, EdgeKind
+from osscodeiq.detectors.base import DetectorContext
+from osscodeiq.models.graph import NodeKind, EdgeKind
 
 
 class TestGenericImportsDetector:
@@ -19,7 +19,7 @@ impl Storage for Config {
 pub fn process_data(data: &[u8]) -> Vec<u8> { vec![] }
 '''
         ctx = DetectorContext(file_path="lib.rs", language="rust", content=source, module_name="mylib")
-        from code_intelligence.detectors.rust.rust_structures import RustStructuresDetector
+        from osscodeiq.detectors.rust.rust_structures import RustStructuresDetector
         result = RustStructuresDetector().detect(ctx)
         classes = [n for n in result.nodes if n.kind == NodeKind.CLASS]
         interfaces = [n for n in result.nodes if n.kind == NodeKind.INTERFACE]
@@ -41,7 +41,7 @@ class UserServiceImpl(private val repo: Repository) : UserService {
 }
 '''
         ctx = DetectorContext(file_path="UserService.kt", language="kotlin", content=source, module_name="app")
-        from code_intelligence.detectors.kotlin.kotlin_structures import KotlinStructuresDetector
+        from osscodeiq.detectors.kotlin.kotlin_structures import KotlinStructuresDetector
         result = KotlinStructuresDetector().detect(ctx)
         classes = [n for n in result.nodes if n.kind == NodeKind.CLASS]
         interfaces = [n for n in result.nodes if n.kind == NodeKind.INTERFACE]
@@ -64,7 +64,7 @@ module MyApp
 end
 '''
         ctx = DetectorContext(file_path="user_controller.rb", language="ruby", content=source, module_name="app")
-        from code_intelligence.detectors.generic.imports_detector import GenericImportsDetector
+        from osscodeiq.detectors.generic.imports_detector import GenericImportsDetector
         result = GenericImportsDetector().detect(ctx)
         classes = [n for n in result.nodes if n.kind == NodeKind.CLASS]
         methods = [n for n in result.nodes if n.kind == NodeKind.METHOD]
@@ -80,7 +80,7 @@ FROM builder AS final
 COPY --from=frontend /app/dist /static
 '''
         ctx = DetectorContext(file_path="Dockerfile", language="dockerfile", content=source, module_name="app")
-        from code_intelligence.detectors.iac.dockerfile import DockerfileDetector
+        from osscodeiq.detectors.iac.dockerfile import DockerfileDetector
         result = DockerfileDetector().detect(ctx)
         infra_nodes = [n for n in result.nodes if n.kind == NodeKind.INFRA_RESOURCE]
         assert len(infra_nodes) >= 3  # python, node, builder
@@ -94,7 +94,7 @@ EXPOSE 80
 EXPOSE 443
 '''
         ctx = DetectorContext(file_path="Dockerfile", language="dockerfile", content=source, module_name="infra")
-        from code_intelligence.detectors.iac.dockerfile import DockerfileDetector
+        from osscodeiq.detectors.iac.dockerfile import DockerfileDetector
         result = DockerfileDetector().detect(ctx)
         endpoints = [n for n in result.nodes if n.kind == NodeKind.ENDPOINT]
         assert len(endpoints) == 2
@@ -110,7 +110,7 @@ LABEL maintainer=team@example.com
 LABEL version=1.0
 '''
         ctx = DetectorContext(file_path="Dockerfile", language="dockerfile", content=source, module_name="app")
-        from code_intelligence.detectors.iac.dockerfile import DockerfileDetector
+        from osscodeiq.detectors.iac.dockerfile import DockerfileDetector
         result = DockerfileDetector().detect(ctx)
         config_nodes = [n for n in result.nodes if n.kind == NodeKind.CONFIG_DEFINITION]
         assert len(config_nodes) >= 4  # 2 ENVs + 2 LABELs
@@ -124,7 +124,7 @@ RUN pip install flask
 EXPOSE 5000
 '''
         ctx = DetectorContext(file_path="Dockerfile", language="dockerfile", content=source, module_name="app")
-        from code_intelligence.detectors.iac.dockerfile import DockerfileDetector
+        from osscodeiq.detectors.iac.dockerfile import DockerfileDetector
         result = DockerfileDetector().detect(ctx)
         dep_edges = [e for e in result.edges if e.kind == EdgeKind.DEPENDS_ON]
         assert len(dep_edges) >= 1

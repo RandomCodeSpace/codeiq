@@ -2,11 +2,11 @@
 
 import pytest
 
-from code_intelligence.flow.engine import FlowEngine, AVAILABLE_VIEWS
-from code_intelligence.flow.models import FlowDiagram
-from code_intelligence.flow.renderer import render_mermaid, render_json, render_html
-from code_intelligence.graph.store import GraphStore
-from code_intelligence.models.graph import GraphNode, GraphEdge, NodeKind, EdgeKind
+from osscodeiq.flow.engine import FlowEngine, AVAILABLE_VIEWS
+from osscodeiq.flow.models import FlowDiagram
+from osscodeiq.flow.renderer import render_mermaid, render_json, render_html
+from osscodeiq.graph.store import GraphStore
+from osscodeiq.models.graph import GraphNode, GraphEdge, NodeKind, EdgeKind
 
 
 class TestEmptyGraph:

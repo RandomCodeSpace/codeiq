@@ -1,7 +1,7 @@
 """Tests for LayerClassifier deterministic layer assignment."""
 
-from code_intelligence.classifiers.layer_classifier import LayerClassifier
-from code_intelligence.models.graph import GraphNode, NodeKind, SourceLocation
+from osscodeiq.classifiers.layer_classifier import LayerClassifier
+from osscodeiq.models.graph import GraphNode, NodeKind, SourceLocation
 
 
 def _node(id: str, kind: NodeKind, file_path: str, **props) -> GraphNode:

@@ -1,8 +1,8 @@
 """Tests for React component and hook detector."""
 
-from code_intelligence.detectors.base import DetectorContext
-from code_intelligence.detectors.frontend.react_components import ReactComponentDetector
-from code_intelligence.models.graph import EdgeKind, NodeKind
+from osscodeiq.detectors.base import DetectorContext
+from osscodeiq.detectors.frontend.react_components import ReactComponentDetector
+from osscodeiq.models.graph import EdgeKind, NodeKind
 
 
 def _ctx(content: str, file_path: str = "src/components/App.tsx") -> DetectorContext:

@@ -1,9 +1,9 @@
 """Tests for FlowEngine."""
 
-from code_intelligence.flow.engine import AVAILABLE_VIEWS, FlowEngine
-from code_intelligence.flow.models import FlowDiagram
-from code_intelligence.graph.store import GraphStore
-from code_intelligence.models.graph import GraphEdge, GraphNode, EdgeKind, NodeKind
+from osscodeiq.flow.engine import AVAILABLE_VIEWS, FlowEngine
+from osscodeiq.flow.models import FlowDiagram
+from osscodeiq.graph.store import GraphStore
+from osscodeiq.models.graph import GraphEdge, GraphNode, EdgeKind, NodeKind
 
 
 def _populated_store():

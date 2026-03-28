@@ -1,8 +1,8 @@
 """Tests for Spring REST endpoint detector."""
 
-from code_intelligence.detectors.base import DetectorContext, DetectorResult
-from code_intelligence.detectors.java.spring_rest import SpringRestDetector
-from code_intelligence.models.graph import NodeKind, EdgeKind
+from osscodeiq.detectors.base import DetectorContext, DetectorResult
+from osscodeiq.detectors.java.spring_rest import SpringRestDetector
+from osscodeiq.models.graph import NodeKind, EdgeKind
 
 
 def _ctx(content: str, path: str = "UserController.java", language: str = "java") -> DetectorContext:

@@ -10,10 +10,10 @@ from concurrent.futures import ThreadPoolExecutor, as_completed
 
 import pytest
 
-from code_intelligence.detectors.base import DetectorContext, DetectorResult
-from code_intelligence.detectors.registry import DetectorRegistry
-from code_intelligence.graph.store import GraphStore
-from code_intelligence.models.graph import GraphNode, GraphEdge, NodeKind, EdgeKind
+from osscodeiq.detectors.base import DetectorContext, DetectorResult
+from osscodeiq.detectors.registry import DetectorRegistry
+from osscodeiq.graph.store import GraphStore
+from osscodeiq.models.graph import GraphNode, GraphEdge, NodeKind, EdgeKind
 
 
 class TestDetectorThreadSafety:
@@ -68,7 +68,7 @@ class TestDetectorThreadSafety:
         registry.load_builtin_detectors()
 
         # Pick a detector that does real work
-        from code_intelligence.detectors.config.json_structure import JsonStructureDetector
+        from osscodeiq.detectors.config.json_structure import JsonStructureDetector
         detector = JsonStructureDetector()
 
         import json
@@ -132,8 +132,8 @@ class TestAnalyzerDeterminism:
 
     def test_three_runs_identical(self):
         """Run the analyzer 3 times on the same input, assert identical output."""
-        from code_intelligence.analyzer import Analyzer
-        from code_intelligence.config import Config
+        from osscodeiq.analyzer import Analyzer
+        from osscodeiq.config import Config
         from pathlib import Path
         import os
 
@@ -146,7 +146,7 @@ class TestAnalyzerDeterminism:
         for _ in range(3):
             # Clear cache between runs
             import subprocess
-            subprocess.run(["find", str(test_dir), "-name", ".code_intelligence_cache*", "-delete"],
+            subprocess.run(["find", str(test_dir), "-name", ".osscodeiq_cache*", "-delete"],
                           capture_output=True)
 
             cfg = Config()

@@ -1,8 +1,8 @@
 """Tests for Go ORM/database detector."""
 
-from code_intelligence.detectors.base import DetectorContext, DetectorResult
-from code_intelligence.detectors.go.go_orm import GoOrmDetector
-from code_intelligence.models.graph import EdgeKind, NodeKind
+from osscodeiq.detectors.base import DetectorContext, DetectorResult
+from osscodeiq.detectors.go.go_orm import GoOrmDetector
+from osscodeiq.models.graph import EdgeKind, NodeKind
 
 
 def _ctx(content: str, path: str = "models.go") -> DetectorContext:

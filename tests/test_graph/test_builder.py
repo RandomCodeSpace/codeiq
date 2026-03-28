@@ -1,8 +1,8 @@
 """Tests for GraphBuilder and linkers."""
 
-from code_intelligence.detectors.base import DetectorResult
-from code_intelligence.graph.builder import GraphBuilder
-from code_intelligence.models.graph import (
+from osscodeiq.detectors.base import DetectorResult
+from osscodeiq.graph.builder import GraphBuilder
+from osscodeiq.models.graph import (
     EdgeKind,
     GraphEdge,
     GraphNode,

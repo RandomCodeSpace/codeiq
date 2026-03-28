@@ -1,6 +1,6 @@
 """Tests for IaC detectors."""
-from code_intelligence.detectors.base import DetectorContext
-from code_intelligence.models.graph import NodeKind
+from osscodeiq.detectors.base import DetectorContext
+from osscodeiq.models.graph import NodeKind
 
 
 def _ctx(content, language="bicep", file_path="main.bicep"):
@@ -18,7 +18,7 @@ class TestBicepDetector:
           name: 'mystorage'
         }
         """
-        from code_intelligence.detectors.iac.bicep import BicepDetector
+        from osscodeiq.detectors.iac.bicep import BicepDetector
         detector = BicepDetector()
         result = detector.detect(_ctx(source))
         infra_nodes = [n for n in result.nodes if n.kind in (NodeKind.INFRA_RESOURCE, NodeKind.AZURE_RESOURCE)]
@@ -33,6 +33,6 @@ class TestBicepDetector:
           name: 'cosmosDb'
         }
         """
-        from code_intelligence.detectors.iac.bicep import BicepDetector
+        from osscodeiq.detectors.iac.bicep import BicepDetector
         result = BicepDetector().detect(_ctx(source))
         assert len(result.nodes) >= 1 or len(result.edges) >= 1

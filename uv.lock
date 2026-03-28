@@ -210,66 +210,6 @@ wheels = [
 ]
 
 [[package]]
-name = "code-intelligence"
-version = "0.0.0"
-source = { editable = "." }
-dependencies = [
-    { name = "fastapi" },
-    { name = "fastmcp" },
-    { name = "lxml" },
-    { name = "networkx" },
-    { name = "pathspec" },
-    { name = "pydantic" },
-    { name = "pyyaml" },
-    { name = "rich" },
-    { name = "sqlparse" },
-    { name = "tree-sitter" },
-    { name = "tree-sitter-java" },
-    { name = "tree-sitter-javascript" },
-    { name = "tree-sitter-python" },
-    { name = "tree-sitter-typescript" },
-    { name = "typer" },
-    { name = "uvicorn", extra = ["standard"] },
-]
-
-[package.optional-dependencies]
-all-backends = [
-    { name = "kuzu" },
-]
-dev = [
-    { name = "pytest" },
-    { name = "pytest-cov" },
-]
-kuzu = [
-    { name = "kuzu" },
-]
-
-[package.metadata]
-requires-dist = [
-    { name = "fastapi", specifier = ">=0.115" },
-    { name = "fastmcp", specifier = ">=2.0" },
-    { name = "kuzu", marker = "extra == 'all-backends'", specifier = ">=0.6" },
-    { name = "kuzu", marker = "extra == 'kuzu'", specifier = ">=0.6" },
-    { name = "lxml", specifier = ">=5.0" },
-    { name = "networkx", specifier = ">=3.2" },
-    { name = "pathspec", specifier = ">=0.11" },
-    { name = "pydantic", specifier = ">=2.0" },
-    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0" },
-    { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=5.0" },
-    { name = "pyyaml", specifier = ">=6.0" },
-    { name = "rich", specifier = ">=13.0" },
-    { name = "sqlparse", specifier = ">=0.5" },
-    { name = "tree-sitter", specifier = ">=0.23" },
-    { name = "tree-sitter-java", specifier = ">=0.23" },
-    { name = "tree-sitter-javascript", specifier = ">=0.23" },
-    { name = "tree-sitter-python", specifier = ">=0.23" },
-    { name = "tree-sitter-typescript", specifier = ">=0.23" },
-    { name = "typer", specifier = ">=0.9" },
-    { name = "uvicorn", extras = ["standard"], specifier = ">=0.34" },
-]
-provides-extras = ["dev", "kuzu", "all-backends"]
-
-[[package]]
 name = "colorama"
 version = "0.4.6"
 source = { registry = "https://pypi.org/simple" }
@@ -1000,6 +940,66 @@ sdist = { url = "https://files.pythonhosted.org/packages/2c/1d/4049a9e8698361cc1
 wheels = [
     { url = "https://files.pythonhosted.org/packages/5f/bf/93795954016c522008da367da292adceed71cca6ee1717e1d64c83089099/opentelemetry_api-1.40.0-py3-none-any.whl", hash = "sha256:82dd69331ae74b06f6a874704be0cfaa49a1650e1537d4a813b86ecef7d0ecf9", size = 68676, upload-time = "2026-03-04T14:17:01.24Z" },
 ]
+
+[[package]]
+name = "osscodeiq"
+version = "0.0.0"
+source = { editable = "." }
+dependencies = [
+    { name = "fastapi" },
+    { name = "fastmcp" },
+    { name = "lxml" },
+    { name = "networkx" },
+    { name = "pathspec" },
+    { name = "pydantic" },
+    { name = "pyyaml" },
+    { name = "rich" },
+    { name = "sqlparse" },
+    { name = "tree-sitter" },
+    { name = "tree-sitter-java" },
+    { name = "tree-sitter-javascript" },
+    { name = "tree-sitter-python" },
+    { name = "tree-sitter-typescript" },
+    { name = "typer" },
+    { name = "uvicorn", extra = ["standard"] },
+]
+
+[package.optional-dependencies]
+all-backends = [
+    { name = "kuzu" },
+]
+dev = [
+    { name = "pytest" },
+    { name = "pytest-cov" },
+]
+kuzu = [
+    { name = "kuzu" },
+]
+
+[package.metadata]
+requires-dist = [
+    { name = "fastapi", specifier = ">=0.115" },
+    { name = "fastmcp", specifier = ">=2.0" },
+    { name = "kuzu", marker = "extra == 'all-backends'", specifier = ">=0.6" },
+    { name = "kuzu", marker = "extra == 'kuzu'", specifier = ">=0.6" },
+    { name = "lxml", specifier = ">=5.0" },
+    { name = "networkx", specifier = ">=3.2" },
+    { name = "pathspec", specifier = ">=0.11" },
+    { name = "pydantic", specifier = ">=2.0" },
+    { name = "pytest", marker = "extra == 'dev'", specifier = ">=8.0" },
+    { name = "pytest-cov", marker = "extra == 'dev'", specifier = ">=5.0" },
+    { name = "pyyaml", specifier = ">=6.0" },
+    { name = "rich", specifier = ">=13.0" },
+    { name = "sqlparse", specifier = ">=0.5" },
+    { name = "tree-sitter", specifier = ">=0.23" },
+    { name = "tree-sitter-java", specifier = ">=0.23" },
+    { name = "tree-sitter-javascript", specifier = ">=0.23" },
+    { name = "tree-sitter-python", specifier = ">=0.23" },
+    { name = "tree-sitter-typescript", specifier = ">=0.23" },
+    { name = "typer", specifier = ">=0.9" },
+    { name = "uvicorn", extras = ["standard"], specifier = ">=0.34" },
+]
+provides-extras = ["dev", "kuzu", "all-backends"]
 
 [[package]]
 name = "packaging"

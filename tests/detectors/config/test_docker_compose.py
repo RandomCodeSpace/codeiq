@@ -1,8 +1,8 @@
 """Tests for DockerComposeDetector."""
 
-from code_intelligence.detectors.base import DetectorContext, DetectorResult
-from code_intelligence.detectors.config.docker_compose import DockerComposeDetector
-from code_intelligence.models.graph import EdgeKind, NodeKind
+from osscodeiq.detectors.base import DetectorContext, DetectorResult
+from osscodeiq.detectors.config.docker_compose import DockerComposeDetector
+from osscodeiq.models.graph import EdgeKind, NodeKind
 
 
 def _ctx(parsed_data, path="docker-compose.yml"):

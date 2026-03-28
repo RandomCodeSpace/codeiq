@@ -1,8 +1,8 @@
 """Tests for GraphQuery."""
 
-from code_intelligence.graph.query import GraphQuery
-from code_intelligence.graph.store import GraphStore
-from code_intelligence.models.graph import (
+from osscodeiq.graph.query import GraphQuery
+from osscodeiq.graph.store import GraphStore
+from osscodeiq.models.graph import (
     EdgeKind,
     GraphEdge,
     GraphNode,

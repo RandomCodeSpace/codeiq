@@ -1,7 +1,7 @@
 """Tests for Java detectors."""
 
-from code_intelligence.detectors.base import DetectorContext, DetectorResult
-from code_intelligence.models.graph import NodeKind, EdgeKind
+from osscodeiq.detectors.base import DetectorContext, DetectorResult
+from osscodeiq.models.graph import NodeKind, EdgeKind
 
 
 def _ctx(content: bytes, language: str = "java", file_path: str = "Test.java") -> DetectorContext:
@@ -15,7 +15,7 @@ def _ctx(content: bytes, language: str = "java", file_path: str = "Test.java") -
 
 class TestSpringRestDetector:
     def test_detect_get_mapping(self, order_controller_source):
-        from code_intelligence.detectors.java.spring_rest import SpringRestDetector
+        from osscodeiq.detectors.java.spring_rest import SpringRestDetector
         detector = SpringRestDetector()
         result = detector.detect(_ctx(order_controller_source, file_path="OrderController.java"))
         endpoints = [n for n in result.nodes if n.kind == NodeKind.ENDPOINT]
@@ -24,14 +24,14 @@ class TestSpringRestDetector:
         assert "GET" in methods or "get" in {m.lower() for m in methods if m}
 
     def test_supported_languages(self):
-        from code_intelligence.detectors.java.spring_rest import SpringRestDetector
+        from osscodeiq.detectors.java.spring_rest import SpringRestDetector
         d = SpringRestDetector()
         assert "java" in d.supported_languages
 
 
 class TestJpaEntityDetector:
     def test_detect_entity(self, order_entity_source):
-        from code_intelligence.detectors.java.jpa_entity import JpaEntityDetector
+        from osscodeiq.detectors.java.jpa_entity import JpaEntityDetector
         detector = JpaEntityDetector()
         result = detector.detect(_ctx(order_entity_source, file_path="Order.java"))
         entities = [n for n in result.nodes if n.kind == NodeKind.ENTITY]
@@ -42,7 +42,7 @@ class TestJpaEntityDetector:
 
 class TestRepositoryDetector:
     def test_detect_repository(self, order_repository_source):
-        from code_intelligence.detectors.java.repository import RepositoryDetector
+        from osscodeiq.detectors.java.repository import RepositoryDetector
         detector = RepositoryDetector()
         result = detector.detect(_ctx(order_repository_source, file_path="OrderRepository.java"))
         repos = [n for n in result.nodes if n.kind == NodeKind.REPOSITORY]
@@ -51,7 +51,7 @@ class TestRepositoryDetector:
 
 class TestKafkaDetector:
     def test_detect_kafka(self, order_event_handler_source):
-        from code_intelligence.detectors.java.kafka import KafkaDetector
+        from osscodeiq.detectors.java.kafka import KafkaDetector
         detector = KafkaDetector()
         result = detector.detect(_ctx(order_event_handler_source, file_path="OrderEventHandler.java"))
         # Should detect topics and consumer/producer patterns
@@ -64,7 +64,7 @@ class TestKafkaDetector:
 
 class TestSpringEventsDetector:
     def test_detect_events(self, order_event_handler_source):
-        from code_intelligence.detectors.java.spring_events import SpringEventsDetector
+        from osscodeiq.detectors.java.spring_events import SpringEventsDetector
         detector = SpringEventsDetector()
         result = detector.detect(_ctx(order_event_handler_source, file_path="OrderEventHandler.java"))
         events = [n for n in result.nodes if n.kind == NodeKind.EVENT]
@@ -73,7 +73,7 @@ class TestSpringEventsDetector:
 
 class TestModuleDepsDetector:
     def test_detect_pom_modules(self, pom_xml_source):
-        from code_intelligence.detectors.java.module_deps import ModuleDepsDetector
+        from osscodeiq.detectors.java.module_deps import ModuleDepsDetector
         detector = ModuleDepsDetector()
         result = detector.detect(_ctx(pom_xml_source, language="xml", file_path="pom.xml"))
         modules = [n for n in result.nodes if n.kind == NodeKind.MODULE]
@@ -105,7 +105,7 @@ def _ctx_with_tree(content: bytes, file_path: str = "Test.java") -> DetectorCont
 
 class TestClassHierarchyDetector:
     def test_detect_interface(self):
-        from code_intelligence.detectors.java.class_hierarchy import ClassHierarchyDetector
+        from osscodeiq.detectors.java.class_hierarchy import ClassHierarchyDetector
 
         source = _JAVA_FIXTURES.joinpath("Serializer.java").read_bytes()
         ctx = _ctx_with_tree(source, file_path="Serializer.java")
@@ -121,7 +121,7 @@ class TestClassHierarchyDetector:
         assert extends_edges[0].target == "*:Closeable"
 
     def test_detect_class_implements(self):
-        from code_intelligence.detectors.java.class_hierarchy import ClassHierarchyDetector
+        from osscodeiq.detectors.java.class_hierarchy import ClassHierarchyDetector
 
         source = _JAVA_FIXTURES.joinpath("StringSerializer.java").read_bytes()
         ctx = _ctx_with_tree(source, file_path="StringSerializer.java")
@@ -136,7 +136,7 @@ class TestClassHierarchyDetector:
         assert impl_edges[0].target == "*:Serializer"
 
     def test_detect_enum(self):
-        from code_intelligence.detectors.java.class_hierarchy import ClassHierarchyDetector
+        from osscodeiq.detectors.java.class_hierarchy import ClassHierarchyDetector
 
         source = _JAVA_FIXTURES.joinpath("ApiKeys.java").read_bytes()
         ctx = _ctx_with_tree(source, file_path="ApiKeys.java")
@@ -149,7 +149,7 @@ class TestClassHierarchyDetector:
         assert enums[0].properties["visibility"] == "public"
 
     def test_no_tree_returns_empty(self):
-        from code_intelligence.detectors.java.class_hierarchy import ClassHierarchyDetector
+        from osscodeiq.detectors.java.class_hierarchy import ClassHierarchyDetector
 
         ctx = DetectorContext(
             file_path="Empty.java",
@@ -169,7 +169,7 @@ class TestClassHierarchyDetector:
 # ---------------------------------------------------------------------------
 class TestPublicApiDetector:
     def test_detect_public_methods(self, order_controller_source):
-        from code_intelligence.detectors.java.public_api import PublicApiDetector
+        from osscodeiq.detectors.java.public_api import PublicApiDetector
 
         detector = PublicApiDetector()
         ctx = _ctx_with_tree(order_controller_source, file_path="OrderController.java")
@@ -188,7 +188,7 @@ class TestPublicApiDetector:
         assert len(define_edges) == len(method_nodes)
 
     def test_skip_private_methods(self):
-        from code_intelligence.detectors.java.public_api import PublicApiDetector
+        from osscodeiq.detectors.java.public_api import PublicApiDetector
 
         source = b"""\
 public class Foo {
@@ -216,7 +216,7 @@ public class Foo {
         assert "packagePrivate" not in method_names
 
     def test_method_id_uniqueness(self):
-        from code_intelligence.detectors.java.public_api import PublicApiDetector
+        from osscodeiq.detectors.java.public_api import PublicApiDetector
 
         source = b"""\
 public class Bar {
@@ -239,7 +239,7 @@ public class Bar {
         assert "int" in ids[0] or "int" in ids[1]
 
     def test_no_tree_returns_empty(self):
-        from code_intelligence.detectors.java.public_api import PublicApiDetector
+        from osscodeiq.detectors.java.public_api import PublicApiDetector
 
         detector = PublicApiDetector()
         ctx = DetectorContext(
@@ -256,7 +256,7 @@ public class Bar {
 
 class TestKafkaProtocolDetector:
     def test_detect_request(self, fetch_request_source):
-        from code_intelligence.detectors.java.kafka_protocol import KafkaProtocolDetector
+        from osscodeiq.detectors.java.kafka_protocol import KafkaProtocolDetector
 
         detector = KafkaProtocolDetector()
         result = detector.detect(_ctx(fetch_request_source, file_path="FetchRequest.java"))
@@ -268,7 +268,7 @@ class TestKafkaProtocolDetector:
         assert extends_edges[0].target == "*:AbstractRequest"
 
     def test_detect_response(self, fetch_response_source):
-        from code_intelligence.detectors.java.kafka_protocol import KafkaProtocolDetector
+        from osscodeiq.detectors.java.kafka_protocol import KafkaProtocolDetector
 
         detector = KafkaProtocolDetector()
         result = detector.detect(_ctx(fetch_response_source, file_path="FetchResponse.java"))
@@ -280,7 +280,7 @@ class TestKafkaProtocolDetector:
         assert extends_edges[0].target == "*:AbstractResponse"
 
     def test_fast_bail(self):
-        from code_intelligence.detectors.java.kafka_protocol import KafkaProtocolDetector
+        from osscodeiq.detectors.java.kafka_protocol import KafkaProtocolDetector
 
         detector = KafkaProtocolDetector()
         source = b"public class Foo extends Bar { }"
@@ -291,7 +291,7 @@ class TestKafkaProtocolDetector:
 
 class TestJaxrsDetector:
     def test_detect_jaxrs_endpoints(self, connectors_resource_source):
-        from code_intelligence.detectors.java.jaxrs import JaxrsDetector
+        from osscodeiq.detectors.java.jaxrs import JaxrsDetector
         detector = JaxrsDetector()
         result = detector.detect(_ctx(connectors_resource_source, file_path="ConnectorsResource.java"))
         endpoints = [n for n in result.nodes if n.kind == NodeKind.ENDPOINT]
@@ -310,7 +310,7 @@ class TestJaxrsDetector:
         assert len(expose_edges) >= 4
 
     def test_jaxrs_fast_bail(self):
-        from code_intelligence.detectors.java.jaxrs import JaxrsDetector
+        from osscodeiq.detectors.java.jaxrs import JaxrsDetector
         detector = JaxrsDetector()
         content = b"public class Foo { public void bar() {} }"
         result = detector.detect(_ctx(content, file_path="Foo.java"))
@@ -318,7 +318,7 @@ class TestJaxrsDetector:
         assert len(result.edges) == 0
 
     def test_supported_languages(self):
-        from code_intelligence.detectors.java.jaxrs import JaxrsDetector
+        from osscodeiq.detectors.java.jaxrs import JaxrsDetector
         d = JaxrsDetector()
         assert "java" in d.supported_languages
 
@@ -328,7 +328,7 @@ class TestJaxrsDetector:
 # ---------------------------------------------------------------------------
 class TestConfigDefDetector:
     def test_detect_config_keys(self, consumer_config_source):
-        from code_intelligence.detectors.java.config_def import ConfigDefDetector
+        from osscodeiq.detectors.java.config_def import ConfigDefDetector
 
         detector = ConfigDefDetector()
         result = detector.detect(_ctx(consumer_config_source, file_path="ConsumerConfig.java"))
@@ -342,7 +342,7 @@ class TestConfigDefDetector:
         assert "auto.offset.reset" in config_keys
 
     def test_reads_config_edges(self, consumer_config_source):
-        from code_intelligence.detectors.java.config_def import ConfigDefDetector
+        from osscodeiq.detectors.java.config_def import ConfigDefDetector
 
         detector = ConfigDefDetector()
         result = detector.detect(_ctx(consumer_config_source, file_path="ConsumerConfig.java"))
@@ -356,7 +356,7 @@ class TestConfigDefDetector:
             assert edge.target.startswith("config:")
 
     def test_fast_bail(self):
-        from code_intelligence.detectors.java.config_def import ConfigDefDetector
+        from osscodeiq.detectors.java.config_def import ConfigDefDetector
 
         source = b"""\
 public class PlainService {
@@ -381,7 +381,7 @@ class TestJdbcDetector:
             }
         }
         '''
-        from code_intelligence.detectors.java.jdbc import JdbcDetector
+        from osscodeiq.detectors.java.jdbc import JdbcDetector
         detector = JdbcDetector()
         result = detector.detect(_ctx(source, file_path="UserDao.java"))
         db_nodes = [n for n in result.nodes if n.kind == NodeKind.DATABASE_CONNECTION]
@@ -395,7 +395,7 @@ class TestJdbcDetector:
             }
         }
         '''
-        from code_intelligence.detectors.java.jdbc import JdbcDetector
+        from osscodeiq.detectors.java.jdbc import JdbcDetector
         detector = JdbcDetector()
         result = detector.detect(_ctx(source, file_path="DbConnect.java"))
         db_nodes = [n for n in result.nodes if n.kind == NodeKind.DATABASE_CONNECTION]
@@ -403,7 +403,7 @@ class TestJdbcDetector:
         assert any("postgresql" in n.properties.get("db_type", "") for n in db_nodes)
 
     def test_fast_bail(self):
-        from code_intelligence.detectors.java.jdbc import JdbcDetector
+        from osscodeiq.detectors.java.jdbc import JdbcDetector
         result = JdbcDetector().detect(_ctx(b"public class Foo {}", file_path="Foo.java"))
         assert len(result.nodes) == 0
 
@@ -416,13 +416,13 @@ class TestIbmMqDetector:
             MQQueueManager qm = new MQQueueManager("QM_PRODUCTION");
         }
         '''
-        from code_intelligence.detectors.java.ibm_mq import IbmMqDetector
+        from osscodeiq.detectors.java.ibm_mq import IbmMqDetector
         result = IbmMqDetector().detect(_ctx(source, file_path="MqClient.java"))
         assert len(result.nodes) >= 1
         assert any("QM_PRODUCTION" in n.label for n in result.nodes)
 
     def test_fast_bail(self):
-        from code_intelligence.detectors.java.ibm_mq import IbmMqDetector
+        from osscodeiq.detectors.java.ibm_mq import IbmMqDetector
         result = IbmMqDetector().detect(_ctx(b"public class Foo {}", file_path="Foo.java"))
         assert len(result.nodes) == 0
 
@@ -435,12 +435,12 @@ class TestTibcoEmsDetector:
             TibjmsConnectionFactory factory = new TibjmsConnectionFactory("tcp://ems-server:7222");
         }
         '''
-        from code_intelligence.detectors.java.tibco_ems import TibcoEmsDetector
+        from osscodeiq.detectors.java.tibco_ems import TibcoEmsDetector
         result = TibcoEmsDetector().detect(_ctx(source, file_path="EmsPublisher.java"))
         assert len(result.nodes) >= 1
 
     def test_fast_bail(self):
-        from code_intelligence.detectors.java.tibco_ems import TibcoEmsDetector
+        from osscodeiq.detectors.java.tibco_ems import TibcoEmsDetector
         result = TibcoEmsDetector().detect(_ctx(b"public class Foo {}", file_path="Foo.java"))
         assert len(result.nodes) == 0
 
@@ -456,7 +456,7 @@ class TestAzureMessagingDetector:
             }
         }
         '''
-        from code_intelligence.detectors.java.azure_messaging import AzureMessagingDetector
+        from osscodeiq.detectors.java.azure_messaging import AzureMessagingDetector
         result = AzureMessagingDetector().detect(_ctx(source, file_path="OrderPublisher.java"))
         assert len(result.nodes) >= 1
 
@@ -467,12 +467,12 @@ class TestAzureMessagingDetector:
             EventHubProducerClient producer;
         }
         '''
-        from code_intelligence.detectors.java.azure_messaging import AzureMessagingDetector
+        from osscodeiq.detectors.java.azure_messaging import AzureMessagingDetector
         result = AzureMessagingDetector().detect(_ctx(source, file_path="EventPublisher.java"))
         assert len(result.nodes) >= 1
 
     def test_fast_bail(self):
-        from code_intelligence.detectors.java.azure_messaging import AzureMessagingDetector
+        from osscodeiq.detectors.java.azure_messaging import AzureMessagingDetector
         result = AzureMessagingDetector().detect(_ctx(b"public class Foo {}", file_path="Foo.java"))
         assert len(result.nodes) == 0
 
@@ -490,7 +490,7 @@ class TestAzureFunctionsDetector:
             }
         }
         '''
-        from code_intelligence.detectors.java.azure_functions import AzureFunctionsDetector
+        from osscodeiq.detectors.java.azure_functions import AzureFunctionsDetector
         result = AzureFunctionsDetector().detect(_ctx(source, file_path="HttpFunction.java"))
         funcs = [n for n in result.nodes if n.kind == NodeKind.AZURE_FUNCTION]
         assert len(funcs) >= 1
@@ -505,7 +505,7 @@ class TestAzureFunctionsDetector:
                 String message) {}
         }
         '''
-        from code_intelligence.detectors.java.azure_functions import AzureFunctionsDetector
+        from osscodeiq.detectors.java.azure_functions import AzureFunctionsDetector
         result = AzureFunctionsDetector().detect(_ctx(source, file_path="QueueProcessor.java"))
         funcs = [n for n in result.nodes if n.kind == NodeKind.AZURE_FUNCTION]
         assert len(funcs) >= 1
@@ -516,14 +516,14 @@ class TestAzureFunctionsDetector:
         app.http("getUsers", { methods: ["GET"], handler: async (req, ctx) => {} });
         app.serviceBusQueue("processOrder", { queueName: "orders", handler: async (msg, ctx) => {} });
         '''
-        from code_intelligence.detectors.java.azure_functions import AzureFunctionsDetector
+        from osscodeiq.detectors.java.azure_functions import AzureFunctionsDetector
         ctx = DetectorContext(file_path="functions.ts", language="typescript", content=source, module_name="api")
         result = AzureFunctionsDetector().detect(ctx)
         funcs = [n for n in result.nodes if n.kind == NodeKind.AZURE_FUNCTION]
         assert len(funcs) >= 2
 
     def test_fast_bail(self):
-        from code_intelligence.detectors.java.azure_functions import AzureFunctionsDetector
+        from osscodeiq.detectors.java.azure_functions import AzureFunctionsDetector
         result = AzureFunctionsDetector().detect(_ctx(b"public class Foo {}", file_path="Foo.java"))
         assert len(result.nodes) == 0
 
@@ -539,12 +539,12 @@ class TestCosmosDbDetector:
             }
         }
         '''
-        from code_intelligence.detectors.java.cosmos_db import CosmosDbDetector
+        from osscodeiq.detectors.java.cosmos_db import CosmosDbDetector
         result = CosmosDbDetector().detect(_ctx(source, file_path="UserRepository.java"))
         cosmos_nodes = [n for n in result.nodes if n.kind == NodeKind.AZURE_RESOURCE]
         assert len(cosmos_nodes) >= 1
 
     def test_fast_bail(self):
-        from code_intelligence.detectors.java.cosmos_db import CosmosDbDetector
+        from osscodeiq.detectors.java.cosmos_db import CosmosDbDetector
         result = CosmosDbDetector().detect(_ctx(b"public class Foo {}", file_path="Foo.java"))
         assert len(result.nodes) == 0

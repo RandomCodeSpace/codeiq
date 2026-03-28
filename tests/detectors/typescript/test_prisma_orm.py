@@ -1,8 +1,8 @@
 """Tests for Prisma ORM detector."""
 
-from code_intelligence.detectors.base import DetectorContext, DetectorResult
-from code_intelligence.detectors.typescript.prisma_orm import PrismaORMDetector
-from code_intelligence.models.graph import NodeKind, EdgeKind
+from osscodeiq.detectors.base import DetectorContext, DetectorResult
+from osscodeiq.detectors.typescript.prisma_orm import PrismaORMDetector
+from osscodeiq.models.graph import NodeKind, EdgeKind
 
 
 def _ctx(content: str, path: str = "src/users.ts", language: str = "typescript") -> DetectorContext:

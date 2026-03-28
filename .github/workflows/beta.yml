@@ -75,8 +75,8 @@ jobs:
       - name: Verify wheel
         run: |
           pip install dist/*.whl
-          python -c "import importlib.metadata; print(f'Built: {importlib.metadata.version(\"code-intelligence\")}')"
-          python -c "from code_intelligence.detectors.registry import DetectorRegistry; r = DetectorRegistry(); r.load_builtin_detectors(); print(f'{len(r.all_detectors())} detectors')"
+          python -c "import importlib.metadata; print(f'Built: {importlib.metadata.version(\"osscodeiq\")}')"
+          python -c "from osscodeiq.detectors.registry import DetectorRegistry; r = DetectorRegistry(); r.load_builtin_detectors(); print(f'{len(r.all_detectors())} detectors')"
 
       - name: Delete existing beta tag (if any)
         env:
@@ -99,12 +99,12 @@ jobs:
 
           **Install:**
           \`\`\`bash
-          pip install https://github.com/RandomCodeSpace/code-iq/releases/download/${BETA_TAG}/code_intelligence-${BETA_PEP}-py3-none-any.whl
+          pip install https://github.com/RandomCodeSpace/osscodeiq/releases/download/${BETA_TAG}/osscodeiq-${BETA_PEP}-py3-none-any.whl
           \`\`\`
 
-          **Or with code-iq CLI:**
+          **Or with osscodeiq CLI:**
           \`\`\`bash
-          code-iq version
-          code-iq analyze /path/to/repo
+          osscodeiq version
+          osscodeiq analyze /path/to/repo
           \`\`\`" \
             --prerelease

@@ -1,7 +1,7 @@
 """Tests for Terraform detectors."""
 
-from code_intelligence.detectors.base import DetectorContext
-from code_intelligence.models.graph import NodeKind, EdgeKind
+from osscodeiq.detectors.base import DetectorContext
+from osscodeiq.models.graph import NodeKind, EdgeKind
 
 
 def _ctx(content, file_path="main.tf"):
@@ -35,7 +35,7 @@ output "storage_id" {
   value = azurerm_storage_account.example.id
 }
 '''
-        from code_intelligence.detectors.iac.terraform import TerraformDetector
+        from osscodeiq.detectors.iac.terraform import TerraformDetector
 
         result = TerraformDetector().detect(_ctx(source))
         resources = [n for n in result.nodes if n.kind == NodeKind.INFRA_RESOURCE]
@@ -52,7 +52,7 @@ data "azurerm_key_vault" "existing" {
   resource_group_name = "my-rg"
 }
 '''
-        from code_intelligence.detectors.iac.terraform import TerraformDetector
+        from osscodeiq.detectors.iac.terraform import TerraformDetector
 
         result = TerraformDetector().detect(_ctx(source))
         resources = [n for n in result.nodes if n.kind == NodeKind.INFRA_RESOURCE]
@@ -71,7 +71,7 @@ module "database" {
   source = "git::https://example.com/modules/db.git"
 }
 '''
-        from code_intelligence.detectors.iac.terraform import TerraformDetector
+        from osscodeiq.detectors.iac.terraform import TerraformDetector
 
         result = TerraformDetector().detect(_ctx(source))
         modules = [n for n in result.nodes if n.kind == NodeKind.MODULE]
@@ -93,7 +93,7 @@ provider "aws" {
   region = "us-east-1"
 }
 '''
-        from code_intelligence.detectors.iac.terraform import TerraformDetector
+        from osscodeiq.detectors.iac.terraform import TerraformDetector
 
         result = TerraformDetector().detect(_ctx(source))
         providers = [n for n in result.nodes if n.kind == NodeKind.INFRA_RESOURCE
@@ -109,7 +109,7 @@ resource "aws_s3_bucket" "logs" {
   bucket = "my-logs"
 }
 '''
-        from code_intelligence.detectors.iac.terraform import TerraformDetector
+        from osscodeiq.detectors.iac.terraform import TerraformDetector
 
         result = TerraformDetector().detect(_ctx(source))
         resources = [n for n in result.nodes if n.kind == NodeKind.INFRA_RESOURCE]
@@ -123,7 +123,7 @@ resource "azurerm_storage_account" "main" {}
 variable "region" {}
 output "id" {}
 '''
-        from code_intelligence.detectors.iac.terraform import TerraformDetector
+        from osscodeiq.detectors.iac.terraform import TerraformDetector
 
         result = TerraformDetector().detect(_ctx(source))
         ids = {n.id for n in result.nodes}
@@ -132,7 +132,7 @@ output "id" {}
         assert "tf:output:id" in ids
 
     def test_supported_languages(self):
-        from code_intelligence.detectors.iac.terraform import TerraformDetector
+        from osscodeiq.detectors.iac.terraform import TerraformDetector
 
         d = TerraformDetector()
         assert "terraform" in d.supported_languages

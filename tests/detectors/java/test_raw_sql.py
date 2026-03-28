@@ -1,8 +1,8 @@
 """Tests for raw SQL query detector."""
 
-from code_intelligence.detectors.base import DetectorContext, DetectorResult
-from code_intelligence.detectors.java.raw_sql import RawSqlDetector
-from code_intelligence.models.graph import NodeKind
+from osscodeiq.detectors.base import DetectorContext, DetectorResult
+from osscodeiq.detectors.java.raw_sql import RawSqlDetector
+from osscodeiq.models.graph import NodeKind
 
 
 def _ctx(content: str, path: str = "UserRepository.java", language: str = "java") -> DetectorContext:

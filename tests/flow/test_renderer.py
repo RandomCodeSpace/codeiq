@@ -1,7 +1,7 @@
 """Tests for flow renderers."""
 
-from code_intelligence.flow.models import FlowDiagram, FlowEdge, FlowNode, FlowSubgraph
-from code_intelligence.flow.renderer import render_html, render_json, render_mermaid
+from osscodeiq.flow.models import FlowDiagram, FlowEdge, FlowNode, FlowSubgraph
+from osscodeiq.flow.renderer import render_html, render_json, render_mermaid
 
 
 def _sample_diagram():
@@ -68,7 +68,7 @@ def test_render_html():
     views = {"overview": _sample_diagram()}
     html = render_html(views, {"total_nodes": 100, "total_edges": 200})
     assert "<!DOCTYPE html>" in html
-    assert "Code IQ" in html
+    assert "OSSCodeIQ" in html
     assert "VIEWS_DATA" in html or "cytoscape" in html
     assert "100" in html
 

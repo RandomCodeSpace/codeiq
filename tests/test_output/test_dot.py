@@ -1,8 +1,8 @@
 """Tests for DOT renderer."""
 
-from code_intelligence.graph.store import GraphStore
-from code_intelligence.models.graph import EdgeKind, GraphEdge, GraphNode, NodeKind
-from code_intelligence.output.dot import DotRenderer
+from osscodeiq.graph.store import GraphStore
+from osscodeiq.models.graph import EdgeKind, GraphEdge, GraphNode, NodeKind
+from osscodeiq.output.dot import DotRenderer
 
 
 def _build_sample_store() -> GraphStore:

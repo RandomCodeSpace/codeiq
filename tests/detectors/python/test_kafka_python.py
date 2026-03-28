@@ -1,8 +1,8 @@
 """Tests for Kafka Python detector (confluent-kafka, aiokafka, kafka-python)."""
 
-from code_intelligence.detectors.base import DetectorContext, DetectorResult
-from code_intelligence.detectors.python.kafka_python import KafkaPythonDetector
-from code_intelligence.models.graph import NodeKind, EdgeKind
+from osscodeiq.detectors.base import DetectorContext, DetectorResult
+from osscodeiq.detectors.python.kafka_python import KafkaPythonDetector
+from osscodeiq.models.graph import NodeKind, EdgeKind
 
 
 def _ctx(content: str, path: str = "services/producer.py", language: str = "python") -> DetectorContext:
