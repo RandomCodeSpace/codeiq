@@ -29,7 +29,22 @@ jobs:
           python-version: "3.12"
 
       - name: Install build tools
-        run: pip install build
+        run: pip install build tomli
+
+      - name: Patch version in pyproject.toml
+        env:
+          RELEASE_VERSION: ${{ inputs.version }}
+        run: |
+          python3 << 'PYEOF'
+          import os, re
+          ver = os.environ["RELEASE_VERSION"]
+          with open("pyproject.toml", "r") as f:
+              content = f.read()
+          content = re.sub(r'version\s*=\s*"[^"]+"', f'version = "{ver}"', content, count=1)
+          with open("pyproject.toml", "w") as f:
+              f.write(content)
+          print(f"Version set to: {ver}")
+          PYEOF
 
       - name: Build wheel and sdist
         run: python -m build
