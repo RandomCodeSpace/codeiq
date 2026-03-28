@@ -39,9 +39,9 @@ htmlcov/
 Thumbs.db
 
 # Project
-.code-intelligence/
+.osscodeiq/
+.superpowers/
 docs/superpowers/
-docs/specs/
 .code_intelligence_cache*/
 *.db
 *.db-wal

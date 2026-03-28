@@ -8,7 +8,7 @@
 - **CLI command:** `osscodeiq`
 - **Python package:** `osscodeiq` (under `src/osscodeiq/`)
 - **GitHub repo:** `RandomCodeSpace/code-iq` (repo name differs from package name)
-- **Cache directory on disk:** `.code-intelligence` (legacy name, kept for backward compatibility)
+- **Cache directory on disk:** `.osscodeiq`
 
 ## Architecture
 

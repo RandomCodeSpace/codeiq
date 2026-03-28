@@ -15,9 +15,9 @@ def create_backend(backend_name: str = "networkx", **kwargs) -> GraphBackend:
         return NetworkXBackend()
     elif backend_name == "kuzu":
         from osscodeiq.graph.backends.kuzu import KuzuBackend
-        return KuzuBackend(db_path=kwargs.get("path", ".code-intelligence/graph.kuzu"))
+        return KuzuBackend(db_path=kwargs.get("path", ".osscodeiq/graph.kuzu"))
     elif backend_name == "sqlite":
         from osscodeiq.graph.backends.sqlite_backend import SqliteGraphBackend
-        return SqliteGraphBackend(db_path=kwargs.get("path", ".code-intelligence/graph.db"))
+        return SqliteGraphBackend(db_path=kwargs.get("path", ".osscodeiq/graph.db"))
     else:
         raise ValueError(f"Unknown graph backend: {backend_name}")

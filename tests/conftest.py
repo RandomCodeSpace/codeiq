@@ -1,4 +1,4 @@
-"""Shared test fixtures for code-intelligence tests."""
+"""Shared test fixtures for OSSCodeIQ tests."""
 
 from __future__ import annotations
 

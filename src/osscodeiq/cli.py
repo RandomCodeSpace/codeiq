@@ -17,7 +17,7 @@ app = typer.Typer(
 )
 console = Console()
 
-_GRAPH_DIR_NAME = ".code-intelligence"
+_GRAPH_DIR_NAME = ".osscodeiq"
 _KUZU_DB_NAME = "graph.kuzu"
 _SQLITE_DB_NAME = "graph.db"
 

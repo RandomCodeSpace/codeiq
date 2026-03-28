@@ -37,6 +37,7 @@ dependencies = [
     "fastapi>=0.115",
     "uvicorn[standard]>=0.34",
     "fastmcp>=2.0",
+    "nicegui>=3.9",
 ]
 
 [project.urls]

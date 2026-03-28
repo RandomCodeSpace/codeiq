@@ -1,4 +1,4 @@
-"""Configuration loading and defaults for code-intelligence."""
+"""Configuration loading and defaults for OSSCodeIQ."""
 
 from __future__ import annotations
 
@@ -48,7 +48,7 @@ class CacheConfig(BaseModel):
     """Cache configuration."""
 
     enabled: bool = True
-    directory: str = ".code-intelligence"
+    directory: str = ".osscodeiq"
     db_name: str = "cache.db"
 
 
@@ -82,7 +82,7 @@ class GraphConfig(BaseModel):
 
 
 class Config(BaseModel):
-    """Root configuration for code-intelligence."""
+    """Root configuration for OSSCodeIQ."""
 
     discovery: DiscoveryConfig = Field(default_factory=DiscoveryConfig)
     cache: CacheConfig = Field(default_factory=CacheConfig)
@@ -100,7 +100,7 @@ class Config(BaseModel):
             return cls.model_validate(data)
         # Check for default config file in project root
         search_dir = project_path or Path.cwd()
-        for name in (".code-intelligence.yml", ".code-intelligence.yaml"):
+        for name in (".osscodeiq.yml", ".osscodeiq.yaml"):
             default = search_dir / name
             if default.exists():
                 with open(default) as f:

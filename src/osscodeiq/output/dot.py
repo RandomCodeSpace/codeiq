@@ -87,7 +87,7 @@ class DotRenderer:
     def render(self, store: GraphStore, cluster_by: ClusterBy | None = None) -> str:
         """Return a DOT-language string."""
         lines: list[str] = [
-            "digraph CodeIntelligence {",
+            "digraph OSSCodeIQ {",
             f'    rankdir={self._rankdir};',
             f'    fontname="{self._fontname}";',
             f'    fontsize={self._fontsize};',
