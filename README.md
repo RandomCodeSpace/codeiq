@@ -24,7 +24,7 @@
   <!-- DYNAMIC:languages --><a href="https://github.com/RandomCodeSpace/code-iq"><img src="https://img.shields.io/badge/languages-33-blue?style=flat-square&logo=stackblitz&logoColor=white" alt="33 Languages"></a><!-- /DYNAMIC:languages -->
   <!-- DYNAMIC:tests --><a href="https://github.com/RandomCodeSpace/code-iq"><img src="https://img.shields.io/badge/tests-113%20passed-brightgreen?style=flat-square&logo=pytest&logoColor=white" alt="113 passed Tests"></a><!-- /DYNAMIC:tests -->
   <!-- DYNAMIC:files --><a href="https://github.com/RandomCodeSpace/code-iq"><img src="https://img.shields.io/badge/files-137-informational?style=flat-square&logo=files&logoColor=white" alt="137 Files"></a><!-- /DYNAMIC:files -->
-  <!-- DYNAMIC:loc --><a href="https://github.com/RandomCodeSpace/code-iq"><img src="https://img.shields.io/badge/LOC-15%2C280-informational?style=flat-square&logo=codacy&logoColor=white" alt="15,280 Loc"></a><!-- /DYNAMIC:loc -->
+  <!-- DYNAMIC:loc --><a href="https://github.com/RandomCodeSpace/code-iq"><img src="https://img.shields.io/badge/LOC-15%2C281-informational?style=flat-square&logo=codacy&logoColor=white" alt="15,281 Loc"></a><!-- /DYNAMIC:loc -->
 </p>
 
 ---
