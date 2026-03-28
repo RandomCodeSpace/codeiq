@@ -71,11 +71,10 @@ jobs:
       - name: Delete existing beta tag (if any)
         env:
           BETA_TAG: ${{ steps.version.outputs.tag }}
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           gh release delete "$BETA_TAG" --yes 2>/dev/null || true
           git push origin ":refs/tags/$BETA_TAG" 2>/dev/null || true
-        env:
-          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Create beta release with wheel
         env:
