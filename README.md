@@ -1,7 +1,7 @@
 <p align="center">
   <h1 align="center">Code Intelligence</h1>
   <p align="center">
-    <strong>Intelligent code graph discovery and analysis CLI</strong>
+    <strong>Deterministic code graph discovery and analysis CLI — no AI, pure pattern matching</strong>
   </p>
 </p>
 
@@ -20,281 +20,209 @@
   <a href="https://github.com/RandomCodeSpace/code-iq/security/dependabot"><img src="https://img.shields.io/badge/dependabot-enabled-brightgreen?style=flat-square&logo=dependabot&logoColor=white" alt="Dependabot enabled"></a>
   <a href="https://github.com/RandomCodeSpace/code-iq/security/code-scanning"><img src="https://img.shields.io/badge/CodeQL-enabled-brightgreen?style=flat-square&logo=github&logoColor=white" alt="CodeQL"></a>
   <!-- DYNAMIC:vulnerabilities --><a href="https://github.com/RandomCodeSpace/code-iq/security/dependabot"><img src="https://img.shields.io/badge/vulnerabilities-0-brightgreen?style=flat-square&logo=hackthebox&logoColor=white" alt="0 Vulnerabilities"></a><!-- /DYNAMIC:vulnerabilities -->
-  <!-- DYNAMIC:detectors --><a href="https://github.com/RandomCodeSpace/code-iq"><img src="https://img.shields.io/badge/detectors-87-brightgreen?style=flat-square&logo=codefactor&logoColor=white" alt="87 Detectors"></a><!-- /DYNAMIC:detectors -->
+  <!-- DYNAMIC:detectors --><a href="https://github.com/RandomCodeSpace/code-iq"><img src="https://img.shields.io/badge/detectors-97-brightgreen?style=flat-square&logo=codefactor&logoColor=white" alt="97 Detectors"></a><!-- /DYNAMIC:detectors -->
   <!-- DYNAMIC:languages --><a href="https://github.com/RandomCodeSpace/code-iq"><img src="https://img.shields.io/badge/languages-35-blue?style=flat-square&logo=stackblitz&logoColor=white" alt="35 Languages"></a><!-- /DYNAMIC:languages -->
-<<<<<<< HEAD
-<<<<<<< HEAD
-  <!-- DYNAMIC:tests --><a href="https://github.com/RandomCodeSpace/code-iq"><img src="https://img.shields.io/badge/tests-1450%20passed-brightgreen?style=flat-square&logo=pytest&logoColor=white" alt="1450 passed Tests"></a><!-- /DYNAMIC:tests -->
-  <!-- DYNAMIC:files --><a href="https://github.com/RandomCodeSpace/code-iq"><img src="https://img.shields.io/badge/files-264-informational?style=flat-square&logo=files&logoColor=white" alt="264 Files"></a><!-- /DYNAMIC:files -->
-  <!-- DYNAMIC:loc --><a href="https://github.com/RandomCodeSpace/code-iq"><img src="https://img.shields.io/badge/LOC-32%2C068-informational?style=flat-square&logo=codacy&logoColor=white" alt="32,068 Loc"></a><!-- /DYNAMIC:loc -->
-=======
-  <!-- DYNAMIC:tests --><a href="https://github.com/RandomCodeSpace/code-iq"><img src="https://img.shields.io/badge/tests-1450%20passed-brightgreen?style=flat-square&logo=pytest&logoColor=white" alt="1450 passed Tests"></a><!-- /DYNAMIC:tests -->
-  <!-- DYNAMIC:files --><a href="https://github.com/RandomCodeSpace/code-iq"><img src="https://img.shields.io/badge/files-264-informational?style=flat-square&logo=files&logoColor=white" alt="264 Files"></a><!-- /DYNAMIC:files -->
-  <!-- DYNAMIC:loc --><a href="https://github.com/RandomCodeSpace/code-iq"><img src="https://img.shields.io/badge/LOC-32%2C068-informational?style=flat-square&logo=codacy&logoColor=white" alt="32,068 Loc"></a><!-- /DYNAMIC:loc -->
-=======
-  <!-- DYNAMIC:tests --><a href="https://github.com/RandomCodeSpace/code-iq"><img src="https://img.shields.io/badge/tests-1450%20passed-brightgreen?style=flat-square&logo=pytest&logoColor=white" alt="1450 passed Tests"></a><!-- /DYNAMIC:tests -->
-  <!-- DYNAMIC:files --><a href="https://github.com/RandomCodeSpace/code-iq"><img src="https://img.shields.io/badge/files-264-informational?style=flat-square&logo=files&logoColor=white" alt="264 Files"></a><!-- /DYNAMIC:files -->
-  <!-- DYNAMIC:loc --><a href="https://github.com/RandomCodeSpace/code-iq"><img src="https://img.shields.io/badge/LOC-32%2C068-informational?style=flat-square&logo=codacy&logoColor=white" alt="32,068 Loc"></a><!-- /DYNAMIC:loc -->
-=======
-  <!-- DYNAMIC:tests --><a href="https://github.com/RandomCodeSpace/code-iq"><img src="https://img.shields.io/badge/tests-1450%20passed-brightgreen?style=flat-square&logo=pytest&logoColor=white" alt="1450 passed Tests"></a><!-- /DYNAMIC:tests -->
-  <!-- DYNAMIC:files --><a href="https://github.com/RandomCodeSpace/code-iq"><img src="https://img.shields.io/badge/files-264-informational?style=flat-square&logo=files&logoColor=white" alt="264 Files"></a><!-- /DYNAMIC:files -->
-  <!-- DYNAMIC:loc --><a href="https://github.com/RandomCodeSpace/code-iq"><img src="https://img.shields.io/badge/LOC-32%2C068-informational?style=flat-square&logo=codacy&logoColor=white" alt="32,068 Loc"></a><!-- /DYNAMIC:loc -->
->>>>>>> 82cf48b (Phase 4b: 5 ORM/database detectors (Prisma, Sequelize, Mongoose, Pydantic, Django models))
->>>>>>> edb98b7 (Phase 4a: 6 high-impact structure + framework detectors)
+  <!-- DYNAMIC:tests --><a href="https://github.com/RandomCodeSpace/code-iq"><img src="https://img.shields.io/badge/tests-1662%20passed-brightgreen?style=flat-square&logo=pytest&logoColor=white" alt="1662 passed Tests"></a><!-- /DYNAMIC:tests -->
+  <!-- DYNAMIC:files --><a href="https://github.com/RandomCodeSpace/code-iq"><img src="https://img.shields.io/badge/files-286-informational?style=flat-square&logo=files&logoColor=white" alt="286 Files"></a><!-- /DYNAMIC:files -->
+  <!-- DYNAMIC:loc --><a href="https://github.com/RandomCodeSpace/code-iq"><img src="https://img.shields.io/badge/LOC-36%2C201-informational?style=flat-square&logo=codacy&logoColor=white" alt="36,201 LOC"></a><!-- /DYNAMIC:loc -->
 </p>
 
 ---
 
-**Code Intelligence** scans codebases to build a rich knowledge graph of code relationships — classes, methods, endpoints, entities, dependencies, infrastructure resources, configurations, and more. It understands 33 programming languages and frameworks with 58 specialized detectors, incremental caching for fast re-analysis, and parallel processing.
+**Code Intelligence** scans codebases to build a deterministic knowledge graph of code relationships — classes, methods, endpoints, entities, dependencies, infrastructure resources, auth patterns, and more. 97 detectors across 35 languages, 3 storage backends (NetworkX, SQLite, KuzuDB), interactive flow diagrams, and zero AI dependency.
 
 ## Features
 
-- **Multi-language analysis** — Java, Python, TypeScript, JavaScript, Go, C#, C/C++, Kotlin, Scala, Rust, Ruby, Swift, and more
-- **Framework detection** — Spring Boot, Django, Flask, FastAPI, Express, NestJS, JPA/Hibernate, SQLAlchemy, TypeORM, gRPC, Kafka, and 30+ more
-- **Config intelligence** — JSON, YAML, TOML, INI, Properties, Markdown, Protocol Buffers, SQL, Batch scripts
-- **Specialized config detectors** — `package.json`, `docker-compose.yml`, GitHub Actions, Kubernetes manifests, OpenAPI/Swagger, `pyproject.toml`, `tsconfig.json`
-- **Incremental analysis** — Git-aware change detection with SQLite-backed caching (~4x speedup on re-runs)
-- **Parallel processing** — ThreadPoolExecutor with configurable workers (default: 8)
-- **Graph export** — JSON, YAML, Mermaid, and DOT output formats
-- **Plugin system** — Extend with custom detectors via setuptools entry points
+- **97 detectors** across 35 languages — Java, Python, TypeScript, Go, C#, Rust, Kotlin, and more
+- **Framework detection** — Spring Boot, Django, Flask, FastAPI, Express, NestJS, Gin, Echo, Actix-web, Axum, Quarkus, Micronaut, Prisma, Sequelize, Mongoose, Pydantic, Entity Framework Core, and 60+ more
+- **Auth/security detection** — Spring Security, Django Auth, FastAPI Auth, NestJS Guards, Passport/JWT, LDAP, Azure AD, mTLS, CSRF, session/cookie auth
+- **Frontend detection** — React, Vue, Angular, Svelte components, hooks, frontend routes (React Router, Vue Router, Next.js, Remix)
+- **Infrastructure** — Terraform, Kubernetes, Docker Compose, Helm Charts, CloudFormation, Bicep, GitLab CI, GitHub Actions
+- **Layer classification** — Every node tagged as `frontend`, `backend`, `infra`, `shared`, or `unknown`
+- **Flow diagrams** — Generate interactive Mermaid architecture diagrams with drill-down (CI, Deploy, Runtime, Auth views)
+- **3 storage backends** — NetworkX (in-memory), SQLite (file-based), KuzuDB (Cypher queries)
+- **Bundle & distribute** — Package the graph DB + interactive HTML into a zip for sharing
+- **100% deterministic** — Same input, same output, every time, on every backend
+- **Plugin system** — Auto-discovered detectors + setuptools entry points for external plugins
 
 ## Quick Start
 
-### Installation
-
 ```bash
+# Install
 pip install -e .
-```
 
-### Usage
-
-```bash
-# Analyze a codebase (incremental by default)
+# Analyze a codebase
 code-intelligence analyze /path/to/repo
 
-# Full analysis (no cache)
-code-intelligence analyze /path/to/repo --full
+# Generate architecture flow diagram
+code-intelligence flow /path/to/repo --format html --output flow.html
 
-# Customize parallelism
-code-intelligence analyze /path/to/repo -j 16
+# Query the graph
+code-intelligence find endpoints /path/to/repo
+code-intelligence find guards /path/to/repo
+code-intelligence find unprotected /path/to/repo
+
+# Use Cypher queries (KuzuDB backend)
+code-intelligence analyze /path/to/repo --backend kuzu
+code-intelligence cypher "MATCH (e:CodeNode {kind: 'endpoint'})-[]->(s:CodeNode) RETURN e.label, s.label LIMIT 20" /path/to/repo --backend kuzu
+
+# Bundle for distribution
+code-intelligence bundle /path/to/repo --tag v2.1.0 --backend kuzu
 ```
 
-### Example Output
+## Supported Languages & Frameworks
 
-```
-$ code-intelligence analyze ./my-project
+### Java (28 detectors)
+Spring REST, Spring Security, JPA/Hibernate, Kafka, RabbitMQ, JMS, gRPC, JAX-RS, WebSocket, Azure Functions, Cosmos DB, IBM MQ, TIBCO EMS, Quarkus, Micronaut
 
-🔍 Discovering files…
-📁 Found 10,225 files
-⚙️  Analyzing 10,225 files…
-🔗 Linking cross-file relationships…
-✅ Analysis complete — 27,971 nodes, 36,440 edges
+### Python (12 detectors)
+Flask, Django (views + models), FastAPI, SQLAlchemy, Celery, Pydantic, Kafka (confluent/aiokafka), general structures (classes, functions, imports)
 
-📊 Results:  27,971 nodes, 36,440 edges
-   📂 10,225 total files — 0 cached, 10,225 analyzed
+### TypeScript/JavaScript (22 detectors)
+Express, NestJS, Fastify, Remix, GraphQL, TypeORM, Prisma, Sequelize, Mongoose, KafkaJS, React, Vue, Angular, Svelte, frontend routes
 
-📋 Language Breakdown:
-   🟢 24 detectors  java               8,215 files
-   🟢 1 detector   gradle               774 files
-   🟢 1 detector   kotlin               408 files
-   🟢 1 detector   xml                  303 files
-   🟡 parsed       json                 207 files
-   ...
+### Go (3 detectors)
+Gin, Echo, Chi, gorilla/mux, net/http endpoints + GORM, sqlx, database/sql + general structures
 
-🏗️  Detection Summary:
-   class                      12,454
-   method                      6,292
-   module                      2,021
-   config_key                  1,532
-   interface                     670
-   endpoint                      214
-   ...
-```
+### C# (4 detectors)
+Entity Framework Core, Minimal APIs, ASP.NET Core, Azure Functions
 
-## Supported Languages & Detectors
+### Rust (2 detectors)
+Actix-web, Axum + general structures (traits, impls, macros)
 
-### Full Detection (58 detectors)
+### Kotlin (2 detectors)
+Ktor + general structures (sealed/enum/annotation classes, extension functions)
 
-| Language | Detectors | Frameworks & Patterns |
-|----------|-----------|----------------------|
-| **Java** | 24 | Spring REST, JPA/Hibernate, Kafka, RabbitMQ, JMS, gRPC, JAX-RS, WebSocket, Azure Functions, Cosmos DB, IBM MQ, TIBCO EMS |
-| **Python** | 5 | Flask, Django, FastAPI, SQLAlchemy, Celery |
-| **TypeScript** | 7 | Express, NestJS, TypeORM, GraphQL, Azure Functions |
-| **JavaScript** | 5 | Express, GraphQL, Azure Functions |
-| **Go** | 1 | Struct/interface/function detection |
-| **C#** | 2 | Class hierarchies, Azure Functions |
-| **C/C++** | 1 | Struct/function/class detection |
-| **Terraform** | 1 | Resources, modules, variables, outputs, providers |
-| **Bicep** | 1 | Azure Resource Manager templates |
-| **JSON** | 4 | Generic structure, `package.json`, `tsconfig.json`, OpenAPI/Swagger |
-| **YAML** | 5 | Generic structure, Docker Compose, GitHub Actions, Kubernetes, OpenAPI |
-| **TOML** | 2 | Generic structure, `pyproject.toml` |
-| **INI** | 1 | Generic section/key detection |
-| **Properties** | 1 | Spring config, DB connection strings |
-| **SQL** | 1 | CREATE TABLE/VIEW/INDEX, foreign keys |
-| **Markdown** | 1 | Heading structure, internal file links |
-| **Protocol Buffers** | 1 | Services, RPCs, messages, imports |
-| **Batch** | 1 | Labels, CALL commands, SET variables |
-| **Bash** | 1 | Functions, source imports, exports, tool usage |
-| **PowerShell** | 1 | Functions, cmdlets |
-| **Dockerfile** | 1 | Base images, stages, exposed ports |
+### Infrastructure & Config (16 detectors)
+Terraform, Kubernetes, K8s RBAC, Docker Compose, Dockerfile, Bicep, GitHub Actions, GitLab CI, Helm Charts, CloudFormation, JSON, YAML, TOML, INI, Properties, Markdown, Proto
 
-### Parsed (structured data extraction)
-
-Gradle, XML, Properties, TOML, INI, SQL
-
-### Discovery Only (file counting & language mapping)
-
-Kotlin, Scala, Ruby, Rust, Swift, R, Perl, Lua, Dart
+### Auth & Security (9 detectors)
+Spring Security, Django Auth, FastAPI Auth, NestJS Guards, Passport/JWT, K8s RBAC, LDAP, TLS/Certificate/Azure AD, Session/Header/CSRF
 
 ## Architecture
 
 ```
 code-intelligence analyze /path/to/repo
-        │
-        ▼
-┌──────────────────┐
-│  File Discovery   │  git ls-files + extension mapping (33 languages)
-└────────┬─────────┘
-         │
-         ▼
-┌──────────────────┐
-│  Change Detection │  git diff + content hashing (incremental mode)
-└────────┬─────────┘
-         │
-         ▼
-┌──────────────────┐
-│  Parsing Layer    │  Tree-sitter (Java/Python/TS/JS) + structured parsers
-└────────┬─────────┘
-         │
-         ▼
-┌──────────────────┐
-│  58 Detectors     │  Framework patterns, config files, infrastructure
-│  (8 workers)      │  ThreadPoolExecutor — parallel per-file analysis
-└────────┬─────────┘
-         │
-         ▼
-┌──────────────────┐
-│  Cross-file       │  Topic/queue linking, entity-repository matching,
-│  Linkers          │  module containment
-└────────┬─────────┘
-         │
-         ▼
-┌──────────────────┐
-│  Code Graph       │  Nodes + Edges → JSON / YAML / Mermaid / DOT
-└──────────────────┘
+        |
+        v
++------------------+
+| File Discovery   |  git ls-files + extension/filename mapping (35 languages)
++--------+---------+
+         |
+         v
++------------------+
+| Parsing Layer    |  Tree-sitter (Java/Python/TS/JS) + structured parsers
++--------+---------+
+         |
+         v
++------------------+
+| 97 Detectors     |  Auto-discovered via pkgutil, 8 parallel workers
++--------+---------+
+         |
+         v
++------------------+
+| Layer Classifier |  frontend / backend / infra / shared / unknown
++--------+---------+
+         |
+         v
++------------------+
+| Cross-file       |  Topic linking, entity-repo matching, module containment
+| Linkers          |
++--------+---------+
+         |
+         v
++------------------+
+| Graph Backend    |  NetworkX (memory) | SQLite (file) | KuzuDB (Cypher)
++------------------+
+         |
+         v
++------------------+
+| Output           |  JSON | YAML | Mermaid | DOT | Interactive HTML
++------------------+
+```
+
+## Flow Diagrams
+
+Generate architecture flow diagrams with drill-down views:
+
+```bash
+# High-level overview
+code-intelligence flow ./my-project --format mermaid
+
+# Drill into specific layers
+code-intelligence flow ./my-project --view ci       # CI/CD pipeline
+code-intelligence flow ./my-project --view deploy   # Deployment topology
+code-intelligence flow ./my-project --view runtime  # Service architecture
+code-intelligence flow ./my-project --view auth     # Security coverage
+
+# Interactive HTML with click-to-drill
+code-intelligence flow ./my-project --format html --output flow.html
 ```
 
 ## Graph Model
 
-### Node Types (27)
+### Node Types (31)
+`module` `package` `class` `method` `endpoint` `entity` `repository` `query` `migration` `topic` `queue` `event` `interface` `abstract_class` `enum` `annotation_type` `protocol_message` `config_file` `config_key` `config_definition` `database_connection` `infra_resource` `azure_resource` `azure_function` `message_queue` `websocket_endpoint` `rmi_interface` `component` `guard` `middleware` `hook`
 
-`module` `package` `class` `method` `endpoint` `entity` `repository` `query` `migration` `topic` `queue` `event` `interface` `abstract_class` `enum` `annotation_type` `protocol_message` `config_file` `config_key` `config_definition` `database_connection` `infra_resource` `azure_resource` `azure_function` `message_queue` `websocket_endpoint` `rmi_interface`
+### Edge Types (26)
+`depends_on` `imports` `extends` `implements` `calls` `injects` `exposes` `queries` `maps_to` `produces` `consumes` `publishes` `listens` `invokes_rmi` `exports_rmi` `reads_config` `migrates` `contains` `defines` `overrides` `connects_to` `triggers` `provisions` `sends_to` `receives_from` `protects` `renders`
 
-### Edge Types (24)
+## Storage Backends
 
-`depends_on` `imports` `extends` `implements` `calls` `injects` `exposes` `queries` `maps_to` `produces` `consumes` `publishes` `listens` `invokes_rmi` `exports_rmi` `reads_config` `migrates` `contains` `defines` `overrides` `connects_to` `triggers` `provisions` `sends_to` `receives_from`
+| Backend | Type | Cypher | Bundleable | Use Case |
+|---------|------|--------|------------|----------|
+| **NetworkX** | In-memory | No | Via JSON | Default, fastest for analysis |
+| **SQLite** | File | No | .db file | Persistent, zero dependencies |
+| **KuzuDB** | File | Yes | Directory | Cypher queries, agentic AI |
 
-## Benchmark
-
-Tested against 189K files across 8 real-world projects:
-
-| Project | Files | Nodes | Edges | Time |
-|---------|-------|-------|-------|------|
-| azure-sdk-for-java | 77,467 | 760,781 | 1,380,270 | 5m 48s |
-| azure-sdk-for-python | 50,646 | 82,253 | 119,794 | 4m 11s |
-| terraform-provider-azurerm | 42,850 | 312,225 | 448,540 | 1m 40s |
-| spring-boot | 10,225 | 27,971 | 36,440 | 29s |
-| kafka | 6,995 | 58,977 | 107,866 | 40s |
-| eShop (.NET) | 606 | 1,843 | 1,580 | 3s |
-| contoso-real-estate | 432 | 2,479 | 3,161 | 4s |
-| **Total** | **189,221** | **1,246,529** | **2,097,651** | **~13 min** |
-
-- **Throughput**: ~250 files/sec (full scan, 8 workers)
-- **Cache speedup**: ~4x on incremental re-runs
-- **Consistency**: 100% deterministic across runs (7/8 projects exact match, 1 project 99.999%)
-
-## Configuration
-
-Create a `.code-intelligence.yml` in your project root:
-
-```yaml
-discovery:
-  include_extensions:
-    - .java
-    - .py
-    - .ts
-    # ... add/remove as needed
-  exclude_patterns:
-    - "**/node_modules/**"
-    - "**/build/**"
-    - "**/target/**"
-  max_file_size_bytes: 1048576  # 1MB
-
-analysis:
-  parallelism: 8
-  incremental: true
-
-cache:
-  enabled: true
-  directory: .code-intelligence
-  db_name: cache.db
-```
-
-## Extending with Plugins
-
-Create custom detectors by implementing the `Detector` protocol:
-
-```python
-from code_intelligence.detectors.base import DetectorContext, DetectorResult
-from code_intelligence.models.graph import GraphNode, NodeKind, SourceLocation
-
-class MyCustomDetector:
-    name = "my_custom"
-    supported_languages = ("python",)
-
-    def detect(self, ctx: DetectorContext) -> DetectorResult:
-        result = DetectorResult()
-        # Your detection logic here
-        # Access: ctx.file_path, ctx.content, ctx.parsed_data, ctx.tree
-        return result
-```
-
-Register via `pyproject.toml` entry point:
-
-```toml
-[project.entry-points."code_intelligence.detectors"]
-my_custom = "my_package.my_module:MyCustomDetector"
+```bash
+code-intelligence analyze ./repo --backend kuzu
+code-intelligence analyze ./repo --backend sqlite
 ```
 
 ## Development
 
 ```bash
-# Clone
 git clone https://github.com/RandomCodeSpace/code-iq.git
 cd code-iq
-
-# Install in development mode
 pip install -e ".[dev]"
+pytest                    # 1,662 tests
+code-intelligence analyze . # Analyze this repo
+```
 
-# Run tests
-pytest
+### Adding a New Detector
 
-# Run analysis on this repo
-code-intelligence analyze .
+Just create a file — auto-discovered, zero registration:
+
+```python
+# src/code_intelligence/detectors/python/my_detector.py
+from code_intelligence.detectors.base import DetectorContext, DetectorResult
+from code_intelligence.detectors.utils import decode_text
+from code_intelligence.models.graph import GraphNode, NodeKind, SourceLocation
+
+class MyDetector:
+    name = "my_detector"
+    supported_languages = ("python",)
+
+    def detect(self, ctx: DetectorContext) -> DetectorResult:
+        result = DetectorResult()
+        text = decode_text(ctx)
+        # Your detection logic here
+        return result
 ```
 
 ## Requirements
 
 - Python 3.11+
 - Dependencies: typer, rich, tree-sitter, networkx, lxml, pyyaml, sqlparse, pydantic
+- Optional: `pip install kuzu` for KuzuDB backend
 
 ## License
 
-This project is licensed under the MIT License. See [LICENSE](LICENSE) for details.
+MIT License. See [LICENSE](LICENSE) for details.
 
 ---
 
 <p align="center">
-  Built with intelligence.
+  Built with intelligence. No AI required.
 </p>
