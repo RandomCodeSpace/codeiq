@@ -194,10 +194,17 @@ class ModuleContainmentLinker:
 
 
 class GraphBuilder:
-    """Aggregates detector results and runs cross-file linkers to build a graph."""
+    """Aggregates detector results and runs cross-file linkers to build a graph.
+
+    Edges are buffered and flushed after all nodes are added to ensure
+    consistent behavior across all storage backends. Some backends
+    (NetworkX, SQLite, KuzuDB) reject edges referencing non-existent
+    nodes, so all nodes must be present before edges are inserted.
+    """
 
     def __init__(self, backend: GraphBackend | None = None) -> None:
         self._store = GraphStore(backend=backend)
+        self._pending_edges: list[GraphEdge] = []
         self._linkers: list[Linker] = [
             TopicLinker(),
             EntityLinker(),
@@ -210,9 +217,18 @@ class GraphBuilder:
             self._store.add_node(node)
 
     def add_edges(self, edges: list[GraphEdge]) -> None:
-        """Add a batch of edges to the graph store."""
-        for edge in edges:
+        """Buffer edges for deferred insertion."""
+        self._pending_edges.extend(edges)
+
+    def flush_edges(self) -> None:
+        """Insert all buffered edges into the store.
+
+        Call this after all nodes have been added so that backends
+        which validate node existence won't reject valid cross-file edges.
+        """
+        for edge in self._pending_edges:
             self._store.add_edge(edge)
+        self._pending_edges.clear()
 
     def merge_detector_result(self, result: object) -> None:
         """Merge a DetectorResult into the graph.
@@ -223,10 +239,13 @@ class GraphBuilder:
         nodes: list[GraphNode] = getattr(result, "nodes", [])
         edges: list[GraphEdge] = getattr(result, "edges", [])
         self.add_nodes(nodes)
-        self.add_edges(edges)
+        self.add_edges(edges)  # buffered, not inserted yet
 
     def run_linkers(self) -> None:
-        """Run all registered linkers and add the resulting edges."""
+        """Flush pending edges, then run all registered linkers."""
+        # Flush detector edges first so linkers see the full graph
+        self.flush_edges()
+
         for linker in self._linkers:
             try:
                 new_edges = linker.link(self._store)
@@ -239,7 +258,8 @@ class GraphBuilder:
                 if new_nodes:
                     self.add_nodes(new_nodes)
 
-                self.add_edges(new_edges)
+                # Linker edges go to pending buffer too
+                self._pending_edges.extend(new_edges)
             except Exception:
                 logger.warning(
                     "Linker %s failed",
@@ -247,6 +267,12 @@ class GraphBuilder:
                     exc_info=True,
                 )
 
+        # Flush linker edges (linker-created nodes are already added above)
+        self.flush_edges()
+
     def build(self) -> GraphStore:
         """Return the assembled graph store."""
+        # Safety: flush any remaining edges
+        if self._pending_edges:
+            self.flush_edges()
         return self._store
