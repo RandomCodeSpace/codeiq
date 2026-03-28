@@ -108,7 +108,7 @@ def render_html(views: dict[str, FlowDiagram], stats: dict[str, Any], project_na
         views_data[name] = diagram.to_dict()
 
     template_path = Path(__file__).parent / "templates" / "interactive.html"
-    template = template_path.read_text()
+    template = template_path.read_text(encoding="utf-8")
 
     # Inline vendor JS for offline/firewall use
     vendor_dir = Path(__file__).parent / "vendor"
@@ -118,7 +118,7 @@ def render_html(views: dict[str, FlowDiagram], stats: dict[str, Any], project_na
         ("{{VENDOR_CYTOSCAPE_DAGRE}}", "cytoscape-dagre.min.js"),
     ]:
         vendor_path = vendor_dir / filename
-        template = template.replace(placeholder, vendor_path.read_text())
+        template = template.replace(placeholder, vendor_path.read_text(encoding="utf-8"))
 
     html = template.replace("{{VIEWS_DATA}}", json.dumps(views_data, indent=2))
     html = html.replace("{{STATS}}", json.dumps(stats, indent=2))
