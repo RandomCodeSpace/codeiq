@@ -81,15 +81,31 @@ FileDiscovery → Parsers → Detectors → GraphBuilder (buffered) → Linkers 
 | `analyzer.py` | Pipeline orchestrator |
 | `cli.py` | CLI commands (analyze, graph, query, find, cypher, bundle, cache, plugins) |
 
-## Known Tech Debt (Phase 2)
+## Tech Debt Resolved (Phase 2 — Complete)
 
-- Registry has 75-entry hardcoded detector list — needs auto-discovery
-- `imports_detector.py` is 723 lines — needs splitting per language
-- 60+ detectors have no tests — need coverage
-- `_parse_structured()` has 11-branch elif chain — needs dispatch table
-- Linker protocol uses `_new_module_nodes` private attribute hack — needs `LinkResult`
-- Missing extensions: `.html`, `.css`, `.mjs`, `.cjs`, `.jsonc`, `.groovy`, `.pyi`
-- No extensionless file support (Dockerfile, Makefile, go.mod)
+- Registry auto-discovers detectors via `pkgutil.walk_packages()` — new detector = create file, done
+- `imports_detector.py` split into `kotlin_structures.py`, `rust_structures.py`, `scala_structures.py` with fixed regexes
+- 54 new tests added for 10 previously untested detectors (415 total tests)
+- `_parse_structured()` uses `_STRUCTURED_PARSERS` dispatch dict
+- Linker protocol uses `LinkResult(nodes, edges)` dataclass — no more private attribute hack
+- 16 new extensions added (.html, .css, .mjs, .cjs, .jsonc, .groovy, .pyi, .razor, .cshtml, .adoc, etc.)
+- Extensionless files supported via `_FILENAME_MAP` (Dockerfile, Makefile, go.mod, Jenkinsfile)
+- Shared `detectors/utils.py` with `decode_text`, `iter_lines`, `find_line_number`, `filename`, `matches_filename`
+
+## Adding a New Detector (Updated)
+
+1. Create file in `detectors/<category>/my_detector.py`
+2. Implement `Detector` protocol (name, supported_languages, detect method)
+3. **No registry changes needed** — auto-discovered by package scanning
+4. Create test in `tests/detectors/<category>/test_my_detector.py`
+5. Include a determinism test (run twice, assert identical output)
+6. Run `pytest tests/ -x -q` — all tests must pass
+
+## Remaining Work
+
+- Phase 3: Flow generator (GitLab CI, Helm, enhanced Dockerfile, Mermaid flow command)
+- Phase 4: 30+ new framework detectors (Go web, EF Core, Prisma, Pydantic, etc.)
+- KuzuDB bulk import optimization for edge insertion
 
 ## Updating This File
 
