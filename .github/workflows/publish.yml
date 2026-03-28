@@ -1,0 +1,138 @@
+name: Publish to PyPI
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Release version (e.g. 0.1.0)"
+        required: true
+        type: string
+      dry_run:
+        description: "Dry run (build + test only, no upload)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  build:
+    name: Build wheel & sdist
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install build tools
+        run: pip install build
+
+      - name: Build wheel and sdist
+        run: python -m build
+
+      - name: Upload build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+  test-install:
+    name: Test install — Python ${{ matrix.python }} / ${{ matrix.os }}
+    needs: build
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, ubuntu-22.04, ubuntu-20.04, macos-latest, windows-latest]
+        python: ["3.11", "3.12", "3.13"]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: ${{ matrix.python }}
+
+      - name: Install wheel
+        shell: bash
+        run: pip install dist/*.whl
+
+      - name: Verify CLI entry point
+        run: code-intelligence --help
+
+      - name: Verify detectors load
+        run: python -c "from code_intelligence.detectors.registry import DetectorRegistry; r = DetectorRegistry(); r.load_builtin_detectors(); print(f'{len(r.all_detectors())} detectors loaded')"
+
+      - name: Verify version
+        run: python -c "import importlib.metadata; print(importlib.metadata.version('code-intelligence'))"
+
+  test-container:
+    name: Test install — ${{ matrix.container }}
+    needs: build
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        container:
+          - "registry.access.redhat.com/ubi8/python-311:latest"
+          - "registry.access.redhat.com/ubi9/python-311:latest"
+          - "registry.access.redhat.com/ubi9/python-312:latest"
+          - "python:3.11-slim-bookworm"
+          - "python:3.12-slim-bookworm"
+          - "python:3.13-slim-bookworm"
+          - "python:3.11-alpine"
+          - "python:3.12-alpine"
+    container:
+      image: ${{ matrix.container }}
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Install system deps (Alpine)
+        if: contains(matrix.container, 'alpine')
+        run: apk add --no-cache gcc musl-dev libxml2-dev libxslt-dev
+
+      - name: Install system deps (UBI/RHEL)
+        if: contains(matrix.container, 'ubi')
+        run: |
+          dnf install -y libxml2-devel libxslt-devel gcc python3-devel 2>/dev/null || true
+
+      - name: Install wheel
+        run: pip install dist/*.whl
+
+      - name: Verify CLI
+        run: code-intelligence --help
+
+      - name: Verify detectors load
+        run: python -c "from code_intelligence.detectors.registry import DetectorRegistry; r = DetectorRegistry(); r.load_builtin_detectors(); print(f'{len(r.all_detectors())} detectors loaded')"
+
+  publish-pypi:
+    name: Publish to PyPI
+    needs: [test-install, test-container]
+    runs-on: ubuntu-latest
+    if: inputs.dry_run == false
+    environment:
+      name: pypi
+      url: https://pypi.org/p/code-intelligence
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@v4
+        with:
+          name: dist
+          path: dist/
+
+      - name: Publish to PyPI
+        uses: pypa/gh-action-pypi-publish@release/v1
+        with:
+          attestations: true
