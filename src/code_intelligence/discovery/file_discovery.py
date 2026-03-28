@@ -4,12 +4,17 @@ from __future__ import annotations
 
 import fnmatch
 import hashlib
+import logging
 import os
 import re
 import subprocess
 from dataclasses import dataclass
 from enum import Enum
 from pathlib import Path
+
+import pathspec
+
+logger = logging.getLogger(__name__)
 
 from code_intelligence.config import Config
 
@@ -156,6 +161,52 @@ def _compile_exclude_patterns(patterns: list[str]) -> re.Pattern[str] | None:
     return re.compile("|".join(fnmatch.translate(p) for p in patterns))
 
 
+def _build_ignore_spec(repo_path: Path, config_patterns: list[str]) -> pathspec.PathSpec:
+    """Build a combined ignore spec from config patterns + ignore files.
+
+    Reads .codeignore and .gitignore files from the repo root and any
+    subdirectory, combining them with the config exclude_patterns.
+    Uses gitignore-style matching (handles node_modules at any depth).
+    """
+    all_patterns: list[str] = []
+
+    # 1. Config exclude patterns (convert ** glob to gitignore style)
+    for p in config_patterns:
+        # Strip leading **/ — gitignore patterns match at any depth by default
+        cleaned = p.replace("**/", "").rstrip("/**")
+        all_patterns.append(cleaned)
+        # Also keep original for explicit **/ matching
+        all_patterns.append(p)
+
+    # 2. Read .codeignore from repo root
+    codeignore = repo_path / ".codeignore"
+    if codeignore.is_file():
+        try:
+            lines = codeignore.read_text().splitlines()
+            for line in lines:
+                line = line.strip()
+                if line and not line.startswith("#"):
+                    all_patterns.append(line)
+            logger.debug("Loaded %d patterns from .codeignore", len(lines))
+        except OSError:
+            pass
+
+    # 3. Read .gitignore from repo root (supplementary)
+    gitignore = repo_path / ".gitignore"
+    if gitignore.is_file():
+        try:
+            lines = gitignore.read_text().splitlines()
+            for line in lines:
+                line = line.strip()
+                if line and not line.startswith("#"):
+                    all_patterns.append(line)
+            logger.debug("Loaded %d patterns from .gitignore", len(lines))
+        except OSError:
+            pass
+
+    return pathspec.PathSpec.from_lines("gitwildmatch", all_patterns)
+
+
 def _compute_sha256(file_path: Path) -> str:
     """Compute SHA-256 hex digest for a file.
 
@@ -198,12 +249,16 @@ class FileDiscovery:
             self._current_commit = None
             relative_paths = self._walk_files(repo_path)
 
-        exclude_re = _compile_exclude_patterns(discovery_cfg.exclude_patterns)
+        ignore_spec = _build_ignore_spec(repo_path, discovery_cfg.exclude_patterns)
 
         result: list[DiscoveredFile] = []
         for rel in relative_paths:
             abs_path = repo_path / rel
             rel_path = Path(rel)
+
+            # Check ignore patterns first (fastest rejection)
+            if ignore_spec.match_file(str(rel_path)):
+                continue
 
             # Extension filter
             lang = _map_extension_to_language(rel_path)
@@ -215,10 +270,6 @@ class FileDiscovery:
             if not is_filename_match and not any(
                 rel.endswith(ext) for ext in discovery_cfg.include_extensions
             ):
-                continue
-
-            # Check exclude patterns
-            if exclude_re and exclude_re.match(str(rel_path)):
                 continue
 
             # Size guard
