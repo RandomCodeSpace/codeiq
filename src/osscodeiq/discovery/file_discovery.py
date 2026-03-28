@@ -216,7 +216,6 @@ def _compute_sha256(file_path: Path) -> str:
     from osscodeiq.cache.hasher import hash_file
 
     return hash_file(file_path)
-    return h.hexdigest()
 
 
 class FileDiscovery:

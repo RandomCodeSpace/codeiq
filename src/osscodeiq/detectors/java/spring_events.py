@@ -22,7 +22,7 @@ _PUBLISH_RE = re.compile(
     r"(?:new\s+(\w+)|(\w+))"
 )
 _METHOD_PARAM_RE = re.compile(r"(?:public|protected|private)?\s*\w+\s+(\w+)\s*\(\s*(\w+)\s+\w+\)")
-_EVENT_CLASS_RE = re.compile(r"class\s+(\w+)\s+extends\s+(?:ApplicationEvent|AbstractEvent|\w*Event)")
+_EVENT_CLASS_RE = re.compile(r"class\s+(\w+)\s+extends\s+\w*Event")
 
 
 class SpringEventsDetector:

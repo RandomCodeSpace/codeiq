@@ -39,7 +39,7 @@ _GRPC_CHANNEL_RE = re.compile(
 
 # Method override pattern (simpler)
 _METHOD_RE = re.compile(
-    r"(?:public)\s+(?:void|[\w<>\[\]]+)\s+(\w+)\s*\(\s*(\w+)"
+    r"public\s+(?:void|[\w<>\[\]]+)\s+(\w+)\s*\(\s*(\w+)"
 )
 
 
