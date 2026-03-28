@@ -33,7 +33,13 @@ jobs:
       - name: Compute beta version
         id: version
         run: |
-          BASE=$(python3 -c "import tomli; print(tomli.load(open('pyproject.toml','rb'))['project']['version'])")
+          # Derive base version from latest stable release tag (e.g. v0.0.1 -> 0.0.1)
+          STABLE_TAG=$(git tag -l "v[0-9]*.[0-9]*.[0-9]*" --sort=-v:refname | grep -v beta | head -n1)
+          if [ -n "$STABLE_TAG" ]; then
+            BASE="${STABLE_TAG#v}"
+          else
+            BASE=$(python3 -c "import tomli; print(tomli.load(open('pyproject.toml','rb'))['project']['version'])")
+          fi
           # Find latest beta tag number and increment by 1 (starts at 0)
           LATEST=$(git tag -l "v${BASE}-beta.*" --sort=-v:refname | head -n1)
           if [ -n "$LATEST" ]; then
