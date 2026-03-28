@@ -379,16 +379,16 @@ class Analyzer:
                     )
 
         # ----------------------------------------------------------
-        # 5b. Classify layers
-        # ----------------------------------------------------------
-        from code_intelligence.classifiers.layer_classifier import LayerClassifier
-        LayerClassifier().classify(list(builder._store.all_nodes()))
-
-        # ----------------------------------------------------------
         # 6. Run cross-file linkers
         # ----------------------------------------------------------
         _report("🔗 Linking cross-file relationships…")
         builder.run_linkers()
+
+        # ----------------------------------------------------------
+        # 6b. Classify layers (after linkers so all nodes are covered)
+        # ----------------------------------------------------------
+        from code_intelligence.classifiers.layer_classifier import LayerClassifier
+        LayerClassifier().classify_store(builder._store)
 
         # ----------------------------------------------------------
         # 7. Record run and return result
