@@ -158,6 +158,7 @@ public class AnalysisCache implements Closeable {
      */
     public void storeResults(String contentHash, String filePath, String language,
                              List<CodeNode> nodes, List<CodeEdge> edges) {
+        synchronized (conn) {
         try {
             conn.setAutoCommit(false);
             String now = Instant.now().toString();
@@ -222,6 +223,7 @@ public class AnalysisCache implements Closeable {
             } catch (SQLException ignored) {
             }
         }
+        } // synchronized
     }
 
     // --- Load cached results ---
