@@ -66,7 +66,7 @@ def parse_mcp_command(raw: str) -> tuple[str, dict[str, Any]]:
     return (tool_name, kwargs)
 
 
-# ── MCP tool lookup table ──────────────────────────────────────────────────
+# -- MCP tool lookup table -------------------------------------------------
 
 
 def get_tool_map() -> dict[str, Any]:
@@ -124,89 +124,114 @@ def _get_tool_fn(name: str):
     return get_tool_map().get(name)
 
 
-# ── Console builder ────────────────────────────────────────────────────────
+# -- Console builder -------------------------------------------------------
 
 
 def create_mcp_console(service) -> None:  # noqa: ARG001 — service kept for API parity
     """Build the MCP Console tab inside a NiceGUI page."""
 
-    ui.label("MCP Tool Console").classes("text-xl font-bold")
-    ui.label("Execute MCP tools interactively").classes("text-sm text-gray-500")
-
-    scroll = ui.scroll_area().classes("w-full border rounded").style("height: 480px")
-
-    # Seed welcome message
-    with scroll:
-        output_col = ui.column().classes("w-full gap-1 p-2")
-
-    with output_col:
-        ui.label("Welcome to the MCP Tool Console.").classes("font-mono text-sm")
-        ui.label('Type a tool name and arguments, or "help" to list tools.').classes(
-            "font-mono text-sm text-gray-500"
+    with ui.element("div").classes("max-w-7xl mx-auto px-4 w-full"):
+        ui.label("MCP Tool Console").classes("text-xl font-bold")
+        ui.label("Execute MCP tools interactively").classes(
+            "text-sm opacity-60"
         )
 
-    # ── input row ───────────────────────────────────────────────────────
-    with ui.row().classes("w-full items-center gap-2 mt-2"):
-        ui.label("$").classes("font-mono text-lg")
-        cmd_input = ui.input(placeholder="get_stats").classes("flex-grow font-mono")
-        run_btn = ui.button("Run")
+        scroll = ui.scroll_area().classes("w-full border rounded").style(
+            "height: 480px"
+        )
 
-    # ── handler ─────────────────────────────────────────────────────────
+        # Seed welcome message
+        with scroll:
+            output_col = ui.column().classes("w-full gap-1 p-2")
 
-    async def _execute() -> None:
-        raw = cmd_input.value or ""
-        raw = raw.strip()
-        if not raw:
-            return
-
-        # Echo command
         with output_col:
-            ui.label(f"$ {raw}").classes("font-mono text-sm font-bold mt-2")
+            ui.label("Welcome to the MCP Tool Console.").classes(
+                "font-mono text-sm"
+            )
+            ui.label(
+                'Type a tool name and arguments, or "help" to list tools.'
+            ).classes("font-mono text-sm opacity-60")
 
-        cmd_input.value = ""
+        # -- input row -----------------------------------------------------
+        with ui.row().classes("w-full items-center gap-2 mt-2"):
+            ui.label("$").classes("font-mono text-lg")
+            cmd_input = ui.input(placeholder="get_stats").classes(
+                "flex-grow font-mono"
+            )
+            run_btn = ui.button("Run", icon="play_arrow")
 
-        # Handle built-in "help"
-        if raw.lower() == "help":
+        # -- handler -------------------------------------------------------
+
+        async def _execute() -> None:
+            raw = cmd_input.value or ""
+            raw = raw.strip()
+            if not raw:
+                return
+
+            # Echo command
             with output_col:
-                ui.label("Available tools:").classes("font-mono text-sm mt-1")
-                for name in sorted(MCP_TOOL_NAMES):
-                    ui.label(f"  {name}").classes("font-mono text-sm text-blue-600")
-            scroll.scroll_to(percent=1.0)
-            return
+                ui.label(f"$ {raw}").classes("font-mono text-sm font-bold mt-2")
 
-        tool_name, kwargs = parse_mcp_command(raw)
+            cmd_input.value = ""
 
-        fn = _get_tool_fn(tool_name)
-        if fn is None:
+            # Handle built-in "help"
+            if raw.lower() == "help":
+                with output_col:
+                    ui.label("Available tools:").classes("font-mono text-sm mt-1")
+                    for name in sorted(MCP_TOOL_NAMES):
+                        ui.label(f"  {name}").classes(
+                            "font-mono text-sm"
+                        ).style("color: var(--q-primary)")
+                # Deferred scroll so content renders first
+                ui.timer(0.1, lambda: scroll.scroll_to(percent=1.0), once=True)
+                return
+
+            tool_name, kwargs = parse_mcp_command(raw)
+
+            fn = _get_tool_fn(tool_name)
+            if fn is None:
+                with output_col:
+                    ui.label(f"Unknown tool: {tool_name}").classes(
+                        "font-mono text-sm text-red-600"
+                    )
+                ui.timer(0.1, lambda: scroll.scroll_to(percent=1.0), once=True)
+                return
+
+            # Disable Run button and show spinner while executing
+            run_btn.set_enabled(False)
             with output_col:
-                ui.label(f"Unknown tool: {tool_name}").classes(
-                    "font-mono text-sm text-red-600"
-                )
-            scroll.scroll_to(percent=1.0)
-            return
+                exec_spinner = ui.spinner("dots", size="sm")
 
-        try:
-            result = fn(**kwargs)
-
-            # MCP tools return JSON strings — parse and re-format
             try:
-                parsed = json.loads(result)
-                formatted = json.dumps(parsed, indent=2)
-            except (json.JSONDecodeError, TypeError):
-                formatted = str(result)
+                result = fn(**kwargs)
 
-            with output_col:
-                pre = ui.element("pre").classes(
-                    "font-mono text-sm bg-gray-50 p-2 rounded overflow-x-auto whitespace-pre-wrap"
-                )
-                with pre:
-                    ui.label(formatted).classes("font-mono text-sm")
+                # MCP tools return JSON strings — parse and re-format
+                try:
+                    parsed = json.loads(result)
+                    formatted = json.dumps(parsed, indent=2)
+                except (json.JSONDecodeError, TypeError):
+                    formatted = str(result)
 
-        except Exception as exc:  # noqa: BLE001
-            with output_col:
-                ui.label(f"Error: {exc}").classes("font-mono text-sm text-red-600")
+                exec_spinner.delete()
 
-        scroll.scroll_to(percent=1.0)
+                with output_col:
+                    ui.code(formatted, language="json").classes(
+                        "w-full overflow-x-auto"
+                    )
 
-    run_btn.on_click(_execute)
-    cmd_input.on("keydown.enter", _execute)
+            except Exception as exc:  # noqa: BLE001
+                exec_spinner.delete()
+                with output_col:
+                    ui.label(f"Error: {exc}").classes(
+                        "font-mono text-sm text-red-600"
+                    )
+                ui.notify(f"Tool execution failed: {exc}", type="negative")
+
+            finally:
+                run_btn.set_enabled(True)
+
+            # Deferred scroll so content renders first
+            ui.timer(0.1, lambda: scroll.scroll_to(percent=1.0), once=True)
+
+        run_btn.on_click(_execute)
+        cmd_input.on("keydown.enter", _execute)

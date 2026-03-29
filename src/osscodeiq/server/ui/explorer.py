@@ -105,40 +105,67 @@ def build_filter_js(query: str, container_selector: str = ".explorer-card") -> s
 
 
 # ---------------------------------------------------------------------------
-# Detail modal
+# Reusable detail dialog (created once, populated dynamically)
 # ---------------------------------------------------------------------------
 
+_detail_dialog: ui.dialog | None = None
+_detail_card_container: ui.card | None = None
+
+
+def _ensure_detail_dialog() -> tuple[ui.dialog, ui.card]:
+    """Return the singleton detail dialog, creating it on first call."""
+    global _detail_dialog, _detail_card_container  # noqa: PLW0603
+    if _detail_dialog is None:
+        _detail_dialog = ui.dialog().props("maximized=false")
+        _detail_dialog.props("position=standard")
+        with _detail_dialog:
+            _detail_card_container = ui.card().classes(
+                "w-full max-w-2xl mx-auto"
+            )
+    return _detail_dialog, _detail_card_container  # type: ignore[return-value]
+
+
 def _show_detail_modal(service: Any, node_id: str) -> None:
-    """Open a dialog showing full node details."""
-    raw = service.node_detail_with_edges(node_id)
+    """Open the reusable dialog showing full node details."""
+    try:
+        raw = service.node_detail_with_edges(node_id)
+    except Exception as exc:  # noqa: BLE001
+        ui.notify(f"Failed to load node details: {exc}", type="negative")
+        return
+
     if raw is None:
         ui.notify("Node not found", type="warning")
         return
 
     data = build_detail_data(raw)
+    dlg, card = _ensure_detail_dialog()
 
-    with ui.dialog() as dlg, ui.card().classes("w-full max-w-2xl"):
+    # Clear previous content and rebuild
+    card.clear()
+
+    with card:
         # Header
+        kind = data["kind"]
+        color = get_kind_color(kind)
         with ui.row().classes("items-center gap-2 w-full"):
-            kind = data["kind"]
             ui.icon(get_kind_icon(kind)).classes("text-2xl").style(
-                f"color: {get_kind_color(kind)}"
+                f"color: {color}"
             )
             ui.label(data["name"]).classes("text-xl font-bold")
             ui.badge(kind).props("outline").style(
-                f"color: {get_kind_color(kind)}; border-color: {get_kind_color(kind)}"
+                f"color: {color}; border-color: {color}"
             )
 
         ui.separator()
 
         # Properties table
         if data["properties"]:
-            ui.label("Properties").classes("text-sm font-semibold text-gray-500 mt-2")
+            ui.label("Properties").classes("text-sm font-semibold opacity-60 mt-2")
             with ui.element("div").classes("w-full"):
                 for key, value in data["properties"]:
                     with ui.row().classes("items-center gap-2 py-1"):
                         ui.label(key).classes(
-                            "text-xs font-medium text-gray-400 w-28 shrink-0"
+                            "text-xs font-medium opacity-50 w-28 shrink-0"
                         )
                         ui.label(str(value)).classes(
                             "text-sm select-all break-all"
@@ -147,27 +174,27 @@ def _show_detail_modal(service: Any, node_id: str) -> None:
         # Outgoing edges
         if data["edges_out"]:
             ui.label("Outgoing Edges").classes(
-                "text-sm font-semibold text-gray-500 mt-4"
+                "text-sm font-semibold opacity-60 mt-4"
             )
             for edge in data["edges_out"]:
                 with ui.row().classes("items-center gap-1 py-0.5"):
                     ui.badge(edge["kind"]).props("outline dense")
-                    ui.icon("arrow_forward").classes("text-xs text-gray-400")
-                    ui.label(edge.get("target_name", edge.get("target_id", "?"))).classes(
-                        "text-sm select-all"
-                    )
+                    ui.icon("arrow_forward").classes("text-xs opacity-50")
+                    ui.label(
+                        edge.get("target_name", edge.get("target_id", "?"))
+                    ).classes("text-sm select-all")
 
         # Incoming edges
         if data["edges_in"]:
             ui.label("Incoming Edges").classes(
-                "text-sm font-semibold text-gray-500 mt-4"
+                "text-sm font-semibold opacity-60 mt-4"
             )
             for edge in data["edges_in"]:
                 with ui.row().classes("items-center gap-1 py-0.5"):
-                    ui.label(edge.get("source_name", edge.get("source_id", "?"))).classes(
-                        "text-sm select-all"
-                    )
-                    ui.icon("arrow_forward").classes("text-xs text-gray-400")
+                    ui.label(
+                        edge.get("source_name", edge.get("source_id", "?"))
+                    ).classes("text-sm select-all")
+                    ui.icon("arrow_forward").classes("text-xs opacity-50")
                     ui.badge(edge["kind"]).props("outline dense")
 
         # Close button
@@ -178,12 +205,29 @@ def _show_detail_modal(service: Any, node_id: str) -> None:
 
 
 # ---------------------------------------------------------------------------
-# Kind summary modal
+# Kind summary modal (reusable dialog)
 # ---------------------------------------------------------------------------
 
+_kind_dialog: ui.dialog | None = None
+_kind_card_container: ui.card | None = None
+
+
+def _ensure_kind_dialog() -> tuple[ui.dialog, ui.card]:
+    """Return the singleton kind summary dialog."""
+    global _kind_dialog, _kind_card_container  # noqa: PLW0603
+    if _kind_dialog is None:
+        _kind_dialog = ui.dialog()
+        with _kind_dialog:
+            _kind_card_container = ui.card().classes("w-full max-w-md mx-auto")
+    return _kind_dialog, _kind_card_container  # type: ignore[return-value]
+
+
 def _show_kind_modal(kind_data: dict[str, Any]) -> None:
-    """Open a dialog showing a summary of a node kind."""
-    with ui.dialog() as dlg, ui.card().classes("w-full max-w-md"):
+    """Open the reusable dialog showing a summary of a node kind."""
+    dlg, card = _ensure_kind_dialog()
+    card.clear()
+
+    with card:
         with ui.row().classes("items-center gap-2"):
             ui.icon(kind_data["icon"]).classes("text-2xl").style(
                 f"color: {kind_data['color']}"
@@ -195,9 +239,9 @@ def _show_kind_modal(kind_data: dict[str, Any]) -> None:
         ui.label(f"Total nodes: {kind_data['count']}").classes("text-sm")
 
         if kind_data.get("preview"):
-            ui.label("Preview").classes("text-sm font-semibold text-gray-500 mt-2")
+            ui.label("Preview").classes("text-sm font-semibold opacity-60 mt-2")
             for item in kind_data["preview"][:10]:
-                ui.label(f"  {item}").classes("text-xs text-gray-400 select-all")
+                ui.label(f"  {item}").classes("text-xs opacity-50 select-all")
 
         with ui.row().classes("w-full justify-end mt-4"):
             ui.button("Close", on_click=dlg.close).props("flat")
@@ -216,7 +260,7 @@ def _render_kind_card(
     refresh_fn: Any,
     index: int,
 ) -> None:
-    """Render a single kind card."""
+    """Render a single kind card with left border accent color."""
     color = kind_data["color"]
     delay_cls = f"card-animate-{min(index + 1, 10)}"
 
@@ -232,13 +276,13 @@ def _render_kind_card(
                 )
                 ui.label(kind_data["title"]).classes("text-lg font-semibold")
             ui.label(f"{kind_data['count']} nodes").classes(
-                "text-sm text-gray-500"
+                "text-sm opacity-60"
             )
             if kind_data.get("preview"):
                 for item in kind_data["preview"][:3]:
                     ui.label(item).classes(
-                        "text-xs text-gray-400 truncate"
-                    ).style("max-width: 220px")
+                        "text-xs opacity-50 truncate"
+                    )
 
         with ui.card_actions().classes("justify-end"):
             ui.button(
@@ -268,8 +312,8 @@ def _render_node_card(
             ui.label(node_data["title"]).classes("text-base font-semibold")
             if node_data["subtitle"]:
                 ui.label(node_data["subtitle"]).classes(
-                    "text-xs text-gray-500 truncate"
-                ).style("max-width: 280px")
+                    "text-xs opacity-60 truncate"
+                )
             if node_data.get("properties"):
                 with ui.row().classes("gap-1 flex-wrap mt-1"):
                     for key, val in list(node_data["properties"].items())[:5]:
@@ -282,6 +326,21 @@ def _render_node_card(
                     service, nid
                 ),
             ).props("flat dense")
+
+
+# ---------------------------------------------------------------------------
+# Empty state
+# ---------------------------------------------------------------------------
+
+def _render_empty_state(message: str, hint: str = "") -> None:
+    """Render a centered empty-state card with icon and message."""
+    with ui.card().classes("w-full max-w-md mx-auto mt-8"):
+        with ui.card_section().classes("items-center text-center"):
+            with ui.column().classes("items-center gap-2 py-4"):
+                ui.icon("inbox", size="48px").classes("opacity-40")
+                ui.label(message).classes("text-lg font-medium opacity-70")
+                if hint:
+                    ui.label(hint).classes("text-sm opacity-50")
 
 
 # ---------------------------------------------------------------------------
@@ -329,38 +388,42 @@ def create_explorer_page(service: Any) -> None:
 
     @ui.refreshable
     def content() -> None:
-        # Breadcrumb row
-        with ui.row().classes("items-center gap-1 mb-2"):
-            for idx, crumb in enumerate(state.breadcrumb):
-                if idx > 0:
-                    ui.icon("chevron_right").classes("text-sm text-gray-400")
-                if idx < len(state.breadcrumb) - 1:
-                    ui.link(
-                        crumb["label"],
-                        on_click=lambda i=idx: _nav_to(i, state, content.refresh),
-                    ).classes("text-sm text-blue-500 cursor-pointer")
-                else:
-                    ui.label(crumb["label"]).classes(
-                        "text-sm font-semibold text-gray-700"
-                    )
+        with ui.element("div").classes("max-w-7xl mx-auto px-4 w-full"):
+            # Breadcrumb row
+            with ui.row().classes("items-center gap-1 mb-2"):
+                for idx, crumb in enumerate(state.breadcrumb):
+                    if idx > 0:
+                        ui.icon("chevron_right").classes("text-sm opacity-40")
+                    if idx < len(state.breadcrumb) - 1:
+                        # Use ui.button with flat/dense/no-caps for clickable breadcrumbs
+                        ui.button(
+                            crumb["label"],
+                            on_click=lambda i=idx: _nav_to(i, state, content.refresh),
+                        ).props("flat dense no-caps").classes(
+                            "text-sm cursor-pointer"
+                        ).style("color: var(--q-primary)")
+                    else:
+                        ui.label(crumb["label"]).classes(
+                            "text-sm font-semibold"
+                        )
 
-        # Search input
-        search_input = ui.input(
-            placeholder="Filter cards...",
-        ).classes("w-full max-w-sm mb-3").props('dense clearable outlined')
+            # Search input
+            search_input = ui.input(
+                placeholder="Filter cards...",
+            ).classes("w-full max-w-sm mb-3").props("dense clearable outlined")
 
-        search_input.on(
-            "update:model-value",
-            lambda e: ui.run_javascript(
-                build_filter_js(str(e.args or ""))
-            ),
-        )
+            search_input.on(
+                "update:model-value",
+                lambda e: ui.run_javascript(
+                    build_filter_js(str(e.args if e.args else ""))
+                ),
+            )
 
-        # Render based on level
-        if state.level == "kinds":
-            _render_kinds_grid(service, state, content.refresh)
-        else:
-            _render_nodes_grid(service, state, content.refresh)
+            # Render based on level
+            if state.level == "kinds":
+                _render_kinds_grid(service, state, content.refresh)
+            else:
+                _render_nodes_grid(service, state, content.refresh)
 
     content()
 
@@ -372,15 +435,33 @@ def _nav_to(index: int, state: ExplorerState, refresh_fn: Any) -> None:
 
 
 def _render_kinds_grid(service: Any, state: ExplorerState, refresh_fn: Any) -> None:
-    """Render the kind cards grid."""
-    result = service.list_kinds()
+    """Render the kind cards grid with loading and error states."""
+    # Show spinner while loading
+    spinner = ui.spinner("dots", size="lg").classes("mx-auto my-8")
+
+    try:
+        result = service.list_kinds()
+    except Exception as exc:  # noqa: BLE001
+        spinner.delete()
+        ui.notify(f"Failed to load graph data: {exc}", type="negative")
+        _render_empty_state(
+            "Error loading data",
+            "Check the server logs for details.",
+        )
+        return
+
+    spinner.delete()
+
     kinds = result.get("kinds", [])
 
     if not kinds:
-        ui.label("No data. Run an analysis first.").classes("text-gray-500 mt-4")
+        _render_empty_state(
+            "No data available",
+            "Run 'osscodeiq analyze <path>' to scan a codebase first.",
+        )
         return
 
-    with ui.row().classes("text-xs text-gray-400 mb-1"):
+    with ui.row().classes("text-xs opacity-50 mb-1"):
         ui.label(
             f"{result.get('total_nodes', 0)} nodes, "
             f"{result.get('total_edges', 0)} edges across "
@@ -396,25 +477,43 @@ def _render_kinds_grid(service: Any, state: ExplorerState, refresh_fn: Any) -> N
 
 
 def _render_nodes_grid(service: Any, state: ExplorerState, refresh_fn: Any) -> None:
-    """Render the node cards grid with pagination."""
+    """Render the node cards grid with pagination, loading, and error states."""
     kind = state.current_kind
     if kind is None:
         return
 
-    result = service.nodes_by_kind_paginated(
-        kind, state.page_limit, state.page_offset
-    )
+    # Show spinner while loading
+    spinner = ui.spinner("dots", size="lg").classes("mx-auto my-8")
+
+    try:
+        result = service.nodes_by_kind_paginated(
+            kind, state.page_limit, state.page_offset
+        )
+    except Exception as exc:  # noqa: BLE001
+        spinner.delete()
+        ui.notify(f"Failed to load {kind} nodes: {exc}", type="negative")
+        _render_empty_state(
+            f"Error loading {kind} nodes",
+            "Check the server logs for details.",
+        )
+        return
+
+    spinner.delete()
+
     total = result.get("total", 0)
     nodes = result.get("nodes", [])
 
     if not nodes and state.page_offset == 0:
-        ui.label(f"No {kind} nodes found.").classes("text-gray-500 mt-4")
+        _render_empty_state(
+            f"No {kind} nodes found",
+            "This kind exists but has no nodes in the current graph.",
+        )
         return
 
     # Summary line
     start = state.page_offset + 1
     end = min(state.page_offset + len(nodes), total)
-    with ui.row().classes("text-xs text-gray-400 mb-1"):
+    with ui.row().classes("text-xs opacity-50 mb-1"):
         ui.label(f"Showing {start}-{end} of {total} {kind} nodes")
 
     # Card grid
@@ -428,21 +527,23 @@ def _render_nodes_grid(service: Any, state: ExplorerState, refresh_fn: Any) -> N
     # Pagination controls
     with ui.row().classes("items-center justify-center gap-4 mt-4"):
         prev_disabled = state.page_offset <= 0
-        ui.button(
+        prev_btn = ui.button(
             "Prev",
             on_click=lambda: _on_page_change(
                 -state.page_limit, state, total, refresh_fn
             ),
-        ).props(f"flat {'disable' if prev_disabled else ''}")
+        ).props("flat")
+        prev_btn.set_enabled(not prev_disabled)
 
         ui.label(f"Page {state.page_offset // state.page_limit + 1}").classes(
-            "text-sm text-gray-500"
+            "text-sm opacity-60"
         )
 
         next_disabled = state.page_offset + state.page_limit >= total
-        ui.button(
+        next_btn = ui.button(
             "Next",
             on_click=lambda: _on_page_change(
                 state.page_limit, state, total, refresh_fn
             ),
-        ).props(f"flat {'disable' if next_disabled else ''}")
+        ).props("flat")
+        next_btn.set_enabled(not next_disabled)
