@@ -15,10 +15,22 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
+import io.github.randomcodespace.iq.detector.ParserType;
 
 /**
  * Detects Kubernetes resources, container specs, and cross-resource relationships.
  */
+@DetectorInfo(
+    name = "kubernetes",
+    category = "config",
+    description = "Detects Kubernetes resources (Deployments, Services, ConfigMaps, etc.)",
+    parser = ParserType.STRUCTURED,
+    languages = {"yaml"},
+    nodeKinds = {NodeKind.CONFIG_KEY, NodeKind.INFRA_RESOURCE},
+    edgeKinds = {EdgeKind.CONNECTS_TO, EdgeKind.DEPENDS_ON},
+    properties = {"env_vars", "image", "kind", "namespace", "protocol", "selector"}
+)
 @Component
 public class KubernetesDetector extends AbstractStructuredDetector {
 

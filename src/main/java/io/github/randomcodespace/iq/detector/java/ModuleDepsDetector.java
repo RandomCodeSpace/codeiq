@@ -12,10 +12,20 @@ import org.springframework.stereotype.Component;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
 
 /**
  * Detects Maven/Gradle module declarations and inter-module dependencies.
  */
+@DetectorInfo(
+    name = "module_deps",
+    category = "config",
+    description = "Detects Maven/Gradle module dependencies and build structure",
+    languages = {"java", "xml", "gradle"},
+    nodeKinds = {NodeKind.MODULE},
+    edgeKinds = {EdgeKind.CONTAINS, EdgeKind.DEPENDS_ON},
+    properties = {"group_id"}
+)
 @Component
 public class ModuleDepsDetector extends AbstractRegexDetector {
 

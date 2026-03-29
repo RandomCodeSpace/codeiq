@@ -12,10 +12,20 @@ import org.springframework.stereotype.Component;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
 
 /**
  * Detects GraphQL resolvers from Spring GraphQL and DGS framework annotations.
  */
+@DetectorInfo(
+    name = "graphql_resolver",
+    category = "endpoints",
+    description = "Detects Java GraphQL resolvers and schema definitions",
+    languages = {"java"},
+    nodeKinds = {NodeKind.ENDPOINT},
+    edgeKinds = {EdgeKind.EXPOSES},
+    properties = {"framework", "protocol"}
+)
 @Component
 public class GraphqlResolverDetector extends AbstractRegexDetector {
 

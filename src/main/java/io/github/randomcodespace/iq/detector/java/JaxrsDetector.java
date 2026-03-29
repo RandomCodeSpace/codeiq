@@ -12,10 +12,20 @@ import org.springframework.stereotype.Component;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
 
 /**
  * Detects JAX-RS REST endpoints from annotations.
  */
+@DetectorInfo(
+    name = "jaxrs",
+    category = "endpoints",
+    description = "Detects JAX-RS REST endpoints (@GET, @POST, @Path, etc.)",
+    languages = {"java"},
+    nodeKinds = {NodeKind.ENDPOINT},
+    edgeKinds = {EdgeKind.EXPOSES},
+    properties = {"consumes", "http_method", "path", "produces"}
+)
 @Component
 public class JaxrsDetector extends AbstractRegexDetector {
 

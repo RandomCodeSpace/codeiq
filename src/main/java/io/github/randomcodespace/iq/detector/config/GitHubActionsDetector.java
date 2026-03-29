@@ -15,10 +15,21 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
+import io.github.randomcodespace.iq.detector.ParserType;
 
 /**
  * Detects workflows, jobs, triggers, and job dependencies from GitHub Actions YAML files.
  */
+@DetectorInfo(
+    name = "github_actions",
+    category = "config",
+    description = "Detects GitHub Actions workflows, jobs, and steps",
+    parser = ParserType.STRUCTURED,
+    languages = {"yaml"},
+    nodeKinds = {NodeKind.CONFIG_KEY, NodeKind.METHOD, NodeKind.MODULE},
+    edgeKinds = {EdgeKind.CONTAINS, EdgeKind.DEPENDS_ON}
+)
 @Component
 public class GitHubActionsDetector extends AbstractStructuredDetector {
 

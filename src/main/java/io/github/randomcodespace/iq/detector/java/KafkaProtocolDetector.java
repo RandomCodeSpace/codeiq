@@ -12,10 +12,19 @@ import org.springframework.stereotype.Component;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
 
 /**
  * Detects classes extending AbstractRequest or AbstractResponse (Kafka binary protocol messages).
  */
+@DetectorInfo(
+    name = "kafka_protocol",
+    category = "messaging",
+    description = "Detects Kafka protocol message classes (Avro, Protobuf serialization)",
+    languages = {"java"},
+    nodeKinds = {NodeKind.PROTOCOL_MESSAGE},
+    edgeKinds = {EdgeKind.EXTENDS}
+)
 @Component
 public class KafkaProtocolDetector extends AbstractRegexDetector {
 

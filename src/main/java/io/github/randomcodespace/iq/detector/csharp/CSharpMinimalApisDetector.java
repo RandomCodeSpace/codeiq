@@ -15,7 +15,19 @@ import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
+import io.github.randomcodespace.iq.detector.ParserType;
 
+@DetectorInfo(
+    name = "csharp_minimal_apis",
+    category = "endpoints",
+    description = "Detects C# minimal API endpoints (MapGet, MapPost, etc.)",
+    parser = ParserType.ANTLR,
+    languages = {"csharp"},
+    nodeKinds = {NodeKind.ENDPOINT, NodeKind.GUARD, NodeKind.MODULE},
+    edgeKinds = {EdgeKind.EXPOSES},
+    properties = {"framework", "guard_type", "http_method", "path"}
+)
 @Component
 public class CSharpMinimalApisDetector extends AbstractAntlrDetector {
 

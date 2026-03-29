@@ -10,10 +10,19 @@ import org.springframework.stereotype.Component;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
 
 /**
  * Detects Quarkus-specific patterns in Java source files.
  */
+@DetectorInfo(
+    name = "quarkus",
+    category = "endpoints",
+    description = "Detects Quarkus REST endpoints, scheduled tasks, and observers",
+    languages = {"java"},
+    nodeKinds = {NodeKind.CLASS, NodeKind.CONFIG_KEY, NodeKind.EVENT, NodeKind.MIDDLEWARE},
+    properties = {"framework", "schedule"}
+)
 @Component
 public class QuarkusDetector extends AbstractRegexDetector {
 

@@ -12,10 +12,20 @@ import org.springframework.stereotype.Component;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
 
 /**
  * Detects WebSocket endpoints and message handlers.
  */
+@DetectorInfo(
+    name = "websocket",
+    category = "endpoints",
+    description = "Detects WebSocket endpoints (@ServerEndpoint, STOMP destinations)",
+    languages = {"java"},
+    nodeKinds = {NodeKind.WEBSOCKET_ENDPOINT},
+    edgeKinds = {EdgeKind.EXPOSES, EdgeKind.PRODUCES},
+    properties = {"destination", "path", "protocol"}
+)
 @Component
 public class WebSocketDetector extends AbstractRegexDetector {
 

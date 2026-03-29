@@ -13,7 +13,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
 
+@DetectorInfo(
+    name = "session_header_auth",
+    category = "auth",
+    description = "Detects session and header-based authentication (cookies, API keys, tokens)",
+    languages = {"java", "python", "typescript"},
+    nodeKinds = {NodeKind.GUARD, NodeKind.MIDDLEWARE},
+    properties = {"auth_type", "language"}
+)
 @Component
 public class SessionHeaderAuthDetector extends AbstractRegexDetector {
 

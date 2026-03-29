@@ -12,10 +12,20 @@ import org.springframework.stereotype.Component;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
 
 /**
  * Detects RabbitMQ consumers and producers.
  */
+@DetectorInfo(
+    name = "rabbitmq",
+    category = "messaging",
+    description = "Detects RabbitMQ queues, exchanges, and bindings",
+    languages = {"java"},
+    nodeKinds = {NodeKind.QUEUE},
+    edgeKinds = {EdgeKind.CONSUMES, EdgeKind.PRODUCES},
+    properties = {"broker", "exchange", "queue", "routing_key"}
+)
 @Component
 public class RabbitmqDetector extends AbstractRegexDetector {
 

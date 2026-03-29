@@ -13,7 +13,18 @@ import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
+import io.github.randomcodespace.iq.detector.ParserType;
 
+@DetectorInfo(
+    name = "typescript.passport_jwt",
+    category = "auth",
+    description = "Detects Passport.js JWT and OAuth strategies",
+    parser = ParserType.ANTLR,
+    languages = {"typescript", "javascript"},
+    nodeKinds = {NodeKind.GUARD, NodeKind.MIDDLEWARE},
+    properties = {"auth_type", "strategy"}
+)
 @Component
 public class PassportJwtDetector extends AbstractAntlrDetector {
 

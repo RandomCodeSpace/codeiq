@@ -15,10 +15,19 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
 
 /**
  * Detects Batch script structures: labels, CALL commands, and SET variables.
  */
+@DetectorInfo(
+    name = "batch_structure",
+    category = "config",
+    description = "Detects Windows batch file structure (labels, calls, variables)",
+    languages = {"batch"},
+    nodeKinds = {NodeKind.CONFIG_DEFINITION, NodeKind.METHOD, NodeKind.MODULE},
+    edgeKinds = {EdgeKind.CALLS, EdgeKind.CONTAINS}
+)
 @Component
 public class BatchStructureDetector extends AbstractRegexDetector {
 

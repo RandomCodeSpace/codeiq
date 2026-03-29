@@ -4,6 +4,8 @@ import io.github.randomcodespace.iq.analyzer.linker.Linker;
 import io.github.randomcodespace.iq.cache.AnalysisCache;
 import io.github.randomcodespace.iq.cache.FileHasher;
 import io.github.randomcodespace.iq.config.CodeIqConfig;
+import io.github.randomcodespace.iq.config.ProjectConfig;
+import io.github.randomcodespace.iq.config.ProjectConfigLoader;
 import io.github.randomcodespace.iq.detector.Detector;
 import io.github.randomcodespace.iq.detector.DetectorContext;
 import io.github.randomcodespace.iq.detector.DetectorRegistry;
@@ -23,6 +25,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -143,9 +146,52 @@ public class Analyzer {
 
     private AnalysisResult runWithCache(Path root, Integer parallelism, AnalysisCache cache,
                                          Consumer<String> report, Instant start) {
+        // 0. Load project config for pipeline filtering
+        ProjectConfig projectConfig = ProjectConfigLoader.loadProjectConfig(root);
+        DetectorRegistry effectiveRegistry = registry;
+
+        // Apply detector category filter from project config
+        if (projectConfig.hasDetectorCategoryFilter()) {
+            effectiveRegistry = effectiveRegistry.filterByCategories(
+                    projectConfig.getDetectorCategories());
+            report.accept("Detector categories: " + projectConfig.getDetectorCategories());
+        }
+
+        // Apply detector include filter from project config
+        if (projectConfig.hasDetectorIncludeFilter()) {
+            effectiveRegistry = effectiveRegistry.filterByNames(
+                    projectConfig.getDetectorInclude());
+            report.accept("Detector include: " + projectConfig.getDetectorInclude());
+        }
+
+        // Apply parallelism override from project config
+        if (parallelism == null && projectConfig.getPipelineParallelism() != null) {
+            parallelism = projectConfig.getPipelineParallelism();
+            report.accept("Pipeline parallelism: " + parallelism + " (from config)");
+        }
+
         // 1. Discover files
         report.accept("Discovering files...");
         List<DiscoveredFile> files = fileDiscovery.discover(root);
+
+        // Apply language filter from project config
+        if (projectConfig.hasLanguageFilter()) {
+            Set<String> allowedLanguages = new HashSet<>(projectConfig.getLanguages());
+            files = files.stream()
+                    .filter(f -> allowedLanguages.contains(f.language()))
+                    .toList();
+            report.accept("Language filter active: " + projectConfig.getLanguages());
+        }
+
+        // Apply exclude patterns from project config
+        if (projectConfig.hasExcludePatterns()) {
+            List<String> excludes = projectConfig.getExclude();
+            files = files.stream()
+                    .filter(f -> !matchesAnyExclude(f.path().toString(), excludes))
+                    .toList();
+            report.accept("Exclude patterns: " + excludes);
+        }
+
         int totalFiles = files.size();
         report.accept("Found " + totalFiles + " files");
 
@@ -160,6 +206,7 @@ public class Analyzer {
         DetectorResult[] resultSlots = new DetectorResult[files.size()];
         int[] cacheHits = {0};
 
+        final DetectorRegistry detectorRegistry = effectiveRegistry;
         var executorService = parallelism != null && parallelism > 0
                 ? Executors.newFixedThreadPool(parallelism)
                 : Executors.newVirtualThreadPerTaskExecutor();
@@ -187,7 +234,7 @@ public class Analyzer {
                             }
 
                             // Run detectors and cache result
-                            DetectorResult result = analyzeFile(file, root);
+                            DetectorResult result = analyzeFile(file, root, detectorRegistry);
                             resultSlots[idx] = result;
                             if (result != null && (!result.nodes().isEmpty() || !result.edges().isEmpty())) {
                                 cacheRef.storeResults(hash, file.path().toString(), file.language(),
@@ -195,10 +242,10 @@ public class Analyzer {
                             }
                         } catch (IOException e) {
                             log.debug("Could not hash file {}", file.path(), e);
-                            resultSlots[idx] = analyzeFile(file, root);
+                            resultSlots[idx] = analyzeFile(file, root, detectorRegistry);
                         }
                     } else {
-                        resultSlots[idx] = analyzeFile(file, root);
+                        resultSlots[idx] = analyzeFile(file, root, detectorRegistry);
                     }
                     return null;
                 }));
@@ -301,9 +348,6 @@ public class Analyzer {
     }
 
     /**
-     * Analyze a single file: read content, parse if structured, run matching detectors.
-     */
-    /**
      * Check whether a file is minified (e.g. *.min.js, *.bundle.js) and large
      * enough that running detectors would be wasteful.
      * <p>
@@ -329,7 +373,17 @@ public class Analyzer {
         return (totalChars / lines.length) > 500;
     }
 
+    /**
+     * Analyze a single file using the default registry.
+     */
     DetectorResult analyzeFile(DiscoveredFile file, Path repoPath) {
+        return analyzeFile(file, repoPath, registry);
+    }
+
+    /**
+     * Analyze a single file using the given (possibly filtered) registry.
+     */
+    DetectorResult analyzeFile(DiscoveredFile file, Path repoPath, DetectorRegistry detectorRegistry) {
         Instant fileStart = Instant.now();
         Path absPath = repoPath.resolve(file.path());
 
@@ -376,7 +430,7 @@ public class Analyzer {
         );
 
         // Run matching detectors and merge results
-        List<Detector> detectors = registry.detectorsForLanguage(file.language());
+        List<Detector> detectors = detectorRegistry.detectorsForLanguage(file.language());
         if (detectors.isEmpty()) {
             return DetectorResult.empty();
         }
@@ -439,5 +493,58 @@ public class Analyzer {
             log.debug("Could not determine git HEAD", e);
         }
         return null;
+    }
+
+    /**
+     * Check whether a file path matches any of the given exclude patterns.
+     * Supports simple glob-like patterns: '*' matches any sequence of chars,
+     * '**' matches across directory separators.
+     */
+    private static boolean matchesAnyExclude(String filePath, List<String> excludePatterns) {
+        if (excludePatterns == null) return false;
+        String normalized = filePath.replace('\\', '/');
+        for (String pattern : excludePatterns) {
+            if (matchGlob(normalized, pattern.replace('\\', '/'))) {
+                return true;
+            }
+        }
+        return false;
+    }
+
+    /**
+     * Simple glob matching: '*' matches any non-separator sequence,
+     * '**' matches everything (including separators).
+     */
+    private static boolean matchGlob(String text, String pattern) {
+        // Convert glob to regex
+        StringBuilder regex = new StringBuilder("^");
+        int i = 0;
+        while (i < pattern.length()) {
+            char c = pattern.charAt(i);
+            if (c == '*') {
+                if (i + 1 < pattern.length() && pattern.charAt(i + 1) == '*') {
+                    regex.append(".*");
+                    i += 2;
+                    // skip trailing /
+                    if (i < pattern.length() && pattern.charAt(i) == '/') {
+                        i++;
+                    }
+                } else {
+                    regex.append("[^/]*");
+                    i++;
+                }
+            } else if (c == '?') {
+                regex.append("[^/]");
+                i++;
+            } else if (c == '.') {
+                regex.append("\\.");
+                i++;
+            } else {
+                regex.append(c);
+                i++;
+            }
+        }
+        regex.append("$");
+        return text.matches(regex.toString());
     }
 }

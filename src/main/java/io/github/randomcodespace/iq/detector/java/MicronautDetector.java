@@ -12,10 +12,20 @@ import org.springframework.stereotype.Component;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
 
 /**
  * Detects Micronaut-specific patterns in Java source files.
  */
+@DetectorInfo(
+    name = "micronaut",
+    category = "endpoints",
+    description = "Detects Micronaut HTTP endpoints, filters, and event listeners",
+    languages = {"java"},
+    nodeKinds = {NodeKind.CLASS, NodeKind.ENDPOINT, NodeKind.EVENT, NodeKind.MIDDLEWARE},
+    edgeKinds = {EdgeKind.DEPENDS_ON, EdgeKind.EXPOSES},
+    properties = {"framework", "http_method", "path"}
+)
 @Component
 public class MicronautDetector extends AbstractRegexDetector {
 

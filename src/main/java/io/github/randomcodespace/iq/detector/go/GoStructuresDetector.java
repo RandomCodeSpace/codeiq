@@ -13,7 +13,18 @@ import org.springframework.stereotype.Component;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
+import io.github.randomcodespace.iq.detector.ParserType;
 
+@DetectorInfo(
+    name = "go_structures",
+    category = "structures",
+    description = "Detects Go structs, interfaces, functions, and imports",
+    parser = ParserType.ANTLR,
+    languages = {"go"},
+    nodeKinds = {NodeKind.CLASS, NodeKind.INTERFACE, NodeKind.METHOD, NodeKind.MODULE},
+    edgeKinds = {EdgeKind.DEFINES, EdgeKind.IMPORTS}
+)
 @Component
 public class GoStructuresDetector extends AbstractAntlrDetector {
 

@@ -12,7 +12,17 @@ import org.springframework.stereotype.Component;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
 
+@DetectorInfo(
+    name = "frontend.frontend_routes",
+    category = "frontend",
+    description = "Detects frontend routes (React Router, Vue Router, SvelteKit, etc.)",
+    languages = {"typescript", "javascript", "vue", "svelte"},
+    nodeKinds = {NodeKind.COMPONENT, NodeKind.ENDPOINT},
+    edgeKinds = {EdgeKind.RENDERS},
+    properties = {"framework", "protocol", "route_path"}
+)
 @Component
 public class FrontendRouteDetector extends AbstractRegexDetector {
 

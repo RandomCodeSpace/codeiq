@@ -12,10 +12,20 @@ import org.springframework.stereotype.Component;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
 
 /**
  * Detects Azure Service Bus and Event Hub usage.
  */
+@DetectorInfo(
+    name = "azure_messaging",
+    category = "messaging",
+    description = "Detects Azure messaging (Service Bus, Event Hub, Storage Queue)",
+    languages = {"java", "typescript", "javascript"},
+    nodeKinds = {NodeKind.QUEUE, NodeKind.TOPIC},
+    edgeKinds = {EdgeKind.CONNECTS_TO, EdgeKind.RECEIVES_FROM, EdgeKind.SENDS_TO},
+    properties = {"broker", "queue", "topic"}
+)
 @Component
 public class AzureMessagingDetector extends AbstractRegexDetector {
 

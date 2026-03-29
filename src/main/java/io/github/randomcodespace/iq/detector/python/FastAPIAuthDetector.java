@@ -17,7 +17,18 @@ import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
+import io.github.randomcodespace.iq.detector.ParserType;
 
+@DetectorInfo(
+    name = "fastapi_auth",
+    category = "auth",
+    description = "Detects FastAPI authentication dependencies (OAuth2, API keys)",
+    parser = ParserType.ANTLR,
+    languages = {"python"},
+    nodeKinds = {NodeKind.GUARD},
+    properties = {"auth_type"}
+)
 @Component
 public class FastAPIAuthDetector extends AbstractAntlrDetector {
 

@@ -12,10 +12,19 @@ import org.springframework.stereotype.Component;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
 
 /**
  * Detects Spring event listeners and publishers.
  */
+@DetectorInfo(
+    name = "spring_events",
+    category = "messaging",
+    description = "Detects Spring application events (publishers and listeners)",
+    languages = {"java"},
+    nodeKinds = {NodeKind.EVENT},
+    edgeKinds = {EdgeKind.LISTENS, EdgeKind.PUBLISHES}
+)
 @Component
 public class SpringEventsDetector extends AbstractRegexDetector {
 

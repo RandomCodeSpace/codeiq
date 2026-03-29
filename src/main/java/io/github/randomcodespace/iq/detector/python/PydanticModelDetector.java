@@ -22,7 +22,19 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
+import io.github.randomcodespace.iq.detector.ParserType;
 
+@DetectorInfo(
+    name = "python.pydantic_models",
+    category = "entities",
+    description = "Detects Pydantic models (BaseModel, Settings) and their fields",
+    parser = ParserType.ANTLR,
+    languages = {"python"},
+    nodeKinds = {NodeKind.CONFIG_DEFINITION, NodeKind.ENTITY},
+    edgeKinds = {EdgeKind.EXTENDS},
+    properties = {"base_class", "framework"}
+)
 @Component
 public class PydanticModelDetector extends AbstractAntlrDetector {
 

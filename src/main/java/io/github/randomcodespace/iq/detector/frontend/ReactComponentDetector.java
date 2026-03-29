@@ -12,7 +12,17 @@ import org.springframework.stereotype.Component;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
 
+@DetectorInfo(
+    name = "frontend.react_components",
+    category = "frontend",
+    description = "Detects React components (functional, class-based) and hooks",
+    languages = {"typescript", "javascript"},
+    nodeKinds = {NodeKind.COMPONENT, NodeKind.HOOK},
+    edgeKinds = {EdgeKind.RENDERS},
+    properties = {"component_type", "framework"}
+)
 @Component
 public class ReactComponentDetector extends AbstractRegexDetector {
 

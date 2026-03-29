@@ -17,7 +17,18 @@ import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
+import io.github.randomcodespace.iq.detector.ParserType;
 
+@DetectorInfo(
+    name = "typescript.express_routes",
+    category = "endpoints",
+    description = "Detects Express.js route definitions (app.get, router.post, etc.)",
+    parser = ParserType.ANTLR,
+    languages = {"typescript", "javascript"},
+    nodeKinds = {NodeKind.ENDPOINT},
+    properties = {"framework", "http_method", "protocol"}
+)
 @Component
 public class ExpressRouteDetector extends AbstractAntlrDetector {
 

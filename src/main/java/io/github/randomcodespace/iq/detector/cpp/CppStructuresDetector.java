@@ -15,7 +15,18 @@ import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
+import io.github.randomcodespace.iq.detector.ParserType;
 
+@DetectorInfo(
+    name = "cpp_structures",
+    category = "structures",
+    description = "Detects C/C++ classes, structs, functions, namespaces, and includes",
+    parser = ParserType.ANTLR,
+    languages = {"cpp", "c"},
+    nodeKinds = {NodeKind.CLASS, NodeKind.ENUM, NodeKind.METHOD, NodeKind.MODULE},
+    edgeKinds = {EdgeKind.EXTENDS, EdgeKind.IMPORTS}
+)
 @Component
 public class CppStructuresDetector extends AbstractAntlrDetector {
 

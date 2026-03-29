@@ -14,7 +14,17 @@ import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
 
+@DetectorInfo(
+    name = "terraform",
+    category = "infra",
+    description = "Detects Terraform resources, data sources, modules, and variables",
+    languages = {"terraform"},
+    nodeKinds = {NodeKind.CONFIG_DEFINITION, NodeKind.INFRA_RESOURCE, NodeKind.MODULE},
+    edgeKinds = {EdgeKind.DEPENDS_ON},
+    properties = {"config_type", "data_source", "provider", "resource_type"}
+)
 @Component
 public class TerraformDetector extends AbstractRegexDetector {
 

@@ -14,7 +14,17 @@ import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
 
+@DetectorInfo(
+    name = "bicep",
+    category = "infra",
+    description = "Detects Azure Bicep resources, modules, and parameters",
+    languages = {"bicep"},
+    nodeKinds = {NodeKind.AZURE_RESOURCE, NodeKind.CONFIG_KEY, NodeKind.INFRA_RESOURCE, NodeKind.MODULE},
+    edgeKinds = {EdgeKind.DEPENDS_ON},
+    properties = {"api_version"}
+)
 @Component
 public class BicepDetector extends AbstractRegexDetector {
 

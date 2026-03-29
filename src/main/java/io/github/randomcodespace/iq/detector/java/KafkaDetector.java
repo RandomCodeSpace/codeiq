@@ -12,10 +12,20 @@ import org.springframework.stereotype.Component;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
 
 /**
  * Detects Kafka consumers (@KafkaListener) and producers (KafkaTemplate.send).
  */
+@DetectorInfo(
+    name = "kafka",
+    category = "messaging",
+    description = "Detects Kafka producers, consumers, and topic configurations",
+    languages = {"java"},
+    nodeKinds = {NodeKind.TOPIC},
+    edgeKinds = {EdgeKind.CONSUMES, EdgeKind.PRODUCES},
+    properties = {"broker", "group_id", "topic"}
+)
 @Component
 public class KafkaDetector extends AbstractRegexDetector {
 

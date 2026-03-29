@@ -12,10 +12,20 @@ import org.springframework.stereotype.Component;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
 
 /**
  * Detects TIBCO EMS queue and topic usage.
  */
+@DetectorInfo(
+    name = "tibco_ems",
+    category = "messaging",
+    description = "Detects TIBCO EMS queue and topic connections",
+    languages = {"java"},
+    nodeKinds = {NodeKind.MESSAGE_QUEUE, NodeKind.QUEUE, NodeKind.TOPIC},
+    edgeKinds = {EdgeKind.CONNECTS_TO, EdgeKind.RECEIVES_FROM, EdgeKind.SENDS_TO},
+    properties = {"broker", "queue", "topic"}
+)
 @Component
 public class TibcoEmsDetector extends AbstractRegexDetector {
 

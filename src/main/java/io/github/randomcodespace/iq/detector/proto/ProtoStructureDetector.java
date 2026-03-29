@@ -14,7 +14,16 @@ import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
 
+@DetectorInfo(
+    name = "proto_structure",
+    category = "structures",
+    description = "Detects Protocol Buffer messages, services, RPCs, and imports",
+    languages = {"proto"},
+    nodeKinds = {NodeKind.CONFIG_KEY, NodeKind.INTERFACE, NodeKind.METHOD, NodeKind.MODULE, NodeKind.PROTOCOL_MESSAGE},
+    edgeKinds = {EdgeKind.CONTAINS, EdgeKind.IMPORTS}
+)
 @Component
 public class ProtoStructureDetector extends AbstractRegexDetector {
 

@@ -12,10 +12,20 @@ import org.springframework.stereotype.Component;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
 
 /**
  * Detects Azure Cosmos DB client usage patterns.
  */
+@DetectorInfo(
+    name = "cosmos_db",
+    category = "database",
+    description = "Detects Azure Cosmos DB containers, databases, and connections",
+    languages = {"java", "typescript", "javascript"},
+    nodeKinds = {NodeKind.AZURE_RESOURCE},
+    edgeKinds = {EdgeKind.CONNECTS_TO},
+    properties = {"container", "database", "resource_name"}
+)
 @Component
 public class CosmosDbDetector extends AbstractRegexDetector {
 

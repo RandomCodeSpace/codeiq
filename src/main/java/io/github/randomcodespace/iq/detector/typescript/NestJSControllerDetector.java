@@ -15,7 +15,19 @@ import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
+import io.github.randomcodespace.iq.detector.ParserType;
 
+@DetectorInfo(
+    name = "typescript.nestjs_controllers",
+    category = "endpoints",
+    description = "Detects NestJS controllers and their route definitions",
+    parser = ParserType.ANTLR,
+    languages = {"typescript"},
+    nodeKinds = {NodeKind.CLASS, NodeKind.ENDPOINT},
+    edgeKinds = {EdgeKind.EXPOSES},
+    properties = {"framework", "http_method", "protocol"}
+)
 @Component
 public class NestJSControllerDetector extends AbstractAntlrDetector {
 

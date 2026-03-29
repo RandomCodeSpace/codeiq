@@ -11,7 +11,18 @@ import org.springframework.stereotype.Component;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
+import io.github.randomcodespace.iq.detector.ParserType;
 
+@DetectorInfo(
+    name = "go_web",
+    category = "endpoints",
+    description = "Detects Go web endpoints (Gin, Echo, Chi, net/http)",
+    parser = ParserType.ANTLR,
+    languages = {"go"},
+    nodeKinds = {NodeKind.ENDPOINT, NodeKind.MIDDLEWARE},
+    properties = {"framework", "http_method", "method", "path"}
+)
 @Component
 public class GoWebDetector extends AbstractAntlrDetector {
 

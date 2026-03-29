@@ -12,10 +12,20 @@ import org.springframework.stereotype.Component;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
 
 /**
  * Detects Java database connectivity patterns (JDBC, JdbcTemplate, DataSource).
  */
+@DetectorInfo(
+    name = "jdbc",
+    category = "database",
+    description = "Detects JDBC database connections and driver configuration",
+    languages = {"java"},
+    nodeKinds = {NodeKind.DATABASE_CONNECTION},
+    edgeKinds = {EdgeKind.CONNECTS_TO},
+    properties = {"db_type"}
+)
 @Component
 public class JdbcDetector extends AbstractRegexDetector {
 

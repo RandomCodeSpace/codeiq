@@ -15,7 +15,19 @@ import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
+import io.github.randomcodespace.iq.detector.ParserType;
 
+@DetectorInfo(
+    name = "go_orm",
+    category = "database",
+    description = "Detects Go ORM usage (GORM models, queries, migrations, connections)",
+    parser = ParserType.ANTLR,
+    languages = {"go"},
+    nodeKinds = {NodeKind.DATABASE_CONNECTION, NodeKind.ENTITY, NodeKind.MIGRATION, NodeKind.QUERY},
+    edgeKinds = {EdgeKind.QUERIES},
+    properties = {"framework", "operation"}
+)
 @Component
 public class GoOrmDetector extends AbstractAntlrDetector {
 

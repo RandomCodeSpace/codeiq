@@ -15,10 +15,22 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
+import io.github.randomcodespace.iq.detector.ParserType;
 
 /**
  * Detects configuration structure from tsconfig.json files.
  */
+@DetectorInfo(
+    name = "tsconfig_json",
+    category = "config",
+    description = "Detects TypeScript compiler configuration and project references",
+    parser = ParserType.STRUCTURED,
+    languages = {"json"},
+    nodeKinds = {NodeKind.CONFIG_FILE, NodeKind.CONFIG_KEY},
+    edgeKinds = {EdgeKind.CONTAINS, EdgeKind.DEPENDS_ON},
+    properties = {"config_type", "path", "strict", "target"}
+)
 @Component
 public class TsconfigJsonDetector extends AbstractStructuredDetector {
 

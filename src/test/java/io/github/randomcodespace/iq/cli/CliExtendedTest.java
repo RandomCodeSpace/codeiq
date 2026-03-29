@@ -369,7 +369,9 @@ class CliExtendedTest {
             cmd.run();
 
             String out = captureOut.toString(StandardCharsets.UTF_8);
-            assertTrue(out.contains("det1"));
+            // Default run delegates to list, which shows category summary
+            assertTrue(out.contains("1"), "Should show detector count");
+            assertTrue(out.contains("Category"), "Should show table header");
         }
     }
 

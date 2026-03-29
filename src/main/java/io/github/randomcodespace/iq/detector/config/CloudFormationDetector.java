@@ -16,10 +16,22 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeMap;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
+import io.github.randomcodespace.iq.detector.ParserType;
 
 /**
  * Detects AWS CloudFormation resources, parameters, outputs, and dependencies.
  */
+@DetectorInfo(
+    name = "cloudformation",
+    category = "config",
+    description = "Detects AWS CloudFormation resources and stack dependencies",
+    parser = ParserType.STRUCTURED,
+    languages = {"yaml", "json"},
+    nodeKinds = {NodeKind.CONFIG_DEFINITION, NodeKind.INFRA_RESOURCE},
+    edgeKinds = {EdgeKind.DEPENDS_ON},
+    properties = {"resource_type"}
+)
 @Component
 public class CloudFormationDetector extends AbstractStructuredDetector {
 

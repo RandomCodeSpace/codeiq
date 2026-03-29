@@ -14,7 +14,16 @@ import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
 
+@DetectorInfo(
+    name = "markdown_structure",
+    category = "config",
+    description = "Detects Markdown document structure (headings, links, code blocks)",
+    languages = {"markdown"},
+    nodeKinds = {NodeKind.CONFIG_KEY, NodeKind.MODULE},
+    edgeKinds = {EdgeKind.CONTAINS, EdgeKind.DEPENDS_ON}
+)
 @Component
 public class MarkdownStructureDetector extends AbstractRegexDetector {
 

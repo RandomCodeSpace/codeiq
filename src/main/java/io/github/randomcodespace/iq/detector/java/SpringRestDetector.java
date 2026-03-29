@@ -15,11 +15,23 @@ import org.springframework.stereotype.Component;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
+import io.github.randomcodespace.iq.detector.ParserType;
 
 /**
  * Detects Spring REST endpoints from mapping annotations using JavaParser AST
  * with regex fallback.
  */
+@DetectorInfo(
+    name = "spring_rest",
+    category = "endpoints",
+    description = "Detects Spring MVC REST endpoints (@GetMapping, @PostMapping, etc.)",
+    parser = ParserType.JAVAPARSER,
+    languages = {"java"},
+    nodeKinds = {NodeKind.ENDPOINT},
+    edgeKinds = {EdgeKind.EXPOSES},
+    properties = {"consumes", "http_method", "method", "path", "produces"}
+)
 @Component
 public class SpringRestDetector extends AbstractJavaParserDetector {
 

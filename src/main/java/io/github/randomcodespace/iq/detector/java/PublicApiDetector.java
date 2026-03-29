@@ -15,11 +15,22 @@ import org.springframework.stereotype.Component;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
+import io.github.randomcodespace.iq.detector.ParserType;
 
 /**
  * Detects public and protected methods in Java classes and interfaces using JavaParser AST
  * with regex fallback.
  */
+@DetectorInfo(
+    name = "java.public_api",
+    category = "structures",
+    description = "Detects Java public API methods (public methods on public classes)",
+    parser = ParserType.JAVAPARSER,
+    languages = {"java"},
+    nodeKinds = {NodeKind.METHOD},
+    edgeKinds = {EdgeKind.DEFINES}
+)
 @Component
 public class PublicApiDetector extends AbstractJavaParserDetector {
 

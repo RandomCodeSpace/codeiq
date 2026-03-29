@@ -13,7 +13,19 @@ import org.springframework.stereotype.Component;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
+import io.github.randomcodespace.iq.detector.ParserType;
 
+@DetectorInfo(
+    name = "mongoose_orm",
+    category = "database",
+    description = "Detects Mongoose schemas, models, and database connections",
+    parser = ParserType.ANTLR,
+    languages = {"typescript", "javascript"},
+    nodeKinds = {NodeKind.DATABASE_CONNECTION, NodeKind.ENTITY, NodeKind.EVENT},
+    edgeKinds = {EdgeKind.QUERIES},
+    properties = {"framework", "operation"}
+)
 @Component
 public class MongooseORMDetector extends AbstractAntlrDetector {
 

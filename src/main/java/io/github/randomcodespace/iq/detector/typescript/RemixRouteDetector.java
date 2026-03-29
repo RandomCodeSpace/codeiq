@@ -13,7 +13,18 @@ import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
+import io.github.randomcodespace.iq.detector.ParserType;
 
+@DetectorInfo(
+    name = "remix_routes",
+    category = "frontend",
+    description = "Detects Remix route modules (loaders, actions, components)",
+    parser = ParserType.ANTLR,
+    languages = {"typescript", "javascript"},
+    nodeKinds = {NodeKind.COMPONENT, NodeKind.ENDPOINT},
+    properties = {"framework", "http_method", "route_path"}
+)
 @Component
 public class RemixRouteDetector extends AbstractAntlrDetector {
 

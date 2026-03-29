@@ -14,6 +14,8 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
+import io.github.randomcodespace.iq.detector.ParserType;
 
 /**
  * Detects Python project metadata, dependencies, and entry points from pyproject.toml.
@@ -21,6 +23,16 @@ import java.util.Set;
  * Expects parsedData to be a Map with type "toml" and "data" containing the parsed TOML structure.
  * Since Java doesn't have a built-in TOML parser, this detector works with pre-parsed data.
  */
+@DetectorInfo(
+    name = "pyproject_toml",
+    category = "config",
+    description = "Detects pyproject.toml project metadata, dependencies, and build targets",
+    parser = ParserType.STRUCTURED,
+    languages = {"toml"},
+    nodeKinds = {NodeKind.CONFIG_DEFINITION, NodeKind.MODULE},
+    edgeKinds = {EdgeKind.CONTAINS, EdgeKind.DEPENDS_ON},
+    properties = {"dependencies", "target", "version"}
+)
 @Component
 public class PyprojectTomlDetector extends AbstractStructuredDetector {
 

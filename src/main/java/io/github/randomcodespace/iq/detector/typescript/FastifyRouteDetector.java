@@ -16,7 +16,19 @@ import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
+import io.github.randomcodespace.iq.detector.ParserType;
 
+@DetectorInfo(
+    name = "fastify_routes",
+    category = "endpoints",
+    description = "Detects Fastify route definitions and plugin registrations",
+    parser = ParserType.ANTLR,
+    languages = {"typescript", "javascript"},
+    nodeKinds = {NodeKind.ENDPOINT, NodeKind.MIDDLEWARE},
+    edgeKinds = {EdgeKind.IMPORTS},
+    properties = {"framework", "http_method", "protocol"}
+)
 @Component
 public class FastifyRouteDetector extends AbstractAntlrDetector {
 

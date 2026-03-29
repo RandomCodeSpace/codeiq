@@ -14,12 +14,23 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
+import io.github.randomcodespace.iq.detector.ParserType;
 
 /**
  * Detects TOML file structures: sections, top-level keys, and file identity.
  * <p>
  * Expects parsedData to be a Map with type "toml" and "data" containing the parsed structure.
  */
+@DetectorInfo(
+    name = "toml_structure",
+    category = "config",
+    description = "Detects TOML file structure (sections and key-value pairs)",
+    parser = ParserType.STRUCTURED,
+    languages = {"toml"},
+    nodeKinds = {NodeKind.CONFIG_FILE, NodeKind.CONFIG_KEY},
+    edgeKinds = {EdgeKind.CONTAINS}
+)
 @Component
 public class TomlStructureDetector extends AbstractStructuredDetector {
 

@@ -16,10 +16,22 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
+import io.github.randomcodespace.iq.detector.ParserType;
 
 /**
  * Detects services, ports, volumes, networks, and dependencies from Docker Compose files.
  */
+@DetectorInfo(
+    name = "docker_compose",
+    category = "config",
+    description = "Detects Docker Compose services, ports, and dependencies",
+    parser = ParserType.STRUCTURED,
+    languages = {"yaml"},
+    nodeKinds = {NodeKind.CONFIG_KEY, NodeKind.INFRA_RESOURCE},
+    edgeKinds = {EdgeKind.CONNECTS_TO, EdgeKind.DEPENDS_ON},
+    properties = {"image", "port"}
+)
 @Component
 public class DockerComposeDetector extends AbstractStructuredDetector {
 

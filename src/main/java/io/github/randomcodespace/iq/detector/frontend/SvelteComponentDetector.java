@@ -12,7 +12,16 @@ import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
 
+@DetectorInfo(
+    name = "frontend.svelte_components",
+    category = "frontend",
+    description = "Detects Svelte components (script, template, style blocks)",
+    languages = {"typescript", "javascript", "svelte"},
+    nodeKinds = {NodeKind.COMPONENT},
+    properties = {"framework"}
+)
 @Component
 public class SvelteComponentDetector extends AbstractRegexDetector {
 

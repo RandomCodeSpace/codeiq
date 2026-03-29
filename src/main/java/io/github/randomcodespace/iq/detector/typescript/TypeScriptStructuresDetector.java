@@ -13,7 +13,18 @@ import org.springframework.stereotype.Component;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
+import io.github.randomcodespace.iq.detector.ParserType;
 
+@DetectorInfo(
+    name = "typescript_structures",
+    category = "structures",
+    description = "Detects TypeScript/JavaScript classes, interfaces, functions, enums, and imports",
+    parser = ParserType.ANTLR,
+    languages = {"typescript", "javascript"},
+    nodeKinds = {NodeKind.CLASS, NodeKind.ENUM, NodeKind.INTERFACE, NodeKind.METHOD, NodeKind.MODULE},
+    edgeKinds = {EdgeKind.IMPORTS}
+)
 @Component
 public class TypeScriptStructuresDetector extends AbstractAntlrDetector {
 

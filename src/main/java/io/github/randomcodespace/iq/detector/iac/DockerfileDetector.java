@@ -12,7 +12,17 @@ import org.springframework.stereotype.Component;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
 
+@DetectorInfo(
+    name = "dockerfile",
+    category = "infra",
+    description = "Detects Dockerfile instructions (FROM, EXPOSE, COPY, multi-stage builds)",
+    languages = {"dockerfile"},
+    nodeKinds = {NodeKind.CONFIG_DEFINITION, NodeKind.ENDPOINT, NodeKind.INFRA_RESOURCE},
+    edgeKinds = {EdgeKind.DEPENDS_ON},
+    properties = {"image", "port", "protocol"}
+)
 @Component
 public class DockerfileDetector extends AbstractRegexDetector {
 

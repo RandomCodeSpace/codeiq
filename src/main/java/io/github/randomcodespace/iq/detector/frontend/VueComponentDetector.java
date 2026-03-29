@@ -12,7 +12,16 @@ import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
 
+@DetectorInfo(
+    name = "frontend.vue_components",
+    category = "frontend",
+    description = "Detects Vue.js components (Options API, Composition API, SFC)",
+    languages = {"typescript", "javascript", "vue"},
+    nodeKinds = {NodeKind.COMPONENT, NodeKind.HOOK},
+    properties = {"framework"}
+)
 @Component
 public class VueComponentDetector extends AbstractRegexDetector {
 

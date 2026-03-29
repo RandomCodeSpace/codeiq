@@ -18,7 +18,18 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
+import io.github.randomcodespace.iq.detector.ParserType;
 
+@DetectorInfo(
+    name = "django_auth",
+    category = "auth",
+    description = "Detects Django authentication (login_required, permissions, decorators)",
+    parser = ParserType.ANTLR,
+    languages = {"python"},
+    nodeKinds = {NodeKind.GUARD},
+    properties = {"auth_type", "permissions"}
+)
 @Component
 public class DjangoAuthDetector extends AbstractAntlrDetector {
 

@@ -14,7 +14,16 @@ import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
 
+@DetectorInfo(
+    name = "powershell",
+    category = "config",
+    description = "Detects PowerShell script structure (functions, modules, imports)",
+    languages = {"powershell"},
+    nodeKinds = {NodeKind.CONFIG_DEFINITION, NodeKind.METHOD, NodeKind.MODULE},
+    edgeKinds = {EdgeKind.IMPORTS}
+)
 @Component
 public class PowerShellDetector extends AbstractRegexDetector {
 

@@ -12,10 +12,20 @@ import org.springframework.stereotype.Component;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
 
 /**
  * Detects JMS consumers and producers.
  */
+@DetectorInfo(
+    name = "jms",
+    category = "messaging",
+    description = "Detects JMS queue producers and consumers (@JmsListener, JmsTemplate)",
+    languages = {"java"},
+    nodeKinds = {NodeKind.QUEUE},
+    edgeKinds = {EdgeKind.CONSUMES, EdgeKind.PRODUCES},
+    properties = {"broker", "destination"}
+)
 @Component
 public class JmsDetector extends AbstractRegexDetector {
 

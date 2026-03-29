@@ -19,10 +19,22 @@ import org.springframework.stereotype.Component;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
+import io.github.randomcodespace.iq.detector.ParserType;
 
 /**
  * Detects JPA entities and their relationships using JavaParser AST with regex fallback.
  */
+@DetectorInfo(
+    name = "jpa_entity",
+    category = "entities",
+    description = "Detects JPA/Hibernate entities (@Entity, @Table, column mappings)",
+    parser = ParserType.JAVAPARSER,
+    languages = {"java"},
+    nodeKinds = {NodeKind.ENTITY},
+    edgeKinds = {EdgeKind.MAPS_TO},
+    properties = {"columns", "table_name"}
+)
 @Component
 public class JpaEntityDetector extends AbstractJavaParserDetector {
 

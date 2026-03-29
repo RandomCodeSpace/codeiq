@@ -19,7 +19,19 @@ import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
+import io.github.randomcodespace.iq.detector.ParserType;
 
+@DetectorInfo(
+    name = "python.celery_tasks",
+    category = "messaging",
+    description = "Detects Celery task definitions and queue bindings",
+    parser = ParserType.ANTLR,
+    languages = {"python"},
+    nodeKinds = {NodeKind.METHOD, NodeKind.QUEUE},
+    edgeKinds = {EdgeKind.CONSUMES, EdgeKind.PRODUCES},
+    properties = {"broker", "task_name"}
+)
 @Component
 public class CeleryTaskDetector extends AbstractAntlrDetector {
 

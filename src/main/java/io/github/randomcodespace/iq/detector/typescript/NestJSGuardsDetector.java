@@ -13,7 +13,18 @@ import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
+import io.github.randomcodespace.iq.detector.ParserType;
 
+@DetectorInfo(
+    name = "typescript.nestjs_guards",
+    category = "auth",
+    description = "Detects NestJS guards (AuthGuard, RolesGuard, custom guards)",
+    parser = ParserType.ANTLR,
+    languages = {"typescript"},
+    nodeKinds = {NodeKind.GUARD},
+    properties = {"auth_type", "roles", "strategy"}
+)
 @Component
 public class NestJSGuardsDetector extends AbstractAntlrDetector {
 

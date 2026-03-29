@@ -13,7 +13,19 @@ import org.springframework.stereotype.Component;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
+import io.github.randomcodespace.iq.detector.ParserType;
 
+@DetectorInfo(
+    name = "sequelize_orm",
+    category = "database",
+    description = "Detects Sequelize ORM models, associations, and connections",
+    parser = ParserType.ANTLR,
+    languages = {"typescript", "javascript"},
+    nodeKinds = {NodeKind.DATABASE_CONNECTION, NodeKind.ENTITY},
+    edgeKinds = {EdgeKind.DEPENDS_ON, EdgeKind.QUERIES},
+    properties = {"framework", "operation"}
+)
 @Component
 public class SequelizeORMDetector extends AbstractAntlrDetector {
 

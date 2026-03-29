@@ -15,7 +15,18 @@ import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
+import io.github.randomcodespace.iq.detector.ParserType;
 
+@DetectorInfo(
+    name = "rust_structures",
+    category = "structures",
+    description = "Detects Rust structs, traits, impls, functions, enums, and use statements",
+    parser = ParserType.ANTLR,
+    languages = {"rust"},
+    nodeKinds = {NodeKind.CLASS, NodeKind.ENUM, NodeKind.INTERFACE, NodeKind.METHOD, NodeKind.MODULE},
+    edgeKinds = {EdgeKind.DEFINES, EdgeKind.IMPLEMENTS, EdgeKind.IMPORTS}
+)
 @Component
 public class RustStructuresDetector extends AbstractAntlrDetector {
 

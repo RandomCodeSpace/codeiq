@@ -17,10 +17,22 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
+import io.github.randomcodespace.iq.detector.ParserType;
 
 /**
  * Detects Helm chart patterns in Chart.yaml, values.yaml, and templates.
  */
+@DetectorInfo(
+    name = "helm_chart",
+    category = "config",
+    description = "Detects Helm chart metadata, dependencies, and template references",
+    parser = ParserType.STRUCTURED,
+    languages = {"yaml"},
+    nodeKinds = {NodeKind.CONFIG_KEY, NodeKind.MODULE},
+    edgeKinds = {EdgeKind.DEPENDS_ON, EdgeKind.IMPORTS, EdgeKind.READS_CONFIG},
+    properties = {"chart_name", "chart_version", "dependencies", "version"}
+)
 @Component
 public class HelmChartDetector extends AbstractStructuredDetector {
 

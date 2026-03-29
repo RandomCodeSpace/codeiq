@@ -12,10 +12,19 @@ import org.springframework.stereotype.Component;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
 
 /**
  * Detects Java RMI interfaces and remote object exports.
  */
+@DetectorInfo(
+    name = "rmi",
+    category = "endpoints",
+    description = "Detects Java RMI remote interfaces and registry lookups",
+    languages = {"java"},
+    nodeKinds = {NodeKind.RMI_INTERFACE},
+    edgeKinds = {EdgeKind.EXPORTS_RMI, EdgeKind.INVOKES_RMI}
+)
 @Component
 public class RmiDetector extends AbstractRegexDetector {
 

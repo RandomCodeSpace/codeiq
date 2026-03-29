@@ -19,7 +19,19 @@ import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
+import io.github.randomcodespace.iq.detector.ParserType;
 
+@DetectorInfo(
+    name = "python.sqlalchemy_models",
+    category = "entities",
+    description = "Detects SQLAlchemy ORM models and table mappings",
+    parser = ParserType.ANTLR,
+    languages = {"python"},
+    nodeKinds = {NodeKind.ENTITY},
+    edgeKinds = {EdgeKind.MAPS_TO},
+    properties = {"columns", "framework", "table_name"}
+)
 @Component
 public class SQLAlchemyModelDetector extends AbstractAntlrDetector {
 

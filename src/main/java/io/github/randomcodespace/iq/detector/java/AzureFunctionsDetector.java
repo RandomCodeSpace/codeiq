@@ -12,10 +12,20 @@ import org.springframework.stereotype.Component;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
 
 /**
  * Detects Azure Functions triggers and bindings.
  */
+@DetectorInfo(
+    name = "azure_functions",
+    category = "endpoints",
+    description = "Detects Azure Functions triggers (HTTP, Timer, Queue, Topic, Blob)",
+    languages = {"java", "csharp", "typescript", "javascript"},
+    nodeKinds = {NodeKind.AZURE_FUNCTION, NodeKind.AZURE_RESOURCE, NodeKind.ENDPOINT, NodeKind.QUEUE, NodeKind.TOPIC},
+    edgeKinds = {EdgeKind.EXPOSES, EdgeKind.TRIGGERS},
+    properties = {"broker", "queue", "queue_name", "schedule", "topic", "trigger_type"}
+)
 @Component
 public class AzureFunctionsDetector extends AbstractRegexDetector {
 

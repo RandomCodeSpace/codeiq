@@ -11,7 +11,18 @@ import org.springframework.stereotype.Component;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
+import io.github.randomcodespace.iq.detector.ParserType;
 
+@DetectorInfo(
+    name = "ktor_routes",
+    category = "endpoints",
+    description = "Detects Ktor route definitions and authentication blocks",
+    parser = ParserType.ANTLR,
+    languages = {"kotlin"},
+    nodeKinds = {NodeKind.ENDPOINT, NodeKind.GUARD, NodeKind.MIDDLEWARE, NodeKind.MODULE},
+    properties = {"framework", "http_method", "protocol"}
+)
 @Component
 public class KtorRouteDetector extends AbstractAntlrDetector {
 

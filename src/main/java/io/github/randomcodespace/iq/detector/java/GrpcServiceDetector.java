@@ -12,10 +12,20 @@ import org.springframework.stereotype.Component;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
 
 /**
  * Detects gRPC service implementations and client stubs.
  */
+@DetectorInfo(
+    name = "grpc_service",
+    category = "endpoints",
+    description = "Detects gRPC service implementations and stub invocations",
+    languages = {"java"},
+    nodeKinds = {NodeKind.ENDPOINT},
+    edgeKinds = {EdgeKind.CALLS, EdgeKind.EXPOSES},
+    properties = {"method", "protocol"}
+)
 @Component
 public class GrpcServiceDetector extends AbstractRegexDetector {
 

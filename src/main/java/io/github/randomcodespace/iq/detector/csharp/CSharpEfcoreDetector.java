@@ -15,7 +15,19 @@ import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
+import io.github.randomcodespace.iq.detector.ParserType;
 
+@DetectorInfo(
+    name = "csharp_efcore",
+    category = "entities",
+    description = "Detects Entity Framework Core DbContexts, entities, and migrations",
+    parser = ParserType.ANTLR,
+    languages = {"csharp"},
+    nodeKinds = {NodeKind.ENTITY, NodeKind.MIGRATION, NodeKind.REPOSITORY},
+    edgeKinds = {EdgeKind.QUERIES},
+    properties = {"framework"}
+)
 @Component
 public class CSharpEfcoreDetector extends AbstractAntlrDetector {
 

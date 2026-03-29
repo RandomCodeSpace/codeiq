@@ -22,7 +22,18 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
+import io.github.randomcodespace.iq.detector.ParserType;
 
+@DetectorInfo(
+    name = "python_structures",
+    category = "structures",
+    description = "Detects Python classes, functions, imports, and module structure",
+    parser = ParserType.ANTLR,
+    languages = {"python"},
+    nodeKinds = {NodeKind.CLASS, NodeKind.METHOD, NodeKind.MODULE},
+    edgeKinds = {EdgeKind.DEFINES, EdgeKind.EXTENDS, EdgeKind.IMPORTS}
+)
 @Component
 public class PythonStructuresDetector extends AbstractAntlrDetector {
 

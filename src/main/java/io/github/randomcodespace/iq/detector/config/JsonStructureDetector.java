@@ -13,10 +13,21 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
+import io.github.randomcodespace.iq.detector.ParserType;
 
 /**
  * Detects JSON file structures: top-level keys and file identity.
  */
+@DetectorInfo(
+    name = "json_structure",
+    category = "config",
+    description = "Detects JSON file structure (top-level keys and nested objects)",
+    parser = ParserType.STRUCTURED,
+    languages = {"json"},
+    nodeKinds = {NodeKind.CONFIG_FILE, NodeKind.CONFIG_KEY},
+    edgeKinds = {EdgeKind.CONTAINS}
+)
 @Component
 public class JsonStructureDetector extends AbstractStructuredDetector {
 

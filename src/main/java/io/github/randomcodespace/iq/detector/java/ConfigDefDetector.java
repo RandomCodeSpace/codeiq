@@ -18,11 +18,22 @@ import org.springframework.stereotype.Component;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
+import io.github.randomcodespace.iq.detector.ParserType;
 
 /**
  * Detects Kafka ConfigDef.define() configuration definitions and Spring @ConfigurationProperties
  * using JavaParser AST with regex fallback.
  */
+@DetectorInfo(
+    name = "config_def",
+    category = "config",
+    description = "Detects Spring @Value and @ConfigurationProperties definitions",
+    parser = ParserType.JAVAPARSER,
+    languages = {"java"},
+    nodeKinds = {NodeKind.CONFIG_DEFINITION},
+    edgeKinds = {EdgeKind.READS_CONFIG}
+)
 @Component
 public class ConfigDefDetector extends AbstractJavaParserDetector {
 

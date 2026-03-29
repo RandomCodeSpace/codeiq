@@ -17,7 +17,18 @@ import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
+import io.github.randomcodespace.iq.detector.ParserType;
 
+@DetectorInfo(
+    name = "python.django_views",
+    category = "endpoints",
+    description = "Detects Django views (function-based and class-based views)",
+    parser = ParserType.ANTLR,
+    languages = {"python"},
+    nodeKinds = {NodeKind.CLASS, NodeKind.ENDPOINT},
+    properties = {"framework", "protocol"}
+)
 @Component
 public class DjangoViewDetector extends AbstractAntlrDetector {
 

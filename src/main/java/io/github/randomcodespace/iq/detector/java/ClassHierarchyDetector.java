@@ -16,11 +16,22 @@ import org.springframework.stereotype.Component;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
+import io.github.randomcodespace.iq.detector.ParserType;
 
 /**
  * Detects Java class hierarchies using JavaParser AST with regex fallback.
  * Finds classes, interfaces, enums, annotation types, and their inheritance relationships.
  */
+@DetectorInfo(
+    name = "java.class_hierarchy",
+    category = "structures",
+    description = "Detects Java class hierarchy (classes, interfaces, enums, annotations, inheritance)",
+    parser = ParserType.JAVAPARSER,
+    languages = {"java"},
+    nodeKinds = {NodeKind.ABSTRACT_CLASS, NodeKind.ANNOTATION_TYPE, NodeKind.CLASS, NodeKind.ENUM, NodeKind.INTERFACE},
+    edgeKinds = {EdgeKind.EXTENDS, EdgeKind.IMPLEMENTS}
+)
 @Component
 public class ClassHierarchyDetector extends AbstractJavaParserDetector {
 

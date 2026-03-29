@@ -12,7 +12,16 @@ import org.springframework.stereotype.Component;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
 
+@DetectorInfo(
+    name = "bash",
+    category = "config",
+    description = "Detects Bash script structure (functions, source imports, variables)",
+    languages = {"bash"},
+    nodeKinds = {NodeKind.CONFIG_DEFINITION, NodeKind.METHOD, NodeKind.MODULE},
+    edgeKinds = {EdgeKind.CALLS, EdgeKind.IMPORTS}
+)
 @Component
 public class BashDetector extends AbstractRegexDetector {
 

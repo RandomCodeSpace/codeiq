@@ -13,7 +13,16 @@ import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
 
+@DetectorInfo(
+    name = "certificate_auth",
+    category = "auth",
+    description = "Detects certificate-based authentication (mTLS, client certs, X.509)",
+    languages = {"java", "python", "typescript", "csharp", "json", "yaml"},
+    nodeKinds = {NodeKind.GUARD},
+    properties = {"auth_type", "language"}
+)
 @Component
 public class CertificateAuthDetector extends AbstractRegexDetector {
 

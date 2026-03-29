@@ -13,7 +13,18 @@ import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
+import io.github.randomcodespace.iq.detector.ParserType;
 
+@DetectorInfo(
+    name = "actix_web",
+    category = "endpoints",
+    description = "Detects Actix-web route handlers and middleware",
+    parser = ParserType.ANTLR,
+    languages = {"rust"},
+    nodeKinds = {NodeKind.ENDPOINT, NodeKind.MIDDLEWARE, NodeKind.MODULE},
+    properties = {"framework", "http_method", "path"}
+)
 @Component
 public class ActixWebDetector extends AbstractAntlrDetector {
 

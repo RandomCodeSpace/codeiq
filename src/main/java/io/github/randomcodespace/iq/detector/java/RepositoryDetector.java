@@ -12,10 +12,20 @@ import org.springframework.stereotype.Component;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
 
 /**
  * Detects Spring Data repository interfaces.
  */
+@DetectorInfo(
+    name = "spring_repository",
+    category = "entities",
+    description = "Detects Spring Data repositories and custom query methods",
+    languages = {"java"},
+    nodeKinds = {NodeKind.ENTITY, NodeKind.REPOSITORY},
+    edgeKinds = {EdgeKind.QUERIES},
+    properties = {"custom_queries", "method"}
+)
 @Component
 public class RepositoryDetector extends AbstractRegexDetector {
 

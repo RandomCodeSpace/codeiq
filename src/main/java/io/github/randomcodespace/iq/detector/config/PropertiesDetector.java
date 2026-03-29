@@ -14,10 +14,22 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
+import io.github.randomcodespace.iq.detector.ParserType;
 
 /**
  * Detects property keys, Spring config markers, and database connections from .properties files.
  */
+@DetectorInfo(
+    name = "properties",
+    category = "config",
+    description = "Detects Java properties files and database connection strings",
+    parser = ParserType.STRUCTURED,
+    languages = {"properties"},
+    nodeKinds = {NodeKind.CONFIG_FILE, NodeKind.CONFIG_KEY, NodeKind.DATABASE_CONNECTION},
+    edgeKinds = {EdgeKind.CONTAINS},
+    properties = {"url"}
+)
 @Component
 public class PropertiesDetector extends AbstractStructuredDetector {
 

@@ -14,10 +14,22 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
+import io.github.randomcodespace.iq.detector.ParserType;
 
 /**
  * Detects module dependencies and scripts from package.json files.
  */
+@DetectorInfo(
+    name = "package_json",
+    category = "config",
+    description = "Detects package.json scripts, dependencies, and project metadata",
+    parser = ParserType.STRUCTURED,
+    languages = {"json"},
+    nodeKinds = {NodeKind.METHOD, NodeKind.MODULE},
+    edgeKinds = {EdgeKind.CONTAINS, EdgeKind.DEPENDS_ON},
+    properties = {"dependencies", "version"}
+)
 @Component
 public class PackageJsonDetector extends AbstractStructuredDetector {
 

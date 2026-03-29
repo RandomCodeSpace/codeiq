@@ -22,7 +22,19 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
+import io.github.randomcodespace.iq.detector.ParserType;
 
+@DetectorInfo(
+    name = "python.django_models",
+    category = "entities",
+    description = "Detects Django ORM models and managers",
+    parser = ParserType.ANTLR,
+    languages = {"python"},
+    nodeKinds = {NodeKind.ENTITY, NodeKind.REPOSITORY},
+    edgeKinds = {EdgeKind.DEPENDS_ON, EdgeKind.QUERIES},
+    properties = {"framework", "table_name"}
+)
 @Component
 public class DjangoModelDetector extends AbstractAntlrDetector {
 

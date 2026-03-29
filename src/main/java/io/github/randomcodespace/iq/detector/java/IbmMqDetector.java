@@ -12,10 +12,20 @@ import org.springframework.stereotype.Component;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
 
 /**
  * Detects IBM MQ queue manager, queue, and topic usage.
  */
+@DetectorInfo(
+    name = "ibm_mq",
+    category = "messaging",
+    description = "Detects IBM MQ queues, topics, and connection factories",
+    languages = {"java"},
+    nodeKinds = {NodeKind.MESSAGE_QUEUE, NodeKind.QUEUE, NodeKind.TOPIC},
+    edgeKinds = {EdgeKind.CONNECTS_TO, EdgeKind.RECEIVES_FROM, EdgeKind.SENDS_TO},
+    properties = {"broker", "queue", "topic"}
+)
 @Component
 public class IbmMqDetector extends AbstractRegexDetector {
 

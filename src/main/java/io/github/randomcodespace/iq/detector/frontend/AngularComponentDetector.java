@@ -10,7 +10,16 @@ import org.springframework.stereotype.Component;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
 
+@DetectorInfo(
+    name = "frontend.angular_components",
+    category = "frontend",
+    description = "Detects Angular components (@Component decorator, selectors)",
+    languages = {"typescript"},
+    nodeKinds = {NodeKind.COMPONENT, NodeKind.MIDDLEWARE},
+    properties = {"framework", "selector"}
+)
 @Component
 public class AngularComponentDetector extends AbstractRegexDetector {
 

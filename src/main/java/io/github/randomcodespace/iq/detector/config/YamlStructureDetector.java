@@ -14,10 +14,21 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.TreeSet;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
+import io.github.randomcodespace.iq.detector.ParserType;
 
 /**
  * Detects YAML file structures: top-level keys and file identity.
  */
+@DetectorInfo(
+    name = "yaml_structure",
+    category = "config",
+    description = "Detects YAML file structure (top-level keys and nested objects)",
+    parser = ParserType.STRUCTURED,
+    languages = {"yaml"},
+    nodeKinds = {NodeKind.CONFIG_FILE, NodeKind.CONFIG_KEY},
+    edgeKinds = {EdgeKind.CONTAINS}
+)
 @Component
 public class YamlStructureDetector extends AbstractStructuredDetector {
 

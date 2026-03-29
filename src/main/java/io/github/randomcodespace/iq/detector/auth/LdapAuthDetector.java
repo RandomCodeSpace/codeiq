@@ -13,7 +13,16 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
 
+@DetectorInfo(
+    name = "ldap_auth",
+    category = "auth",
+    description = "Detects LDAP/Active Directory authentication configuration",
+    languages = {"java", "python", "typescript", "csharp"},
+    nodeKinds = {NodeKind.GUARD},
+    properties = {"auth_type", "language"}
+)
 @Component
 public class LdapAuthDetector extends AbstractRegexDetector {
 

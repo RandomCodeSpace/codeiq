@@ -15,10 +15,22 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
+import io.github.randomcodespace.iq.detector.ParserType;
 
 /**
  * Detects stages, jobs, dependencies, and tool usage from GitLab CI YAML files.
  */
+@DetectorInfo(
+    name = "gitlab_ci",
+    category = "config",
+    description = "Detects GitLab CI pipeline stages, jobs, and dependencies",
+    parser = ParserType.STRUCTURED,
+    languages = {"yaml"},
+    nodeKinds = {NodeKind.CONFIG_KEY, NodeKind.METHOD, NodeKind.MODULE},
+    edgeKinds = {EdgeKind.CONTAINS, EdgeKind.DEPENDS_ON, EdgeKind.EXTENDS, EdgeKind.IMPORTS},
+    properties = {"image", "stages"}
+)
 @Component
 public class GitLabCiDetector extends AbstractStructuredDetector {
 

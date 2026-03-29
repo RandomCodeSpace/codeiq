@@ -10,10 +10,18 @@ import org.springframework.stereotype.Component;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
 
 /**
  * Detects raw SQL queries in @Query annotations and JdbcTemplate calls.
  */
+@DetectorInfo(
+    name = "raw_sql",
+    category = "database",
+    description = "Detects raw SQL queries in Java source code (JDBC, JPA native queries)",
+    languages = {"java"},
+    nodeKinds = {NodeKind.QUERY}
+)
 @Component
 public class RawSqlDetector extends AbstractRegexDetector {
 

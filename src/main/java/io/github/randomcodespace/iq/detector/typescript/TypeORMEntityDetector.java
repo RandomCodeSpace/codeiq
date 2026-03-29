@@ -15,7 +15,19 @@ import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
+import io.github.randomcodespace.iq.detector.ParserType;
 
+@DetectorInfo(
+    name = "typescript.typeorm_entities",
+    category = "entities",
+    description = "Detects TypeORM entity definitions and column mappings",
+    parser = ParserType.ANTLR,
+    languages = {"typescript"},
+    nodeKinds = {NodeKind.ENTITY},
+    edgeKinds = {EdgeKind.MAPS_TO},
+    properties = {"columns", "framework", "table_name"}
+)
 @Component
 public class TypeORMEntityDetector extends AbstractAntlrDetector {
 

@@ -15,7 +15,19 @@ import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
+import io.github.randomcodespace.iq.detector.ParserType;
 
+@DetectorInfo(
+    name = "kafka_python",
+    category = "messaging",
+    description = "Detects Python Kafka producers and consumers (kafka-python, confluent-kafka)",
+    parser = ParserType.ANTLR,
+    languages = {"python"},
+    nodeKinds = {NodeKind.TOPIC},
+    edgeKinds = {EdgeKind.CONSUMES, EdgeKind.IMPORTS, EdgeKind.PRODUCES},
+    properties = {"broker", "topic"}
+)
 @Component
 public class KafkaPythonDetector extends AbstractAntlrDetector {
 

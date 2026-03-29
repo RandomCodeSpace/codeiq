@@ -15,10 +15,20 @@ import java.util.Map;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
 
 /**
  * Detects SQL structures: tables, views, indexes, procedures, and foreign key relationships.
  */
+@DetectorInfo(
+    name = "sql_structure",
+    category = "config",
+    description = "Detects SQL DDL structure (tables, views, foreign keys, indexes)",
+    languages = {"sql"},
+    nodeKinds = {NodeKind.CONFIG_DEFINITION, NodeKind.ENTITY},
+    edgeKinds = {EdgeKind.DEPENDS_ON},
+    properties = {"table"}
+)
 @Component
 public class SqlStructureDetector extends AbstractRegexDetector {
 

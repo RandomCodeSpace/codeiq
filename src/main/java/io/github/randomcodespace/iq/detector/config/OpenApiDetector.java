@@ -15,10 +15,22 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
+import io.github.randomcodespace.iq.detector.ParserType;
 
 /**
  * Detects API endpoints and schemas from OpenAPI/Swagger specifications.
  */
+@DetectorInfo(
+    name = "openapi",
+    category = "config",
+    description = "Detects OpenAPI/Swagger specifications and their endpoints",
+    parser = ParserType.STRUCTURED,
+    languages = {"json", "yaml"},
+    nodeKinds = {NodeKind.CONFIG_FILE, NodeKind.ENDPOINT, NodeKind.ENTITY},
+    edgeKinds = {EdgeKind.CONTAINS, EdgeKind.DEPENDS_ON},
+    properties = {"api_version", "config_type", "http_method", "path", "version"}
+)
 @Component
 public class OpenApiDetector extends AbstractStructuredDetector {
 

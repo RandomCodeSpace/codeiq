@@ -16,7 +16,17 @@ import java.util.Set;
 import java.util.function.BiConsumer;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
 
+@DetectorInfo(
+    name = "generic_imports",
+    category = "structures",
+    description = "Detects imports, classes, and functions in Ruby, Swift, Perl, Lua, Dart, R",
+    languages = {"ruby", "swift", "perl", "lua", "dart", "r"},
+    nodeKinds = {NodeKind.CLASS, NodeKind.INTERFACE, NodeKind.METHOD, NodeKind.MODULE},
+    edgeKinds = {EdgeKind.EXTENDS, EdgeKind.IMPLEMENTS, EdgeKind.IMPORTS},
+    properties = {"base_class"}
+)
 @Component
 public class GenericImportsDetector extends AbstractRegexDetector {
 

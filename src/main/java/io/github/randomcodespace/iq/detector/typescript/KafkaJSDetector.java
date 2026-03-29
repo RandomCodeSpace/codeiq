@@ -13,7 +13,19 @@ import org.springframework.stereotype.Component;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
+import io.github.randomcodespace.iq.detector.ParserType;
 
+@DetectorInfo(
+    name = "kafka_js",
+    category = "messaging",
+    description = "Detects KafkaJS producers, consumers, and admin operations",
+    parser = ParserType.ANTLR,
+    languages = {"typescript", "javascript"},
+    nodeKinds = {NodeKind.DATABASE_CONNECTION, NodeKind.EVENT, NodeKind.TOPIC},
+    edgeKinds = {EdgeKind.CONSUMES, EdgeKind.PRODUCES},
+    properties = {"broker", "group_id", "topic"}
+)
 @Component
 public class KafkaJSDetector extends AbstractAntlrDetector {
 

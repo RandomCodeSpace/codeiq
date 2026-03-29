@@ -15,7 +15,18 @@ import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
+import io.github.randomcodespace.iq.detector.ParserType;
 
+@DetectorInfo(
+    name = "kotlin_structures",
+    category = "structures",
+    description = "Detects Kotlin classes, interfaces, objects, functions, and imports",
+    parser = ParserType.ANTLR,
+    languages = {"kotlin"},
+    nodeKinds = {NodeKind.CLASS, NodeKind.INTERFACE, NodeKind.METHOD, NodeKind.MODULE},
+    edgeKinds = {EdgeKind.EXTENDS, EdgeKind.IMPORTS}
+)
 @Component
 public class KotlinStructuresDetector extends AbstractAntlrDetector {
 

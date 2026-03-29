@@ -13,6 +13,8 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
+import io.github.randomcodespace.iq.detector.ParserType;
 
 /**
  * Detects INI file structures: sections, keys, and file identity.
@@ -20,6 +22,15 @@ import java.util.Set;
  * Expects parsedData to be a Map with type "ini" and "data" containing
  * a Map of section names to Maps of key-value pairs.
  */
+@DetectorInfo(
+    name = "ini_structure",
+    category = "config",
+    description = "Detects INI file structure (sections and key-value pairs)",
+    parser = ParserType.STRUCTURED,
+    languages = {"ini"},
+    nodeKinds = {NodeKind.CONFIG_FILE, NodeKind.CONFIG_KEY},
+    edgeKinds = {EdgeKind.CONTAINS}
+)
 @Component
 public class IniStructureDetector extends AbstractStructuredDetector {
 

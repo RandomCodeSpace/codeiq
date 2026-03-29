@@ -15,7 +15,18 @@ import java.util.List;
 import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
+import io.github.randomcodespace.iq.detector.ParserType;
 
+@DetectorInfo(
+    name = "scala_structures",
+    category = "structures",
+    description = "Detects Scala classes, traits, objects, case classes, and imports",
+    parser = ParserType.ANTLR,
+    languages = {"scala"},
+    nodeKinds = {NodeKind.CLASS, NodeKind.INTERFACE, NodeKind.METHOD, NodeKind.MODULE},
+    edgeKinds = {EdgeKind.EXTENDS, EdgeKind.IMPLEMENTS, EdgeKind.IMPORTS}
+)
 @Component
 public class ScalaStructuresDetector extends AbstractAntlrDetector {
 

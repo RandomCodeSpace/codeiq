@@ -13,10 +13,21 @@ import org.springframework.stereotype.Component;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
+import io.github.randomcodespace.iq.detector.ParserType;
 
 /**
  * Detects Spring Security auth patterns using JavaParser AST with regex fallback.
  */
+@DetectorInfo(
+    name = "spring_security",
+    category = "auth",
+    description = "Detects Spring Security configuration (auth providers, role-based access)",
+    parser = ParserType.JAVAPARSER,
+    languages = {"java"},
+    nodeKinds = {NodeKind.GUARD},
+    properties = {"auth_type", "roles"}
+)
 @Component
 public class SpringSecurityDetector extends AbstractJavaParserDetector {
 

@@ -13,7 +13,19 @@ import org.springframework.stereotype.Component;
 import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
+import io.github.randomcodespace.iq.detector.ParserType;
 
+@DetectorInfo(
+    name = "csharp_structures",
+    category = "structures",
+    description = "Detects C# classes, interfaces, enums, records, and controller endpoints",
+    parser = ParserType.ANTLR,
+    languages = {"csharp"},
+    nodeKinds = {NodeKind.ABSTRACT_CLASS, NodeKind.CLASS, NodeKind.ENDPOINT, NodeKind.ENUM, NodeKind.INTERFACE, NodeKind.MODULE},
+    edgeKinds = {EdgeKind.EXTENDS, EdgeKind.IMPLEMENTS, EdgeKind.IMPORTS},
+    properties = {"base_class", "http_method", "path"}
+)
 @Component
 public class CSharpStructuresDetector extends AbstractAntlrDetector {
 

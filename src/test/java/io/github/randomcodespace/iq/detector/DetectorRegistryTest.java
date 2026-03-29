@@ -1,9 +1,12 @@
 package io.github.randomcodespace.iq.detector;
 
+import io.github.randomcodespace.iq.model.NodeKind;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -101,5 +104,99 @@ class DetectorRegistryTest {
     @Test
     void countReturnsTotal() {
         assertEquals(3, registry.count());
+    }
+
+    // --- Tests for annotation-aware methods ---
+
+    @DetectorInfo(
+            name = "test-endpoint",
+            category = "endpoints",
+            description = "Test endpoint detector",
+            languages = {"java"},
+            nodeKinds = {NodeKind.ENDPOINT}
+    )
+    static class AnnotatedEndpointDetector implements Detector {
+        @Override public String getName() { return "test-endpoint"; }
+        @Override public Set<String> getSupportedLanguages() { return Set.of("java"); }
+        @Override public DetectorResult detect(DetectorContext ctx) { return DetectorResult.empty(); }
+    }
+
+    @DetectorInfo(
+            name = "test-entity",
+            category = "entities",
+            description = "Test entity detector",
+            languages = {"java"},
+            nodeKinds = {NodeKind.ENTITY}
+    )
+    static class AnnotatedEntityDetector implements Detector {
+        @Override public String getName() { return "test-entity"; }
+        @Override public Set<String> getSupportedLanguages() { return Set.of("java"); }
+        @Override public DetectorResult detect(DetectorContext ctx) { return DetectorResult.empty(); }
+    }
+
+    @DetectorInfo(
+            name = "test-auth",
+            category = "auth",
+            description = "Test auth detector",
+            languages = {"java", "python"},
+            nodeKinds = {NodeKind.GUARD}
+    )
+    static class AnnotatedAuthDetector implements Detector {
+        @Override public String getName() { return "test-auth"; }
+        @Override public Set<String> getSupportedLanguages() { return Set.of("java", "python"); }
+        @Override public DetectorResult detect(DetectorContext ctx) { return DetectorResult.empty(); }
+    }
+
+    private DetectorRegistry annotatedRegistry;
+
+    @BeforeEach
+    void setUpAnnotated() {
+        annotatedRegistry = new DetectorRegistry(List.of(
+                new AnnotatedEndpointDetector(),
+                new AnnotatedEntityDetector(),
+                new AnnotatedAuthDetector()
+        ));
+    }
+
+    @Test
+    void detectorsForCategoryReturnsCorrectSubset() {
+        List<Detector> endpoints = annotatedRegistry.detectorsForCategory("endpoints");
+        assertEquals(1, endpoints.size());
+        assertEquals("test-endpoint", endpoints.getFirst().getName());
+    }
+
+    @Test
+    void detectorsForCategoryReturnsEmptyForUnknown() {
+        assertTrue(annotatedRegistry.detectorsForCategory("nonexistent").isEmpty());
+    }
+
+    @Test
+    void allCategoriesReturnsSorted() {
+        List<String> categories = annotatedRegistry.allCategories();
+        assertEquals(List.of("auth", "endpoints", "entities"), categories);
+    }
+
+    @Test
+    void getInfoReturnsAnnotation() {
+        Optional<DetectorInfo> info = annotatedRegistry.getInfo("test-auth");
+        assertTrue(info.isPresent());
+        assertEquals("auth", info.get().category());
+        assertEquals("Test auth detector", info.get().description());
+        assertArrayEquals(new String[]{"java", "python"}, info.get().languages());
+    }
+
+    @Test
+    void getInfoReturnsEmptyForUnknown() {
+        assertTrue(annotatedRegistry.getInfo("nonexistent").isEmpty());
+    }
+
+    @Test
+    void byCategoryGroupsCorrectly() {
+        Map<String, List<Detector>> grouped = annotatedRegistry.byCategory();
+        assertEquals(3, grouped.size());
+        assertTrue(grouped.containsKey("auth"));
+        assertTrue(grouped.containsKey("endpoints"));
+        assertTrue(grouped.containsKey("entities"));
+        assertEquals(1, grouped.get("endpoints").size());
     }
 }

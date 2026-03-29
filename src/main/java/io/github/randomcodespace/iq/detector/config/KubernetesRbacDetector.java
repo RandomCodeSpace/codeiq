@@ -15,10 +15,22 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import io.github.randomcodespace.iq.detector.DetectorInfo;
+import io.github.randomcodespace.iq.detector.ParserType;
 
 /**
  * Detects Kubernetes RBAC resources and produces GUARD nodes and PROTECTS edges.
  */
+@DetectorInfo(
+    name = "config.kubernetes_rbac",
+    category = "config",
+    description = "Detects Kubernetes RBAC resources (Roles, RoleBindings, ServiceAccounts)",
+    parser = ParserType.STRUCTURED,
+    languages = {"yaml"},
+    nodeKinds = {NodeKind.GUARD},
+    edgeKinds = {EdgeKind.PROTECTS},
+    properties = {"auth_type", "kind", "namespace"}
+)
 @Component
 public class KubernetesRbacDetector extends AbstractStructuredDetector {
 
