@@ -39,13 +39,19 @@ public abstract class AbstractAntlrDetector extends AbstractRegexDetector {
     /**
      * Parse the source content into an ANTLR parse tree.
      * Return null if the language is not supported or content is empty.
+     * Default returns null (no parse tree); override for AST-based detection.
      */
-    protected abstract ParseTree parse(DetectorContext ctx);
+    protected ParseTree parse(DetectorContext ctx) {
+        return null;
+    }
 
     /**
      * Detect code patterns by walking the ANTLR parse tree.
+     * Default delegates to regex fallback; override for AST-based detection.
      */
-    protected abstract DetectorResult detectWithAst(ParseTree tree, DetectorContext ctx);
+    protected DetectorResult detectWithAst(ParseTree tree, DetectorContext ctx) {
+        return detectWithRegex(ctx);
+    }
 
     /**
      * Fallback detection using regex when AST parsing fails.

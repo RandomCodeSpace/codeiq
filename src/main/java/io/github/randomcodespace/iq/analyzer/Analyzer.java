@@ -7,6 +7,7 @@ import io.github.randomcodespace.iq.detector.DetectorContext;
 import io.github.randomcodespace.iq.detector.DetectorRegistry;
 import io.github.randomcodespace.iq.detector.DetectorResult;
 import io.github.randomcodespace.iq.detector.DetectorUtils;
+import io.github.randomcodespace.iq.grammar.AntlrParserFactory;
 import io.github.randomcodespace.iq.model.CodeNode;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -193,6 +194,7 @@ public class Analyzer {
      * Analyze a single file: read content, parse if structured, run matching detectors.
      */
     DetectorResult analyzeFile(DiscoveredFile file, Path repoPath) {
+        Instant fileStart = Instant.now();
         Path absPath = repoPath.resolve(file.path());
 
         // Read file content
@@ -234,13 +236,27 @@ public class Analyzer {
 
         for (Detector detector : detectors) {
             try {
+                Instant detStart = Instant.now();
                 DetectorResult result = detector.detect(ctx);
+                long detMs = Duration.between(detStart, Instant.now()).toMillis();
+                if (detMs > 100) {
+                    log.debug("Slow detector {} on {} ({} bytes): {}ms",
+                            detector.getName(), file.path(), content.length(), detMs);
+                }
                 allNodes.addAll(result.nodes());
                 allEdges.addAll(result.edges());
             } catch (Exception e) {
                 log.debug("Detector {} failed on {}: {}",
                         detector.getName(), file.path(), e.getMessage());
             }
+        }
+
+        // Clear ANTLR parse cache after all detectors have run for this file
+        AntlrParserFactory.clearCache();
+
+        long fileMs = Duration.between(fileStart, Instant.now()).toMillis();
+        if (fileMs > 500) {
+            log.debug("Slow file {} ({}): {}ms", file.path(), file.language(), fileMs);
         }
 
         // Set module on all nodes that don't have one yet

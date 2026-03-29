@@ -49,12 +49,29 @@ public final class AntlrParserFactory {
             "rust", "kotlin", "scala", "cpp"
     );
 
+    /**
+     * Thread-local cache to avoid re-parsing the same file for multiple detectors.
+     * Key is the content String identity (same object reference = same file), value is the parse tree.
+     * Each file is processed by a single thread, so thread-local is safe and avoids cross-thread contention.
+     */
+    private static final ThreadLocal<Map.Entry<String, ParseTree>> PARSE_CACHE = new ThreadLocal<>();
+
     private AntlrParserFactory() {
         // utility class
     }
 
     /**
+     * Clear the parse cache for the current thread.
+     * Call this after all detectors have run for a file.
+     */
+    public static void clearCache() {
+        PARSE_CACHE.remove();
+    }
+
+    /**
      * Parse source code for the given language and return the parse tree.
+     * Results are cached per-thread so multiple detectors on the same file
+     * share a single parse.
      *
      * @param language the language identifier (e.g., "python", "go", "typescript")
      * @param content  the source code to parse
@@ -65,7 +82,14 @@ public final class AntlrParserFactory {
         if (language == null || content == null || content.isBlank()) {
             return null;
         }
-        return switch (language.toLowerCase()) {
+
+        // Check thread-local cache — same content object means same file
+        var cached = PARSE_CACHE.get();
+        if (cached != null && cached.getKey() == content) {
+            return cached.getValue();
+        }
+
+        ParseTree tree = switch (language.toLowerCase()) {
             case "python" -> parsePython(content);
             case "javascript", "typescript" -> parseJavaScript(content);
             case "go" -> parseGo(content);
@@ -76,6 +100,12 @@ public final class AntlrParserFactory {
             case "cpp" -> parseCpp(content);
             default -> null;
         };
+
+        // Cache the result for subsequent detectors on the same file
+        if (tree != null) {
+            PARSE_CACHE.set(Map.entry(content, tree));
+        }
+        return tree;
     }
 
     /**

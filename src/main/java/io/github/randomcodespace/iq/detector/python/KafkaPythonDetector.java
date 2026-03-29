@@ -3,15 +3,10 @@ package io.github.randomcodespace.iq.detector.python;
 import io.github.randomcodespace.iq.detector.AbstractAntlrDetector;
 import io.github.randomcodespace.iq.detector.DetectorContext;
 import io.github.randomcodespace.iq.detector.DetectorResult;
-import io.github.randomcodespace.iq.grammar.AntlrParserFactory;
-import io.github.randomcodespace.iq.grammar.python.Python3Parser;
-import io.github.randomcodespace.iq.grammar.python.Python3ParserBaseListener;
 import io.github.randomcodespace.iq.model.CodeEdge;
 import io.github.randomcodespace.iq.model.CodeNode;
 import io.github.randomcodespace.iq.model.EdgeKind;
 import io.github.randomcodespace.iq.model.NodeKind;
-import org.antlr.v4.runtime.tree.ParseTree;
-import org.antlr.v4.runtime.tree.ParseTreeWalker;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -68,25 +63,9 @@ public class KafkaPythonDetector extends AbstractAntlrDetector {
     }
 
     @Override
-    protected ParseTree parse(DetectorContext ctx) {
-        String text = ctx.content();
-        // Quick bail-out
-        boolean hasKafka = false;
-        for (String kw : KAFKA_KEYWORDS) {
-            if (text != null && text.contains(kw)) {
-                hasKafka = true;
-                break;
-            }
-        }
-        if (!hasKafka) return null;
-        return AntlrParserFactory.parse("python", text);
-    }
-
-    @Override
-    protected DetectorResult detectWithAst(ParseTree tree, DetectorContext ctx) {
-        // Kafka detection is heavily line-regex based; AST getText() strips whitespace
-        // which breaks the regex patterns. Use the source-text line-based approach
-        // (same as regex fallback) but driven by AST-confirmed structure.
+    public DetectorResult detect(DetectorContext ctx) {
+        // Skip ANTLR parsing — regex is the primary detection method for this detector
+        // ANTLR infrastructure is in place for future enhancement
         return detectWithRegex(ctx);
     }
 

@@ -2,7 +2,6 @@ package io.github.randomcodespace.iq.detector.typescript;
 
 import io.github.randomcodespace.iq.detector.AbstractAntlrDetector;
 import io.github.randomcodespace.iq.grammar.AntlrParserFactory;
-import org.antlr.v4.runtime.tree.ParseTree;
 import io.github.randomcodespace.iq.detector.DetectorContext;
 import io.github.randomcodespace.iq.detector.DetectorResult;
 import io.github.randomcodespace.iq.model.CodeEdge;
@@ -42,16 +41,10 @@ public class KafkaJSDetector extends AbstractAntlrDetector {
     public Set<String> getSupportedLanguages() {
         return Set.of("typescript", "javascript");
     }
-
     @Override
-    protected ParseTree parse(DetectorContext ctx) {
-        String text = ctx.content();
-        if (!text.contains("Kafka") && !text.contains("kafka")) return null;
-        return AntlrParserFactory.parse(ctx.language(), text);
-    }
-
-    @Override
-    protected DetectorResult detectWithAst(ParseTree tree, DetectorContext ctx) {
+    public DetectorResult detect(DetectorContext ctx) {
+        // Skip ANTLR parsing — regex is the primary detection method for this detector
+        // ANTLR infrastructure is in place for future enhancement
         return detectWithRegex(ctx);
     }
 

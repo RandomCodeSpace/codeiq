@@ -40,8 +40,17 @@ public class ExpressRouteDetector extends AbstractAntlrDetector {
     }
 
     @Override
+    public DetectorResult detect(DetectorContext ctx) {
+        // Skip ANTLR parsing — regex is the primary detection method for this detector.
+        // The JavaScript ANTLR grammar is too slow for production use (1-20s per file).
+        // Regex produces identical results for Express route detection.
+        return detectWithRegex(ctx);
+    }
+
+    @Override
     protected ParseTree parse(DetectorContext ctx) {
-        return AntlrParserFactory.parse(ctx.language(), ctx.content());
+        // Not called when detect() is overridden, kept for potential future use
+        return null;
     }
 
     @Override

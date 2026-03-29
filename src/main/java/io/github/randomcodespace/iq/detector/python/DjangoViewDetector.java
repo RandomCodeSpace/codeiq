@@ -40,6 +40,10 @@ public class DjangoViewDetector extends AbstractAntlrDetector {
 
     @Override
     protected ParseTree parse(DetectorContext ctx) {
+        // Skip ANTLR for very large files (>500KB) — regex fallback is faster
+        if (ctx.content().length() > 500_000) {
+            return null; // triggers regex fallback
+        }
         return AntlrParserFactory.parse("python", ctx.content());
     }
 

@@ -2,7 +2,6 @@ package io.github.randomcodespace.iq.detector.go;
 
 import io.github.randomcodespace.iq.detector.AbstractAntlrDetector;
 import io.github.randomcodespace.iq.grammar.AntlrParserFactory;
-import org.antlr.v4.runtime.tree.ParseTree;
 import io.github.randomcodespace.iq.detector.DetectorContext;
 import io.github.randomcodespace.iq.detector.DetectorResult;
 import io.github.randomcodespace.iq.model.CodeEdge;
@@ -37,13 +36,9 @@ public class GoStructuresDetector extends AbstractAntlrDetector {
         return Set.of("go");
     }
     @Override
-    protected ParseTree parse(DetectorContext ctx) {
-        if (!"go".equals(ctx.language())) return null;
-        return AntlrParserFactory.parse("go", ctx.content());
-    }
-
-    @Override
-    protected DetectorResult detectWithAst(ParseTree tree, DetectorContext ctx) {
+    public DetectorResult detect(DetectorContext ctx) {
+        // Skip ANTLR parsing — regex is the primary detection method for this detector
+        // ANTLR infrastructure is in place for future enhancement
         return detectWithRegex(ctx);
     }
 

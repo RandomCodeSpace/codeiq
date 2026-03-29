@@ -2,7 +2,6 @@ package io.github.randomcodespace.iq.detector.kotlin;
 
 import io.github.randomcodespace.iq.detector.AbstractAntlrDetector;
 import io.github.randomcodespace.iq.grammar.AntlrParserFactory;
-import org.antlr.v4.runtime.tree.ParseTree;
 import io.github.randomcodespace.iq.detector.DetectorContext;
 import io.github.randomcodespace.iq.detector.DetectorResult;
 import io.github.randomcodespace.iq.model.CodeEdge;
@@ -32,13 +31,9 @@ public class KotlinStructuresDetector extends AbstractAntlrDetector {
     @Override
     public Set<String> getSupportedLanguages() { return Set.of("kotlin"); }
     @Override
-    protected ParseTree parse(DetectorContext ctx) {
-        if (!"kotlin".equals(ctx.language())) return null;
-        return AntlrParserFactory.parse("kotlin", ctx.content());
-    }
-
-    @Override
-    protected DetectorResult detectWithAst(ParseTree tree, DetectorContext ctx) {
+    public DetectorResult detect(DetectorContext ctx) {
+        // Skip ANTLR parsing — regex is the primary detection method for this detector
+        // ANTLR infrastructure is in place for future enhancement
         return detectWithRegex(ctx);
     }
 
