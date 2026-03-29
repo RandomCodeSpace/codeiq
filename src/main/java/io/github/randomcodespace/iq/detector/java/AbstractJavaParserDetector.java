@@ -13,7 +13,8 @@ import java.util.Optional;
  */
 public abstract class AbstractJavaParserDetector extends AbstractRegexDetector {
 
-    private static final JavaParser PARSER = new JavaParser();
+    private static final ThreadLocal<JavaParser> PARSER =
+            ThreadLocal.withInitial(JavaParser::new);
 
     /**
      * Attempt to parse the source content into a JavaParser CompilationUnit.
@@ -23,7 +24,7 @@ public abstract class AbstractJavaParserDetector extends AbstractRegexDetector {
             if (ctx.content() == null || ctx.content().isEmpty()) {
                 return Optional.empty();
             }
-            return PARSER.parse(ctx.content()).getResult();
+            return PARSER.get().parse(ctx.content()).getResult();
         } catch (Exception | AssertionError e) {
             // JavaParser may throw AssertionError for unrecognized token kinds
             // (e.g. newer Java syntax). Fall back to regex in those cases.
