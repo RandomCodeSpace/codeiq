@@ -5,6 +5,8 @@ import io.github.randomcodespace.iq.analyzer.Analyzer;
 import io.github.randomcodespace.iq.config.CodeIqConfig;
 import io.github.randomcodespace.iq.query.QueryService;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -13,6 +15,9 @@ import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.io.IOException;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -153,6 +158,30 @@ public class GraphController {
             @RequestParam String q,
             @RequestParam(defaultValue = "50") int limit) {
         return queryService.searchGraph(q, limit);
+    }
+
+    @GetMapping("/file")
+    public ResponseEntity<String> readFile(@RequestParam String path) {
+        Path codebasePath = Path.of(config.getRootPath()).toAbsolutePath().normalize();
+        Path resolved = codebasePath.resolve(path).normalize();
+        if (!resolved.startsWith(codebasePath)) {
+            return ResponseEntity.status(403)
+                    .contentType(MediaType.TEXT_PLAIN)
+                    .body("Path traversal blocked");
+        }
+        if (!Files.isRegularFile(resolved)) {
+            return ResponseEntity.notFound().build();
+        }
+        try {
+            String content = Files.readString(resolved, StandardCharsets.UTF_8);
+            return ResponseEntity.ok()
+                    .contentType(MediaType.TEXT_PLAIN)
+                    .body(content);
+        } catch (IOException e) {
+            return ResponseEntity.status(500)
+                    .contentType(MediaType.TEXT_PLAIN)
+                    .body("Failed to read file: " + e.getMessage());
+        }
     }
 
     @PostMapping("/analyze")

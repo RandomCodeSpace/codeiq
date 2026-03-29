@@ -7,11 +7,15 @@ import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
 
+import org.yaml.snakeyaml.Yaml;
+
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.concurrent.Callable;
 import java.util.stream.Collectors;
 
@@ -27,7 +31,7 @@ public class GraphCommand implements Callable<Integer> {
     private Path path;
 
     @Option(names = {"--format", "-f"}, defaultValue = "json",
-            description = "Output format: json, mermaid, dot (default: json)")
+            description = "Output format: json, yaml, mermaid, dot (default: json)")
     private String format;
 
     @Option(names = {"--output", "-o"}, description = "Output file (stdout if omitted)")
@@ -65,6 +69,7 @@ public class GraphCommand implements Callable<Integer> {
         }
 
         String content = switch (format.toLowerCase()) {
+            case "yaml" -> renderYaml(nodes);
             case "mermaid" -> renderMermaid(nodes);
             case "dot" -> renderDot(nodes);
             default -> renderJson(nodes);
@@ -83,6 +88,25 @@ public class GraphCommand implements Callable<Integer> {
         }
 
         return 0;
+    }
+
+    private String renderYaml(List<CodeNode> nodes) {
+        List<Map<String, Object>> nodeList = nodes.stream()
+                .map(n -> {
+                    Map<String, Object> m = new LinkedHashMap<>();
+                    m.put("id", n.getId());
+                    m.put("kind", n.getKind().getValue());
+                    m.put("label", n.getLabel());
+                    return m;
+                })
+                .collect(Collectors.toList());
+
+        Map<String, Object> graphData = new LinkedHashMap<>();
+        graphData.put("nodes", nodeList);
+        graphData.put("count", nodes.size());
+
+        Yaml yaml = new Yaml();
+        return yaml.dump(graphData);
     }
 
     private String renderJson(List<CodeNode> nodes) {

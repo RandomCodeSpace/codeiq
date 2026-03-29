@@ -53,7 +53,7 @@ class AnalyzeCommandTest {
                 Map.of("calls", 50, "contains", 35),
                 Duration.ofMillis(1234)
         );
-        when(analyzer.run(any(Path.class), any(Consumer.class))).thenReturn(result);
+        when(analyzer.run(any(Path.class), any(), any(Consumer.class))).thenReturn(result);
 
         var cmd = new AnalyzeCommand(analyzer, config);
 
@@ -70,6 +70,52 @@ class AnalyzeCommandTest {
 
     @Test
     @SuppressWarnings("unchecked")
+    void analyzeWithParallelismFlag(@TempDir Path tempDir) {
+        var analyzer = mock(Analyzer.class);
+        var config = new CodeIqConfig();
+
+        var result = new AnalysisResult(
+                10, 8, 20, 15,
+                Map.of("java", 10),
+                Map.of("class", 20),
+                Map.of("calls", 15),
+                Duration.ofMillis(500)
+        );
+        when(analyzer.run(any(Path.class), any(), any(Consumer.class))).thenReturn(result);
+
+        var cmd = new AnalyzeCommand(analyzer, config);
+        var cmdLine = new picocli.CommandLine(cmd);
+        int exitCode = cmdLine.execute(tempDir.toString(), "--parallelism", "4");
+
+        assertEquals(0, exitCode);
+        verify(analyzer).run(any(Path.class), eq(4), any(Consumer.class));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void analyzeWithoutParallelismPassesNull(@TempDir Path tempDir) {
+        var analyzer = mock(Analyzer.class);
+        var config = new CodeIqConfig();
+
+        var result = new AnalysisResult(
+                10, 8, 20, 15,
+                Map.of("java", 10),
+                Map.of("class", 20),
+                Map.of("calls", 15),
+                Duration.ofMillis(500)
+        );
+        when(analyzer.run(any(Path.class), any(), any(Consumer.class))).thenReturn(result);
+
+        var cmd = new AnalyzeCommand(analyzer, config);
+        var cmdLine = new picocli.CommandLine(cmd);
+        int exitCode = cmdLine.execute(tempDir.toString());
+
+        assertEquals(0, exitCode);
+        verify(analyzer).run(any(Path.class), eq(null), any(Consumer.class));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
     void analyzeCallsAnalyzerWithCorrectPath(@TempDir Path tempDir) {
         var analyzer = mock(Analyzer.class);
         var config = new CodeIqConfig();
@@ -78,12 +124,12 @@ class AnalyzeCommandTest {
                 0, 0, 0, 0,
                 Map.of(), Map.of(), Map.of(), Duration.ZERO
         );
-        when(analyzer.run(any(Path.class), any(Consumer.class))).thenReturn(result);
+        when(analyzer.run(any(Path.class), any(), any(Consumer.class))).thenReturn(result);
 
         var cmd = new AnalyzeCommand(analyzer, config);
         var cmdLine = new picocli.CommandLine(cmd);
         cmdLine.execute(tempDir.toString());
 
-        verify(analyzer).run(eq(tempDir.toAbsolutePath().normalize()), any(Consumer.class));
+        verify(analyzer).run(eq(tempDir.toAbsolutePath().normalize()), eq(null), any(Consumer.class));
     }
 }

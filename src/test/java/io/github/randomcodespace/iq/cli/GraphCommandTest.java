@@ -86,6 +86,24 @@ class GraphCommandTest {
     }
 
     @Test
+    void yamlFormatOutputContainsNodes() {
+        var store = mock(GraphStore.class);
+        var node = createNode("test:id:1", "MyEntity", NodeKind.CLASS);
+        when(store.findAllPaginated(anyInt(), anyInt())).thenReturn(List.of(node));
+
+        var cmd = new GraphCommand(store);
+        var cmdLine = new picocli.CommandLine(cmd);
+        int exitCode = cmdLine.execute(".", "--format", "yaml");
+
+        String output = capture.toString(StandardCharsets.UTF_8);
+        assertEquals(0, exitCode);
+        assertTrue(output.contains("nodes:"), "Should contain YAML nodes key");
+        assertTrue(output.contains("MyEntity"), "Should contain node label");
+        assertTrue(output.contains("class"), "Should contain node kind");
+        assertTrue(output.contains("count:"), "Should contain count key");
+    }
+
+    @Test
     void emptyGraphReturnsWarning() {
         var store = mock(GraphStore.class);
         when(store.findAllPaginated(anyInt(), anyInt())).thenReturn(List.of());

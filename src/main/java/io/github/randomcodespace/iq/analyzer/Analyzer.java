@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
+import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.function.Consumer;
@@ -86,6 +87,18 @@ public class Analyzer {
      * @return the analysis result containing graph data and statistics
      */
     public AnalysisResult run(Path repoPath, Consumer<String> onProgress) {
+        return run(repoPath, null, onProgress);
+    }
+
+    /**
+     * Execute the analysis pipeline with optional parallelism control.
+     *
+     * @param repoPath     root of the repository to analyze
+     * @param parallelism  max parallel threads, or null for adaptive (virtual threads)
+     * @param onProgress   optional callback for progress reporting (may be null)
+     * @return the analysis result containing graph data and statistics
+     */
+    public AnalysisResult run(Path repoPath, Integer parallelism, Consumer<String> onProgress) {
         Instant start = Instant.now();
         Consumer<String> report = onProgress != null ? onProgress : msg -> {};
 
@@ -107,7 +120,10 @@ public class Analyzer {
         report.accept("Analyzing " + totalFiles + " files...");
         DetectorResult[] resultSlots = new DetectorResult[files.size()];
 
-        try (var executor = Executors.newVirtualThreadPerTaskExecutor()) {
+        var executorService = parallelism != null && parallelism > 0
+                ? Executors.newFixedThreadPool(parallelism)
+                : Executors.newVirtualThreadPerTaskExecutor();
+        try (var executor = executorService) {
             List<Future<?>> futures = new ArrayList<>(files.size());
             for (int i = 0; i < files.size(); i++) {
                 final int idx = i;

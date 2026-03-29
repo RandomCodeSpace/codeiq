@@ -3,6 +3,7 @@ package io.github.randomcodespace.iq.cli;
 import io.github.randomcodespace.iq.analyzer.AnalysisResult;
 import io.github.randomcodespace.iq.analyzer.Analyzer;
 import io.github.randomcodespace.iq.config.CodeIqConfig;
+import io.github.randomcodespace.iq.config.ProjectConfigLoader;
 import org.springframework.stereotype.Component;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
@@ -28,6 +29,10 @@ public class AnalyzeCommand implements Callable<Integer> {
     @Option(names = {"--no-cache"}, description = "Skip incremental cache")
     private boolean noCache;
 
+    @Option(names = {"--parallelism", "-p"},
+            description = "Max parallel threads (default: auto-detect from CPU)")
+    private Integer parallelism;
+
     private final Analyzer analyzer;
     private final CodeIqConfig config;
 
@@ -39,12 +44,16 @@ public class AnalyzeCommand implements Callable<Integer> {
     @Override
     public Integer call() {
         Path root = path.toAbsolutePath().normalize();
+
+        // Load project-level config overrides from .osscodeiq.yml if present
+        ProjectConfigLoader.loadIfPresent(root, config);
+
         NumberFormat nf = NumberFormat.getIntegerInstance(Locale.US);
-        int cores = Runtime.getRuntime().availableProcessors();
+        int cores = parallelism != null ? parallelism : Runtime.getRuntime().availableProcessors();
 
         CliOutput.step("\uD83D\uDD0D", "Scanning " + root + " ...");
 
-        AnalysisResult result = analyzer.run(root, msg -> {
+        AnalysisResult result = analyzer.run(root, parallelism, msg -> {
             if (msg.startsWith("Discovering")) {
                 CliOutput.step("\uD83D\uDD0D", msg);
             } else if (msg.startsWith("Found")) {

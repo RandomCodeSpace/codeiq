@@ -2,6 +2,7 @@ package io.github.randomcodespace.iq.cli;
 
 import io.github.randomcodespace.iq.detector.Detector;
 import io.github.randomcodespace.iq.detector.DetectorRegistry;
+import io.github.randomcodespace.iq.flow.FlowEngine;
 import io.github.randomcodespace.iq.graph.GraphStore;
 import io.github.randomcodespace.iq.model.CodeNode;
 import io.github.randomcodespace.iq.model.NodeKind;
@@ -50,46 +51,59 @@ class CliExtendedTest {
     // ==================== FlowCommand ====================
     @Nested
     class FlowCommandExtended {
-        @Test
-        void layersViewMermaid() {
+        private FlowEngine createEngine() {
+            var store = mockStoreWithEndpoint();
+            return new FlowEngine(store);
+        }
+
+        private GraphStore mockStoreWithEndpoint() {
             var store = mock(GraphStore.class);
-            var node = createNode("test:1", "Svc", NodeKind.CLASS, "backend");
-            when(store.findAllPaginated(anyInt(), anyInt())).thenReturn(List.of(node));
+            var endpoint = new CodeNode();
+            endpoint.setId("ep:test:endpoint:getUser");
+            endpoint.setLabel("GET /users");
+            endpoint.setKind(NodeKind.ENDPOINT);
+            endpoint.setProperties(new java.util.HashMap<>());
+            endpoint.setEdges(new java.util.ArrayList<>());
+            endpoint.setLayer("backend");
 
-            var cmd = new FlowCommand(store);
-            var cmdLine = new picocli.CommandLine(cmd);
-            int exitCode = cmdLine.execute(".", "--view", "layers");
-
-            String out = captureOut.toString(StandardCharsets.UTF_8);
-            assertEquals(0, exitCode);
-            assertTrue(out.contains("graph LR"));
-            assertTrue(out.contains("frontend"));
+            when(store.findAll()).thenReturn(List.of(endpoint));
+            when(store.findByKind(any(NodeKind.class))).thenReturn(List.of());
+            when(store.findByKind(NodeKind.ENDPOINT)).thenReturn(List.of(endpoint));
+            when(store.count()).thenReturn(1L);
+            return store;
         }
 
         @Test
-        void kindsViewMermaid() {
-            var store = mock(GraphStore.class);
-            var node = createNode("test:1", "Svc", NodeKind.CLASS, "backend");
-            when(store.findAllPaginated(anyInt(), anyInt())).thenReturn(List.of(node));
+        void overviewViewMermaid() {
+            var engine = createEngine();
 
-            var cmd = new FlowCommand(store);
+            var cmd = new FlowCommand(engine);
             var cmdLine = new picocli.CommandLine(cmd);
-            int exitCode = cmdLine.execute(".", "--view", "kinds");
+            int exitCode = cmdLine.execute(".", "--view", "overview");
 
             String out = captureOut.toString(StandardCharsets.UTF_8);
             assertEquals(0, exitCode);
-            assertTrue(out.contains("graph TD"));
+            assertTrue(out.contains("graph "), "Should contain mermaid header");
         }
 
         @Test
-        void layersViewJson() {
-            var store = mock(GraphStore.class);
-            var node = createNode("test:1", "Svc", NodeKind.CLASS, "backend");
-            when(store.findAllPaginated(anyInt(), anyInt())).thenReturn(List.of(node));
+        void ciViewMermaid() {
+            var engine = createEngine();
 
-            var cmd = new FlowCommand(store);
+            var cmd = new FlowCommand(engine);
             var cmdLine = new picocli.CommandLine(cmd);
-            int exitCode = cmdLine.execute(".", "--view", "layers", "--format", "json");
+            int exitCode = cmdLine.execute(".", "--view", "ci");
+
+            assertEquals(0, exitCode);
+        }
+
+        @Test
+        void overviewViewJson() {
+            var engine = createEngine();
+
+            var cmd = new FlowCommand(engine);
+            var cmdLine = new picocli.CommandLine(cmd);
+            int exitCode = cmdLine.execute(".", "--view", "overview", "--format", "json");
 
             String out = captureOut.toString(StandardCharsets.UTF_8);
             assertEquals(0, exitCode);
@@ -97,28 +111,24 @@ class CliExtendedTest {
         }
 
         @Test
-        void kindsViewJson() {
-            var store = mock(GraphStore.class);
-            var node = createNode("test:1", "Svc", NodeKind.CLASS, "backend");
-            when(store.findAllPaginated(anyInt(), anyInt())).thenReturn(List.of(node));
+        void deployViewJson() {
+            var engine = createEngine();
 
-            var cmd = new FlowCommand(store);
+            var cmd = new FlowCommand(engine);
             var cmdLine = new picocli.CommandLine(cmd);
-            int exitCode = cmdLine.execute(".", "--view", "kinds", "--format", "json");
+            int exitCode = cmdLine.execute(".", "--view", "deploy", "--format", "json");
 
             String out = captureOut.toString(StandardCharsets.UTF_8);
             assertEquals(0, exitCode);
-            assertTrue(out.contains("\"total_nodes\""));
+            assertTrue(out.contains("\"view\""));
         }
 
         @Test
         void outputToFile(@TempDir Path tmpDir) {
-            var store = mock(GraphStore.class);
-            var node = createNode("test:1", "Svc", NodeKind.CLASS, "backend");
-            when(store.findAllPaginated(anyInt(), anyInt())).thenReturn(List.of(node));
+            var engine = createEngine();
 
             Path outFile = tmpDir.resolve("flow.md");
-            var cmd = new FlowCommand(store);
+            var cmd = new FlowCommand(engine);
             var cmdLine = new picocli.CommandLine(cmd);
             int exitCode = cmdLine.execute(".", "--output", outFile.toString());
 
