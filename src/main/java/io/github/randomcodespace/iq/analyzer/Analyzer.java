@@ -1,6 +1,8 @@
 package io.github.randomcodespace.iq.analyzer;
 
 import io.github.randomcodespace.iq.analyzer.linker.Linker;
+import io.github.randomcodespace.iq.cache.AnalysisCache;
+import io.github.randomcodespace.iq.cache.FileHasher;
 import io.github.randomcodespace.iq.config.CodeIqConfig;
 import io.github.randomcodespace.iq.detector.Detector;
 import io.github.randomcodespace.iq.detector.DetectorContext;
@@ -24,7 +26,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ExecutionException;
-import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
 import java.util.function.Consumer;
@@ -99,11 +100,48 @@ public class Analyzer {
      * @return the analysis result containing graph data and statistics
      */
     public AnalysisResult run(Path repoPath, Integer parallelism, Consumer<String> onProgress) {
+        return run(repoPath, parallelism, true, onProgress);
+    }
+
+    /**
+     * Execute the analysis pipeline with incremental analysis support.
+     *
+     * @param repoPath     root of the repository to analyze
+     * @param parallelism  max parallel threads, or null for adaptive (virtual threads)
+     * @param incremental  if true, use file content hashing to skip unchanged files
+     * @param onProgress   optional callback for progress reporting (may be null)
+     * @return the analysis result containing graph data and statistics
+     */
+    public AnalysisResult run(Path repoPath, Integer parallelism, boolean incremental,
+                              Consumer<String> onProgress) {
         Instant start = Instant.now();
         Consumer<String> report = onProgress != null ? onProgress : msg -> {};
 
         final Path root = repoPath.toAbsolutePath().normalize();
 
+        // Open incremental cache if enabled
+        AnalysisCache cache = null;
+        if (incremental) {
+            try {
+                Path cachePath = root.resolve(config.getCacheDir()).resolve("analysis-cache.db");
+                cache = new AnalysisCache(cachePath);
+                report.accept("Incremental analysis enabled");
+            } catch (Exception e) {
+                log.debug("Could not open incremental cache, running full analysis", e);
+            }
+        }
+
+        try {
+            return runWithCache(root, parallelism, cache, report, start);
+        } finally {
+            if (cache != null) {
+                cache.close();
+            }
+        }
+    }
+
+    private AnalysisResult runWithCache(Path root, Integer parallelism, AnalysisCache cache,
+                                         Consumer<String> report, Instant start) {
         // 1. Discover files
         report.accept("Discovering files...");
         List<DiscoveredFile> files = fileDiscovery.discover(root);
@@ -119,6 +157,7 @@ public class Analyzer {
         // 2. Analyze files in parallel with virtual threads
         report.accept("Analyzing " + totalFiles + " files...");
         DetectorResult[] resultSlots = new DetectorResult[files.size()];
+        int[] cacheHits = {0};
 
         var executorService = parallelism != null && parallelism > 0
                 ? Executors.newFixedThreadPool(parallelism)
@@ -128,13 +167,43 @@ public class Analyzer {
             for (int i = 0; i < files.size(); i++) {
                 final int idx = i;
                 final DiscoveredFile file = files.get(idx);
+                final AnalysisCache cacheRef = cache;
                 futures.add(executor.submit(() -> {
-                    resultSlots[idx] = analyzeFile(file, root);
+                    // Check cache first
+                    if (cacheRef != null) {
+                        try {
+                            Path absPath = root.resolve(file.path());
+                            String hash = FileHasher.hash(absPath);
+                            if (cacheRef.isCached(hash)) {
+                                var cached = cacheRef.loadCachedResults(hash);
+                                if (cached != null) {
+                                    resultSlots[idx] = DetectorResult.of(cached.nodes(), cached.edges());
+                                    synchronized (cacheHits) {
+                                        cacheHits[0]++;
+                                    }
+                                    return null;
+                                }
+                            }
+
+                            // Run detectors and cache result
+                            DetectorResult result = analyzeFile(file, root);
+                            resultSlots[idx] = result;
+                            if (result != null && (!result.nodes().isEmpty() || !result.edges().isEmpty())) {
+                                cacheRef.storeResults(hash, file.path().toString(), file.language(),
+                                        result.nodes(), result.edges());
+                            }
+                        } catch (IOException e) {
+                            log.debug("Could not hash file {}", file.path(), e);
+                            resultSlots[idx] = analyzeFile(file, root);
+                        }
+                    } else {
+                        resultSlots[idx] = analyzeFile(file, root);
+                    }
                     return null;
                 }));
             }
 
-            // Collect in order — deterministic regardless of thread completion order
+            // Collect in order -- deterministic regardless of thread completion order
             for (int i = 0; i < futures.size(); i++) {
                 try {
                     futures.get(i).get();
@@ -145,6 +214,10 @@ public class Analyzer {
                     log.warn("Analysis interrupted for {}", files.get(i).path());
                 }
             }
+        }
+
+        if (cache != null && cacheHits[0] > 0) {
+            report.accept("Cache hits: " + cacheHits[0] + " / " + totalFiles + " files");
         }
 
         // 3. Build graph (batched)
@@ -184,6 +257,12 @@ public class Analyzer {
         for (var edge : builder.getEdges()) {
             String kindValue = edge.getKind().getValue();
             edgeBreakdown.merge(kindValue, 1, Integer::sum);
+        }
+
+        // 8. Record analysis run in cache
+        if (cache != null) {
+            String commitSha = getGitHead(root);
+            cache.recordRun(commitSha, filesAnalyzed);
         }
 
         Duration elapsed = Duration.between(start, Instant.now());
@@ -285,5 +364,25 @@ public class Analyzer {
         }
 
         return DetectorResult.of(allNodes, allEdges);
+    }
+
+    /**
+     * Get the current git HEAD commit SHA, or null if not a git repo.
+     */
+    private String getGitHead(Path repoPath) {
+        try {
+            ProcessBuilder pb = new ProcessBuilder("git", "rev-parse", "HEAD")
+                    .directory(repoPath.toFile())
+                    .redirectErrorStream(true);
+            Process proc = pb.start();
+            String sha = new String(proc.getInputStream().readAllBytes()).trim();
+            int exitCode = proc.waitFor();
+            if (exitCode == 0 && sha.length() >= 7) {
+                return sha;
+            }
+        } catch (Exception e) {
+            log.debug("Could not determine git HEAD", e);
+        }
+        return null;
     }
 }

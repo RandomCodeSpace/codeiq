@@ -1,0 +1,472 @@
+package io.github.randomcodespace.iq.cache;
+
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.github.randomcodespace.iq.model.CodeEdge;
+import io.github.randomcodespace.iq.model.CodeNode;
+import io.github.randomcodespace.iq.model.EdgeKind;
+import io.github.randomcodespace.iq.model.NodeKind;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
+import java.io.Closeable;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+import java.sql.SQLException;
+import java.time.Instant;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+import java.util.UUID;
+
+/**
+ * SQLite-backed cache for incremental analysis results.
+ * <p>
+ * Stores per-file parse results (nodes and edges) keyed by content hash,
+ * enabling fast incremental re-analysis when only a subset of files change.
+ * <p>
+ * Uses plain JDBC with SQLite -- not Neo4j -- as the cache is a flat
+ * lookup table, not a graph.
+ */
+public class AnalysisCache implements Closeable {
+
+    private static final Logger log = LoggerFactory.getLogger(AnalysisCache.class);
+
+    private static final String SCHEMA_SQL = """
+            CREATE TABLE IF NOT EXISTS files (
+                content_hash TEXT PRIMARY KEY,
+                path TEXT NOT NULL,
+                language TEXT NOT NULL,
+                parsed_at TEXT NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS nodes (
+                id TEXT PRIMARY KEY,
+                content_hash TEXT NOT NULL,
+                kind TEXT NOT NULL,
+                data TEXT NOT NULL,
+                FOREIGN KEY (content_hash) REFERENCES files(content_hash)
+            );
+
+            CREATE TABLE IF NOT EXISTS edges (
+                source TEXT NOT NULL,
+                target TEXT NOT NULL,
+                content_hash TEXT NOT NULL,
+                kind TEXT NOT NULL,
+                data TEXT NOT NULL,
+                FOREIGN KEY (content_hash) REFERENCES files(content_hash)
+            );
+
+            CREATE TABLE IF NOT EXISTS analysis_runs (
+                run_id TEXT PRIMARY KEY,
+                commit_sha TEXT,
+                timestamp TEXT NOT NULL,
+                file_count INTEGER NOT NULL
+            );
+
+            CREATE INDEX IF NOT EXISTS idx_nodes_content_hash ON nodes(content_hash);
+            CREATE INDEX IF NOT EXISTS idx_edges_content_hash ON edges(content_hash);
+            CREATE INDEX IF NOT EXISTS idx_analysis_runs_timestamp ON analysis_runs(timestamp);
+            """;
+
+    private static final ObjectMapper MAPPER = new ObjectMapper();
+
+    private final Connection conn;
+    private final Path dbPath;
+
+    /**
+     * Open or create an analysis cache at the given path.
+     *
+     * @param dbPath path to the SQLite database file
+     */
+    public AnalysisCache(Path dbPath) {
+        this.dbPath = dbPath;
+        try {
+            Files.createDirectories(dbPath.getParent());
+            this.conn = DriverManager.getConnection("jdbc:sqlite:" + dbPath);
+            // Configure pragmas using separate statements, each closed before the next
+            executePragma("PRAGMA journal_mode=WAL");
+            executePragma("PRAGMA busy_timeout=5000");
+            executePragma("PRAGMA foreign_keys=ON");
+            initDb();
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to open analysis cache at " + dbPath, e);
+        }
+    }
+
+    private void executePragma(String pragma) throws SQLException {
+        try (var stmt = conn.createStatement()) {
+            stmt.execute(pragma);
+        }
+    }
+
+    private void initDb() throws SQLException {
+        for (String sql : SCHEMA_SQL.split(";")) {
+            String trimmed = sql.trim();
+            if (!trimmed.isEmpty()) {
+                try (var stmt = conn.createStatement()) {
+                    stmt.execute(trimmed);
+                }
+            }
+        }
+    }
+
+    // --- Commit tracking ---
+
+    /**
+     * Return the commit SHA from the most recent analysis run, or null.
+     */
+    public String getLastCommit() {
+        try (var stmt = conn.prepareStatement(
+                "SELECT commit_sha FROM analysis_runs ORDER BY timestamp DESC LIMIT 1")) {
+            ResultSet rs = stmt.executeQuery();
+            if (rs.next()) {
+                return rs.getString(1);
+            }
+        } catch (SQLException e) {
+            log.debug("Failed to get last commit", e);
+        }
+        return null;
+    }
+
+    // --- Cache lookups ---
+
+    /**
+     * Check whether results for the given content hash are cached.
+     */
+    public boolean isCached(String contentHash) {
+        try (var stmt = conn.prepareStatement(
+                "SELECT 1 FROM files WHERE content_hash = ?")) {
+            stmt.setString(1, contentHash);
+            return stmt.executeQuery().next();
+        } catch (SQLException e) {
+            log.debug("Cache lookup failed", e);
+            return false;
+        }
+    }
+
+    // --- Store results ---
+
+    /**
+     * Persist analysis results for a single file.
+     */
+    public void storeResults(String contentHash, String filePath, String language,
+                             List<CodeNode> nodes, List<CodeEdge> edges) {
+        try {
+            conn.setAutoCommit(false);
+            String now = Instant.now().toString();
+
+            // Upsert file record
+            try (var stmt = conn.prepareStatement(
+                    "INSERT OR REPLACE INTO files (content_hash, path, language, parsed_at) VALUES (?, ?, ?, ?)")) {
+                stmt.setString(1, contentHash);
+                stmt.setString(2, filePath);
+                stmt.setString(3, language);
+                stmt.setString(4, now);
+                stmt.execute();
+            }
+
+            // Remove old nodes/edges for this hash
+            try (var stmt = conn.prepareStatement("DELETE FROM nodes WHERE content_hash = ?")) {
+                stmt.setString(1, contentHash);
+                stmt.execute();
+            }
+            try (var stmt = conn.prepareStatement("DELETE FROM edges WHERE content_hash = ?")) {
+                stmt.setString(1, contentHash);
+                stmt.execute();
+            }
+
+            // Insert nodes
+            try (var stmt = conn.prepareStatement(
+                    "INSERT OR IGNORE INTO nodes (id, content_hash, kind, data) VALUES (?, ?, ?, ?)")) {
+                for (CodeNode node : nodes) {
+                    stmt.setString(1, node.getId());
+                    stmt.setString(2, contentHash);
+                    stmt.setString(3, node.getKind().getValue());
+                    stmt.setString(4, serializeNode(node));
+                    stmt.addBatch();
+                }
+                stmt.executeBatch();
+            }
+
+            // Insert edges
+            try (var stmt = conn.prepareStatement(
+                    "INSERT INTO edges (source, target, content_hash, kind, data) VALUES (?, ?, ?, ?, ?)")) {
+                for (CodeEdge edge : edges) {
+                    stmt.setString(1, edge.getSourceId());
+                    stmt.setString(2, edge.getTarget() != null ? edge.getTarget().getId() : "");
+                    stmt.setString(3, contentHash);
+                    stmt.setString(4, edge.getKind().getValue());
+                    stmt.setString(5, serializeEdge(edge));
+                    stmt.addBatch();
+                }
+                stmt.executeBatch();
+            }
+
+            conn.commit();
+        } catch (SQLException e) {
+            try {
+                conn.rollback();
+            } catch (SQLException ignored) {
+            }
+            log.warn("Failed to store cached results for hash {}", contentHash, e);
+        } finally {
+            try {
+                conn.setAutoCommit(true);
+            } catch (SQLException ignored) {
+            }
+        }
+    }
+
+    // --- Load cached results ---
+
+    /**
+     * Load cached nodes and edges for a given content hash.
+     *
+     * @return a CachedResult with the nodes and edges, or null if not cached
+     */
+    public CachedResult loadCachedResults(String contentHash) {
+        try {
+            List<CodeNode> nodes = new ArrayList<>();
+            try (var stmt = conn.prepareStatement("SELECT data FROM nodes WHERE content_hash = ?")) {
+                stmt.setString(1, contentHash);
+                ResultSet rs = stmt.executeQuery();
+                while (rs.next()) {
+                    nodes.add(deserializeNode(rs.getString(1)));
+                }
+            }
+
+            List<CodeEdge> edges = new ArrayList<>();
+            try (var stmt = conn.prepareStatement("SELECT data FROM edges WHERE content_hash = ?")) {
+                stmt.setString(1, contentHash);
+                ResultSet rs = stmt.executeQuery();
+                while (rs.next()) {
+                    edges.add(deserializeEdge(rs.getString(1)));
+                }
+            }
+
+            if (nodes.isEmpty() && edges.isEmpty()) {
+                return null;
+            }
+            return new CachedResult(nodes, edges);
+        } catch (SQLException e) {
+            log.debug("Failed to load cached results for hash {}", contentHash, e);
+            return null;
+        }
+    }
+
+    // --- Cache invalidation ---
+
+    /**
+     * Delete all cached results associated with a content hash.
+     */
+    public void removeFile(String contentHash) {
+        try {
+            conn.setAutoCommit(false);
+            try (var stmt = conn.prepareStatement("DELETE FROM nodes WHERE content_hash = ?")) {
+                stmt.setString(1, contentHash);
+                stmt.execute();
+            }
+            try (var stmt = conn.prepareStatement("DELETE FROM edges WHERE content_hash = ?")) {
+                stmt.setString(1, contentHash);
+                stmt.execute();
+            }
+            try (var stmt = conn.prepareStatement("DELETE FROM files WHERE content_hash = ?")) {
+                stmt.setString(1, contentHash);
+                stmt.execute();
+            }
+            conn.commit();
+        } catch (SQLException e) {
+            try {
+                conn.rollback();
+            } catch (SQLException ignored) {
+            }
+            log.warn("Failed to remove cached file {}", contentHash, e);
+        } finally {
+            try {
+                conn.setAutoCommit(true);
+            } catch (SQLException ignored) {
+            }
+        }
+    }
+
+    // --- Run tracking ---
+
+    /**
+     * Record an analysis run with its commit SHA and file count.
+     */
+    public void recordRun(String commitSha, int fileCount) {
+        try (var stmt = conn.prepareStatement(
+                "INSERT INTO analysis_runs (run_id, commit_sha, timestamp, file_count) VALUES (?, ?, ?, ?)")) {
+            stmt.setString(1, UUID.randomUUID().toString());
+            stmt.setString(2, commitSha);
+            stmt.setString(3, Instant.now().toString());
+            stmt.setInt(4, fileCount);
+            stmt.execute();
+        } catch (SQLException e) {
+            log.warn("Failed to record analysis run", e);
+        }
+    }
+
+    // --- Statistics ---
+
+    /**
+     * Return cache statistics.
+     */
+    public Map<String, Object> getStats() {
+        Map<String, Object> stats = new LinkedHashMap<>();
+        try {
+            stats.put("cached_files", countTable("files"));
+            stats.put("cached_nodes", countTable("nodes"));
+            stats.put("cached_edges", countTable("edges"));
+            stats.put("total_runs", countTable("analysis_runs"));
+            stats.put("db_path", dbPath.toString());
+        } catch (SQLException e) {
+            stats.put("error", e.getMessage());
+        }
+        return stats;
+    }
+
+    /**
+     * Clear all cached data.
+     */
+    public void clear() {
+        try (var stmt = conn.createStatement()) {
+            stmt.execute("DELETE FROM edges");
+            stmt.execute("DELETE FROM nodes");
+            stmt.execute("DELETE FROM files");
+            stmt.execute("DELETE FROM analysis_runs");
+        } catch (SQLException e) {
+            log.warn("Failed to clear cache", e);
+        }
+    }
+
+    @Override
+    public void close() {
+        try {
+            if (conn != null && !conn.isClosed()) {
+                conn.close();
+            }
+        } catch (SQLException e) {
+            log.debug("Failed to close cache connection", e);
+        }
+    }
+
+    // --- Serialization helpers ---
+
+    private String serializeNode(CodeNode node) {
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("id", node.getId());
+        data.put("kind", node.getKind().getValue());
+        data.put("label", node.getLabel());
+        if (node.getFqn() != null) data.put("fqn", node.getFqn());
+        if (node.getModule() != null) data.put("module", node.getModule());
+        if (node.getFilePath() != null) data.put("file_path", node.getFilePath());
+        if (node.getLineStart() != null) data.put("line_start", node.getLineStart());
+        if (node.getLineEnd() != null) data.put("line_end", node.getLineEnd());
+        if (node.getLayer() != null) data.put("layer", node.getLayer());
+        if (node.getAnnotations() != null && !node.getAnnotations().isEmpty()) {
+            data.put("annotations", node.getAnnotations());
+        }
+        if (node.getProperties() != null && !node.getProperties().isEmpty()) {
+            data.put("properties", node.getProperties());
+        }
+        try {
+            return MAPPER.writeValueAsString(data);
+        } catch (JsonProcessingException e) {
+            return "{}";
+        }
+    }
+
+    private CodeNode deserializeNode(String json) {
+        try {
+            Map<String, Object> data = MAPPER.readValue(json, new TypeReference<>() {});
+            CodeNode node = new CodeNode();
+            node.setId((String) data.get("id"));
+            node.setKind(NodeKind.fromValue((String) data.get("kind")));
+            node.setLabel((String) data.get("label"));
+            node.setFqn((String) data.get("fqn"));
+            node.setModule((String) data.get("module"));
+            node.setFilePath((String) data.get("file_path"));
+            if (data.get("line_start") instanceof Number n) node.setLineStart(n.intValue());
+            if (data.get("line_end") instanceof Number n) node.setLineEnd(n.intValue());
+            node.setLayer((String) data.get("layer"));
+            if (data.get("annotations") instanceof List<?> list) {
+                node.setAnnotations(list.stream().map(Object::toString).toList());
+            }
+            if (data.get("properties") instanceof Map<?, ?> map) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> props = (Map<String, Object>) map;
+                node.setProperties(new LinkedHashMap<>(props));
+            }
+            return node;
+        } catch (Exception e) {
+            log.debug("Failed to deserialize node: {}", json, e);
+            return new CodeNode("unknown", NodeKind.CLASS, "unknown");
+        }
+    }
+
+    private String serializeEdge(CodeEdge edge) {
+        Map<String, Object> data = new LinkedHashMap<>();
+        data.put("id", edge.getId());
+        data.put("kind", edge.getKind().getValue());
+        data.put("source_id", edge.getSourceId());
+        if (edge.getTarget() != null) {
+            data.put("target_id", edge.getTarget().getId());
+        }
+        if (edge.getProperties() != null && !edge.getProperties().isEmpty()) {
+            data.put("properties", edge.getProperties());
+        }
+        try {
+            return MAPPER.writeValueAsString(data);
+        } catch (JsonProcessingException e) {
+            return "{}";
+        }
+    }
+
+    private CodeEdge deserializeEdge(String json) {
+        try {
+            Map<String, Object> data = MAPPER.readValue(json, new TypeReference<>() {});
+            String id = (String) data.get("id");
+            String kindStr = (String) data.get("kind");
+            String sourceId = (String) data.get("source_id");
+            String targetId = (String) data.get("target_id");
+
+            // Create a placeholder target node
+            CodeNode target = null;
+            if (targetId != null) {
+                target = new CodeNode(targetId, NodeKind.CLASS, targetId);
+            }
+
+            CodeEdge edge = new CodeEdge(id, EdgeKind.fromValue(kindStr), sourceId, target);
+            if (data.get("properties") instanceof Map<?, ?> map) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> props = (Map<String, Object>) map;
+                edge.setProperties(new LinkedHashMap<>(props));
+            }
+            return edge;
+        } catch (Exception e) {
+            log.debug("Failed to deserialize edge: {}", json, e);
+            return new CodeEdge("unknown", EdgeKind.CALLS, "unknown", null);
+        }
+    }
+
+    private long countTable(String table) throws SQLException {
+        try (var stmt = conn.createStatement()) {
+            ResultSet rs = stmt.executeQuery("SELECT COUNT(*) FROM " + table);
+            rs.next();
+            return rs.getLong(1);
+        }
+    }
+
+    /**
+     * Cached nodes and edges for a single file.
+     */
+    public record CachedResult(List<CodeNode> nodes, List<CodeEdge> edges) {}
+}

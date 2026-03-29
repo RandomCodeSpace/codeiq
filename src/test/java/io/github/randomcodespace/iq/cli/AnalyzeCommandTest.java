@@ -19,6 +19,7 @@ import java.util.function.Consumer;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.verify;
@@ -53,7 +54,7 @@ class AnalyzeCommandTest {
                 Map.of("calls", 50, "contains", 35),
                 Duration.ofMillis(1234)
         );
-        when(analyzer.run(any(Path.class), any(), any(Consumer.class))).thenReturn(result);
+        when(analyzer.run(any(Path.class), any(), anyBoolean(), any(Consumer.class))).thenReturn(result);
 
         var cmd = new AnalyzeCommand(analyzer, config);
 
@@ -81,14 +82,14 @@ class AnalyzeCommandTest {
                 Map.of("calls", 15),
                 Duration.ofMillis(500)
         );
-        when(analyzer.run(any(Path.class), any(), any(Consumer.class))).thenReturn(result);
+        when(analyzer.run(any(Path.class), any(), anyBoolean(), any(Consumer.class))).thenReturn(result);
 
         var cmd = new AnalyzeCommand(analyzer, config);
         var cmdLine = new picocli.CommandLine(cmd);
         int exitCode = cmdLine.execute(tempDir.toString(), "--parallelism", "4");
 
         assertEquals(0, exitCode);
-        verify(analyzer).run(any(Path.class), eq(4), any(Consumer.class));
+        verify(analyzer).run(any(Path.class), eq(4), eq(true), any(Consumer.class));
     }
 
     @Test
@@ -104,14 +105,14 @@ class AnalyzeCommandTest {
                 Map.of("calls", 15),
                 Duration.ofMillis(500)
         );
-        when(analyzer.run(any(Path.class), any(), any(Consumer.class))).thenReturn(result);
+        when(analyzer.run(any(Path.class), any(), anyBoolean(), any(Consumer.class))).thenReturn(result);
 
         var cmd = new AnalyzeCommand(analyzer, config);
         var cmdLine = new picocli.CommandLine(cmd);
         int exitCode = cmdLine.execute(tempDir.toString());
 
         assertEquals(0, exitCode);
-        verify(analyzer).run(any(Path.class), eq(null), any(Consumer.class));
+        verify(analyzer).run(any(Path.class), eq(null), eq(true), any(Consumer.class));
     }
 
     @Test
@@ -124,12 +125,35 @@ class AnalyzeCommandTest {
                 0, 0, 0, 0,
                 Map.of(), Map.of(), Map.of(), Duration.ZERO
         );
-        when(analyzer.run(any(Path.class), any(), any(Consumer.class))).thenReturn(result);
+        when(analyzer.run(any(Path.class), any(), anyBoolean(), any(Consumer.class))).thenReturn(result);
 
         var cmd = new AnalyzeCommand(analyzer, config);
         var cmdLine = new picocli.CommandLine(cmd);
         cmdLine.execute(tempDir.toString());
 
-        verify(analyzer).run(eq(tempDir.toAbsolutePath().normalize()), eq(null), any(Consumer.class));
+        verify(analyzer).run(eq(tempDir.toAbsolutePath().normalize()), eq(null), eq(true), any(Consumer.class));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
+    void analyzeWithNoCacheDisablesIncremental(@TempDir Path tempDir) {
+        var analyzer = mock(Analyzer.class);
+        var config = new CodeIqConfig();
+
+        var result = new AnalysisResult(
+                5, 5, 10, 5,
+                Map.of("java", 5),
+                Map.of("class", 10),
+                Map.of("calls", 5),
+                Duration.ofMillis(200)
+        );
+        when(analyzer.run(any(Path.class), any(), anyBoolean(), any(Consumer.class))).thenReturn(result);
+
+        var cmd = new AnalyzeCommand(analyzer, config);
+        var cmdLine = new picocli.CommandLine(cmd);
+        int exitCode = cmdLine.execute(tempDir.toString(), "--no-cache");
+
+        assertEquals(0, exitCode);
+        verify(analyzer).run(any(Path.class), eq(null), eq(false), any(Consumer.class));
     }
 }

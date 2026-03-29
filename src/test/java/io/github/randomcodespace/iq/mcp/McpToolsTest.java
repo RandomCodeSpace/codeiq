@@ -5,6 +5,11 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.randomcodespace.iq.analyzer.AnalysisResult;
 import io.github.randomcodespace.iq.analyzer.Analyzer;
 import io.github.randomcodespace.iq.config.CodeIqConfig;
+import io.github.randomcodespace.iq.flow.FlowEngine;
+import io.github.randomcodespace.iq.flow.FlowModels.FlowDiagram;
+import io.github.randomcodespace.iq.flow.FlowModels.FlowEdge;
+import io.github.randomcodespace.iq.flow.FlowModels.FlowNode;
+import io.github.randomcodespace.iq.flow.FlowModels.FlowSubgraph;
 import io.github.randomcodespace.iq.query.QueryService;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -12,6 +17,9 @@ import org.junit.jupiter.api.extension.ExtendWith;
 import org.junit.jupiter.api.io.TempDir;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.graphdb.Result;
+import org.neo4j.graphdb.Transaction;
 
 import java.io.IOException;
 import java.nio.file.Files;
@@ -23,10 +31,8 @@ import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyInt;
-import static org.mockito.ArgumentMatchers.eq;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class McpToolsTest {
@@ -37,6 +43,12 @@ class McpToolsTest {
     @Mock
     private Analyzer analyzer;
 
+    @Mock
+    private FlowEngine flowEngine;
+
+    @Mock
+    private GraphDatabaseService graphDb;
+
     private CodeIqConfig config;
     private ObjectMapper objectMapper;
     private McpTools mcpTools;
@@ -46,7 +58,7 @@ class McpToolsTest {
         config = new CodeIqConfig();
         config.setRootPath(".");
         objectMapper = new ObjectMapper();
-        mcpTools = new McpTools(queryService, analyzer, config, objectMapper);
+        mcpTools = new McpTools(queryService, analyzer, config, objectMapper, flowEngine, graphDb);
     }
 
     private Map<String, Object> parseJson(String json) throws IOException {
@@ -277,22 +289,47 @@ class McpToolsTest {
     // --- generate_flow ---
 
     @Test
-    void generateFlowShouldReturnPlaceholder() throws IOException {
-        String result = mcpTools.generateFlow("overview", "json");
-        Map<String, Object> parsed = parseJson(result);
+    void generateFlowShouldCallFlowEngine() throws IOException {
+        FlowDiagram diagram = new FlowDiagram(
+                "overview", "Overview", "TB",
+                List.of(new FlowSubgraph("sg1", "SG1", List.of(), null)),
+                List.of(), List.of(), Map.of()
+        );
+        when(flowEngine.generate("overview")).thenReturn(diagram);
+        when(flowEngine.render(diagram, "json")).thenReturn("{\"title\":\"Overview\"}");
 
-        assertEquals("overview", parsed.get("view"));
-        assertEquals("json", parsed.get("format"));
-        assertEquals("not_implemented", parsed.get("status"));
+        String result = mcpTools.generateFlow("overview", "json");
+
+        assertEquals("{\"title\":\"Overview\"}", result);
+        verify(flowEngine).generate("overview");
+        verify(flowEngine).render(diagram, "json");
     }
 
     @Test
     void generateFlowShouldDefaultViewAndFormat() throws IOException {
-        String result = mcpTools.generateFlow(null, null);
+        FlowDiagram diagram = new FlowDiagram(
+                "overview", "Overview", "TB",
+                List.of(), List.of(), List.of(), Map.of()
+        );
+        when(flowEngine.generate("overview")).thenReturn(diagram);
+        when(flowEngine.render(diagram, "json")).thenReturn("{}");
+
+        mcpTools.generateFlow(null, null);
+
+        verify(flowEngine).generate("overview");
+        verify(flowEngine).render(diagram, "json");
+    }
+
+    @Test
+    void generateFlowShouldHandleInvalidView() throws IOException {
+        when(flowEngine.generate("nonexistent"))
+                .thenThrow(new IllegalArgumentException("Unknown view: nonexistent"));
+
+        String result = mcpTools.generateFlow("nonexistent", "json");
         Map<String, Object> parsed = parseJson(result);
 
-        assertEquals("overview", parsed.get("view"));
-        assertEquals("json", parsed.get("format"));
+        assertNotNull(parsed.get("error"));
+        assertTrue(parsed.get("error").toString().contains("Unknown view"));
     }
 
     // --- analyze_codebase ---
@@ -324,11 +361,36 @@ class McpToolsTest {
     // --- run_cypher ---
 
     @Test
-    void runCypherShouldReturnNotImplemented() throws IOException {
-        String result = mcpTools.runCypher("MATCH (n) RETURN n");
+    void runCypherShouldExecuteQuery() throws IOException {
+        Transaction tx = mock(Transaction.class);
+        Result queryResult = mock(Result.class);
+
+        when(graphDb.beginTx()).thenReturn(tx);
+        when(tx.execute("MATCH (n) RETURN count(n) as cnt")).thenReturn(queryResult);
+        when(queryResult.columns()).thenReturn(List.of("cnt"));
+        when(queryResult.hasNext()).thenReturn(true, false);
+        when(queryResult.next()).thenReturn(Map.of("cnt", 42L));
+
+        String result = mcpTools.runCypher("MATCH (n) RETURN count(n) as cnt");
         Map<String, Object> parsed = parseJson(result);
 
-        assertEquals("not_implemented", parsed.get("status"));
+        assertEquals(1, parsed.get("count"));
+        @SuppressWarnings("unchecked")
+        List<Map<String, Object>> rows = (List<Map<String, Object>>) parsed.get("rows");
+        assertEquals(42, rows.getFirst().get("cnt"));
+        verify(tx).commit();
+    }
+
+    @Test
+    void runCypherShouldHandleError() throws IOException {
+        Transaction tx = mock(Transaction.class);
+        when(graphDb.beginTx()).thenReturn(tx);
+        when(tx.execute(anyString())).thenThrow(new RuntimeException("Syntax error"));
+
+        String result = mcpTools.runCypher("INVALID CYPHER");
+        Map<String, Object> parsed = parseJson(result);
+
+        assertNotNull(parsed.get("error"));
     }
 
     // --- find_component_by_file ---

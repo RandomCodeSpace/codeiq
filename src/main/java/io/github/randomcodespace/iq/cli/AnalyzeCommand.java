@@ -26,8 +26,12 @@ public class AnalyzeCommand implements Callable<Integer> {
     @Parameters(index = "0", defaultValue = ".", description = "Path to codebase root")
     private Path path;
 
-    @Option(names = {"--no-cache"}, description = "Skip incremental cache")
+    @Option(names = {"--no-cache"}, description = "Skip incremental cache (full re-analysis)")
     private boolean noCache;
+
+    @Option(names = {"--incremental"}, defaultValue = "true", negatable = true,
+            description = "Use incremental analysis (default: true)")
+    private boolean incremental;
 
     @Option(names = {"--parallelism", "-p"},
             description = "Max parallel threads (default: auto-detect from CPU)")
@@ -51,9 +55,15 @@ public class AnalyzeCommand implements Callable<Integer> {
         NumberFormat nf = NumberFormat.getIntegerInstance(Locale.US);
         int cores = parallelism != null ? parallelism : Runtime.getRuntime().availableProcessors();
 
-        CliOutput.step("\uD83D\uDD0D", "Scanning " + root + " ...");
+        // --no-cache overrides --incremental
+        boolean useIncremental = incremental && !noCache;
 
-        AnalysisResult result = analyzer.run(root, parallelism, msg -> {
+        CliOutput.step("\uD83D\uDD0D", "Scanning " + root + " ...");
+        if (useIncremental) {
+            CliOutput.info("  (incremental mode — use --no-cache for full re-analysis)");
+        }
+
+        AnalysisResult result = analyzer.run(root, parallelism, useIncremental, msg -> {
             if (msg.startsWith("Discovering")) {
                 CliOutput.step("\uD83D\uDD0D", msg);
             } else if (msg.startsWith("Found")) {
@@ -66,6 +76,10 @@ public class AnalyzeCommand implements Callable<Integer> {
                 CliOutput.step("\uD83D\uDD17", msg);
             } else if (msg.startsWith("Classifying")) {
                 CliOutput.step("\uD83C\uDFF7\uFE0F", msg);
+            } else if (msg.startsWith("Cache hits")) {
+                CliOutput.step("\u26A1", "@|green " + msg + "|@");
+            } else if (msg.startsWith("Incremental")) {
+                CliOutput.step("\u26A1", msg);
             } else if (msg.startsWith("Analysis complete")) {
                 // handled below
             } else {

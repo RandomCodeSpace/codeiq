@@ -5,13 +5,18 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.randomcodespace.iq.analyzer.AnalysisResult;
 import io.github.randomcodespace.iq.analyzer.Analyzer;
 import io.github.randomcodespace.iq.config.CodeIqConfig;
+import io.github.randomcodespace.iq.flow.FlowEngine;
+import io.github.randomcodespace.iq.flow.FlowModels.FlowDiagram;
 import io.github.randomcodespace.iq.query.QueryService;
+import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.graphdb.Result;
 import org.springframework.ai.tool.annotation.Tool;
 import org.springframework.ai.tool.annotation.ToolParam;
 import org.springframework.context.annotation.Profile;
 import org.springframework.stereotype.Component;
 
 import java.nio.file.Path;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -28,13 +33,18 @@ public class McpTools {
     private final Analyzer analyzer;
     private final CodeIqConfig config;
     private final ObjectMapper objectMapper;
+    private final FlowEngine flowEngine;
+    private final GraphDatabaseService graphDb;
 
     public McpTools(QueryService queryService, Analyzer analyzer,
-                    CodeIqConfig config, ObjectMapper objectMapper) {
+                    CodeIqConfig config, ObjectMapper objectMapper,
+                    FlowEngine flowEngine, GraphDatabaseService graphDb) {
         this.queryService = queryService;
         this.analyzer = analyzer;
         this.config = config;
         this.objectMapper = objectMapper;
+        this.flowEngine = flowEngine;
+        this.graphDb = graphDb;
     }
 
     @Tool(name = "get_stats", description = "Get project graph statistics - node counts, edge counts, backend info.")
@@ -121,13 +131,17 @@ public class McpTools {
     public String generateFlow(
             @ToolParam(description = "View name", required = false) String view,
             @ToolParam(description = "Output format", required = false) String format) {
-        // Flow generation is not yet ported to Java - return placeholder
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("view", view != null ? view : "overview");
-        result.put("format", format != null ? format : "json");
-        result.put("status", "not_implemented");
-        result.put("message", "Flow generation is planned for Phase 4");
-        return toJson(result);
+        String viewName = view != null ? view : "overview";
+        String fmt = format != null ? format : "json";
+        try {
+            FlowDiagram diagram = flowEngine.generate(viewName);
+            String rendered = flowEngine.render(diagram, fmt);
+            return rendered;
+        } catch (IllegalArgumentException e) {
+            Map<String, Object> error = new LinkedHashMap<>();
+            error.put("error", e.getMessage());
+            return toJson(error);
+        }
     }
 
     @Tool(name = "analyze_codebase", description = "Trigger codebase analysis. Scans files, runs detectors, builds the code graph.")
@@ -151,11 +165,29 @@ public class McpTools {
     @Tool(name = "run_cypher", description = "Execute a raw Cypher query against the Neo4j graph database.")
     public String runCypher(
             @ToolParam(description = "Cypher query string") String query) {
-        // Direct Cypher execution is not exposed through QueryService yet
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("status", "not_implemented");
-        result.put("message", "Raw Cypher execution planned for future release");
-        return toJson(result);
+        try {
+            List<Map<String, Object>> rows = new ArrayList<>();
+            try (var tx = graphDb.beginTx();
+                 Result result = tx.execute(query)) {
+                List<String> columns = result.columns();
+                while (result.hasNext()) {
+                    Map<String, Object> row = result.next();
+                    Map<String, Object> serializable = new LinkedHashMap<>();
+                    for (String col : columns) {
+                        Object val = row.get(col);
+                        serializable.put(col, toSerializable(val));
+                    }
+                    rows.add(serializable);
+                }
+                tx.commit();
+            }
+            Map<String, Object> response = new LinkedHashMap<>();
+            response.put("rows", rows);
+            response.put("count", rows.size());
+            return toJson(response);
+        } catch (Exception e) {
+            return toJson(Map.of("error", e.getMessage()));
+        }
     }
 
     // --- Agentic triage tools ---
@@ -206,6 +238,48 @@ public class McpTools {
         } catch (Exception e) {
             return "Error: " + e.getMessage();
         }
+    }
+
+    /**
+     * Convert Neo4j node/relationship values to JSON-serializable types.
+     */
+    private Object toSerializable(Object val) {
+        if (val == null) return null;
+        if (val instanceof org.neo4j.graphdb.Node node) {
+            Map<String, Object> map = new LinkedHashMap<>();
+            map.put("_id", node.getElementId());
+            map.put("_labels", node.getLabels().spliterator().estimateSize());
+            for (String key : node.getPropertyKeys()) {
+                map.put(key, node.getProperty(key));
+            }
+            return map;
+        }
+        if (val instanceof org.neo4j.graphdb.Relationship rel) {
+            Map<String, Object> map = new LinkedHashMap<>();
+            map.put("_id", rel.getElementId());
+            map.put("_type", rel.getType().name());
+            map.put("_start", rel.getStartNode().getElementId());
+            map.put("_end", rel.getEndNode().getElementId());
+            for (String key : rel.getPropertyKeys()) {
+                map.put(key, rel.getProperty(key));
+            }
+            return map;
+        }
+        if (val instanceof org.neo4j.graphdb.Path path) {
+            List<Object> nodes = new ArrayList<>();
+            for (var node : path.nodes()) {
+                nodes.add(toSerializable(node));
+            }
+            return Map.of("nodes", nodes, "length", path.length());
+        }
+        if (val instanceof Iterable<?> iter) {
+            List<Object> list = new ArrayList<>();
+            for (var item : iter) {
+                list.add(toSerializable(item));
+            }
+            return list;
+        }
+        return val;
     }
 
     private String toJson(Object obj) {
