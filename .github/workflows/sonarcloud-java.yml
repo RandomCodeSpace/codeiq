@@ -18,11 +18,13 @@ jobs:
           distribution: 'temurin'
           java-version: '25'
           cache: 'maven'
-      - name: Build and analyze
+      - name: Build and generate coverage
+        run: mvn clean verify -B
+      - name: SonarCloud analysis
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: >
-          mvn clean verify sonar:sonar -B
+          mvn sonar:sonar -B
           -Dsonar.projectKey=RandomCodeSpace_code-iq-java
           -Dsonar.organization=randomcodespace
           -Dsonar.host.url=https://sonarcloud.io
