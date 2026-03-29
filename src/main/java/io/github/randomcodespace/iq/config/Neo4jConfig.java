@@ -1,19 +1,38 @@
 package io.github.randomcodespace.iq.config;
 
-import org.neo4j.driver.Driver;
-import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
+import org.neo4j.dbms.api.DatabaseManagementService;
+import org.neo4j.dbms.api.DatabaseManagementServiceBuilder;
+import org.neo4j.graphdb.GraphDatabaseService;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.autoconfigure.condition.ConditionalOnProperty;
+import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.data.neo4j.repository.config.EnableNeo4jRepositories;
 
+import java.nio.file.Path;
+
 /**
- * Neo4j configuration.
+ * Neo4j Embedded configuration.
  *
- * Spring Data Neo4j auto-configuration handles driver setup via application.yml.
- * This class enables repository scanning only when a Neo4j Driver bean is available,
- * allowing the application context to start without Neo4j for testing.
+ * Configures a file-based Neo4j embedded instance using {@link DatabaseManagementService}.
+ * No Bolt driver is needed — the database runs in-process.
+ *
+ * Disabled when {@code codeiq.neo4j.enabled} is explicitly set to {@code false}
+ * (e.g. in tests that do not need an embedded database).
  */
 @Configuration
-@ConditionalOnBean(Driver.class)
+@ConditionalOnProperty(name = "codeiq.neo4j.enabled", havingValue = "true", matchIfMissing = true)
 @EnableNeo4jRepositories(basePackages = "io.github.randomcodespace.iq.graph")
 public class Neo4jConfig {
+
+    @Bean(destroyMethod = "shutdown")
+    DatabaseManagementService databaseManagementService(
+            @Value("${codeiq.graph.path:.osscodeiq/graph.db}") String dbPath) {
+        return new DatabaseManagementServiceBuilder(Path.of(dbPath)).build();
+    }
+
+    @Bean
+    GraphDatabaseService graphDatabaseService(DatabaseManagementService dbms) {
+        return dbms.database("neo4j");
+    }
 }

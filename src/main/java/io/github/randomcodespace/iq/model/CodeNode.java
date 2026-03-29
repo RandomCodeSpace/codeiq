@@ -1,7 +1,11 @@
 package io.github.randomcodespace.iq.model;
 
+import io.github.randomcodespace.iq.config.MapToJsonConverter;
+import org.springframework.data.neo4j.core.convert.ConvertWith;
 import org.springframework.data.neo4j.core.schema.Id;
 import org.springframework.data.neo4j.core.schema.Node;
+import org.springframework.data.neo4j.core.schema.Relationship;
+import org.springframework.data.neo4j.core.schema.Relationship.Direction;
 
 import java.util.ArrayList;
 import java.util.HashMap;
@@ -38,7 +42,11 @@ public class CodeNode {
 
     private List<String> annotations = new ArrayList<>();
 
+    @ConvertWith(converter = MapToJsonConverter.class)
     private Map<String, Object> properties = new HashMap<>();
+
+    @Relationship(type = "RELATES_TO", direction = Direction.OUTGOING)
+    private List<CodeEdge> edges = new ArrayList<>();
 
     public CodeNode() {
     }
@@ -137,6 +145,14 @@ public class CodeNode {
 
     public void setProperties(Map<String, Object> properties) {
         this.properties = properties;
+    }
+
+    public List<CodeEdge> getEdges() {
+        return edges;
+    }
+
+    public void setEdges(List<CodeEdge> edges) {
+        this.edges = edges;
     }
 
     @Override

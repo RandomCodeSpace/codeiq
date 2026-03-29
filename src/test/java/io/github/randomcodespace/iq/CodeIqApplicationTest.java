@@ -7,13 +7,13 @@ import org.springframework.test.context.ActiveProfiles;
 /**
  * Verifies that the Spring application context starts without errors.
  *
- * Neo4j-related beans are excluded via test properties since no Neo4j instance
- * is available during unit tests. The Neo4jConfig class uses conditional
- * annotations to avoid loading repository infrastructure without a driver.
+ * Neo4j embedded and related auto-configuration are disabled via properties
+ * since no Neo4j instance is available during unit tests.
  */
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.MOCK,
         properties = {
+                "codeiq.neo4j.enabled=false",
                 "spring.autoconfigure.exclude=" +
                         "org.springframework.boot.neo4j.autoconfigure.Neo4jAutoConfiguration," +
                         "org.springframework.boot.data.neo4j.autoconfigure.DataNeo4jAutoConfiguration," +

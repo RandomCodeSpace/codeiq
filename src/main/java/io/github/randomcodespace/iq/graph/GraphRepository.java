@@ -25,6 +25,12 @@ public interface GraphRepository extends Neo4jRepository<CodeNode, String> {
     @Query("MATCH (n:CodeNode) WHERE n.label CONTAINS $text OR n.fqn CONTAINS $text RETURN n")
     List<CodeNode> search(String text);
 
-    @Query("MATCH (n:CodeNode)-[r]->(m:CodeNode) WHERE n.id = $nodeId RETURN m")
+    @Query("MATCH (n:CodeNode)-[r]-(m:CodeNode) WHERE n.id = $nodeId RETURN m")
     List<CodeNode> findNeighbors(String nodeId);
+
+    @Query("MATCH (n:CodeNode)-[r]->(m:CodeNode) WHERE n.id = $nodeId RETURN m")
+    List<CodeNode> findOutgoingNeighbors(String nodeId);
+
+    @Query("MATCH (n:CodeNode)<-[r]-(m:CodeNode) WHERE n.id = $nodeId RETURN m")
+    List<CodeNode> findIncomingNeighbors(String nodeId);
 }

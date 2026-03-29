@@ -6,11 +6,8 @@ spring:
   threads:
     virtual:
       enabled: true
-  neo4j:
-    uri: bolt://localhost:7687
-    authentication:
-      username: neo4j
-      password: password
+  # Neo4j runs in embedded mode — no Bolt URI needed.
+  # See Neo4jConfig.java and codeiq.graph.path below.
 
 server:
   port: 8080
@@ -24,8 +21,15 @@ management:
 codeiq:
   root-path: "."
   cache-dir: ".code-intelligence"
+  graph:
+    path: ".osscodeiq/graph.db"
   max-depth: 10
   max-radius: 10
+
+spring.ai.mcp.server:
+  name: code-iq
+  version: 0.1.0
+  protocol: STATELESS
 
 ---
 spring:

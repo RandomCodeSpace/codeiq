@@ -1,5 +1,7 @@
 package io.github.randomcodespace.iq.model;
 
+import io.github.randomcodespace.iq.config.MapToJsonConverter;
+import org.springframework.data.neo4j.core.convert.ConvertWith;
 import org.springframework.data.neo4j.core.schema.GeneratedValue;
 import org.springframework.data.neo4j.core.schema.Id;
 import org.springframework.data.neo4j.core.schema.RelationshipProperties;
@@ -28,6 +30,7 @@ public class CodeEdge {
     @TargetNode
     private CodeNode target;
 
+    @ConvertWith(converter = MapToJsonConverter.class)
     private Map<String, Object> properties = new HashMap<>();
 
     public CodeEdge() {

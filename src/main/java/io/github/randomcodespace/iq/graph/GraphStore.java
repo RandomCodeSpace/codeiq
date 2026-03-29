@@ -63,6 +63,14 @@ public class GraphStore {
         return repository.findNeighbors(nodeId);
     }
 
+    public List<CodeNode> findOutgoingNeighbors(String nodeId) {
+        return repository.findOutgoingNeighbors(nodeId);
+    }
+
+    public List<CodeNode> findIncomingNeighbors(String nodeId) {
+        return repository.findIncomingNeighbors(nodeId);
+    }
+
     public long count() {
         return repository.count();
     }
