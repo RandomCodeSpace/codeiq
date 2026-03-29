@@ -27,8 +27,8 @@ jobs:
         run: mvn versions:set -DnewVersion="$RELEASE_VERSION"
       - name: Deploy to Maven Central
         env:
-          MAVEN_USERNAME: ${{ secrets.OSSRH_USERNAME }}
-          MAVEN_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
+          MAVEN_USERNAME: ${{ secrets.OSS_NEXUS_USER }}
+          MAVEN_PASSWORD: ${{ secrets.OSS_NEXUS_PASS }}
           MAVEN_GPG_PASSPHRASE: ${{ secrets.MAVEN_GPG_PASSPHRASE }}
         run: mvn clean deploy -P release -B
       - name: Tag release
