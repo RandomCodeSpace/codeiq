@@ -59,6 +59,10 @@ public class GraphStore {
         return repository.search(text);
     }
 
+    public List<CodeNode> search(String text, int limit) {
+        return repository.search(text, limit);
+    }
+
     public List<CodeNode> findNeighbors(String nodeId) {
         return repository.findNeighbors(nodeId);
     }
@@ -81,5 +85,55 @@ public class GraphStore {
 
     public void deleteById(String id) {
         repository.deleteById(id);
+    }
+
+    // --- Graph traversal queries ---
+
+    public List<String> findShortestPath(String source, String target) {
+        return repository.findShortestPath(source, target);
+    }
+
+    public List<CodeNode> findEgoGraph(String center, int radius) {
+        return repository.findEgoGraph(center, radius);
+    }
+
+    public List<CodeNode> traceImpact(String nodeId, int depth) {
+        return repository.traceImpact(nodeId, depth);
+    }
+
+    public List<List<String>> findCycles(int limit) {
+        return repository.findCycles(limit);
+    }
+
+    public List<CodeNode> findConsumers(String targetId) {
+        return repository.findConsumers(targetId);
+    }
+
+    public List<CodeNode> findProducers(String targetId) {
+        return repository.findProducers(targetId);
+    }
+
+    public List<CodeNode> findCallers(String targetId) {
+        return repository.findCallers(targetId);
+    }
+
+    public List<CodeNode> findDependencies(String moduleId) {
+        return repository.findDependencies(moduleId);
+    }
+
+    public List<CodeNode> findDependents(String moduleId) {
+        return repository.findDependents(moduleId);
+    }
+
+    public List<CodeNode> findByKindPaginated(String kind, int offset, int limit) {
+        return repository.findByKindPaginated(kind, offset, limit);
+    }
+
+    public List<CodeNode> findAllPaginated(int offset, int limit) {
+        return repository.findAllPaginated(offset, limit);
+    }
+
+    public long countByKind(String kind) {
+        return repository.countByKind(kind);
     }
 }

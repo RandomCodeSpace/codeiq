@@ -12,13 +12,17 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 
 /**
- * Hazelcast cache configuration, active only on the "serving" profile.
+ * Hazelcast cache configuration with two profiles:
+ * <ul>
+ *   <li><b>serving</b> (default/local): Standalone Hazelcast instance, no network discovery</li>
+ *   <li><b>k8s</b>: Kubernetes service-based discovery for clustered deployments</li>
+ * </ul>
  *
- * Configures near-cache for hot data and optionally enables Kubernetes pod
- * discovery when {@code codeiq.hazelcast.k8s-discovery} is set to {@code true}.
+ * Both modes support the same cache maps: graph-stats, kinds-list, kind-nodes,
+ * node-detail, search-results, impact-trace.
  */
 @Configuration
-@Profile("serving")
+@Profile({"serving", "k8s"})
 public class HazelcastConfig {
 
     @Value("${codeiq.hazelcast.k8s-discovery:false}")
@@ -33,7 +37,14 @@ public class HazelcastConfig {
         config.setInstanceName("code-iq-cache");
         config.setClusterName("code-iq");
 
-        // Near-cache for hot graph data — reduces latency for repeated reads
+        // --- Local profile: disable multicast for standalone mode ---
+        if (!k8sDiscovery) {
+            var joinConfig = config.getNetworkConfig().getJoin();
+            joinConfig.getMulticastConfig().setEnabled(false);
+            joinConfig.getTcpIpConfig().setEnabled(false);
+        }
+
+        // --- Near-cache for hot graph data ---
         var nearCacheConfig = new NearCacheConfig()
                 .setName("graph-nodes")
                 .setTimeToLiveSeconds(300)
@@ -45,40 +56,64 @@ public class HazelcastConfig {
                                 .setEvictionPolicy(EvictionPolicy.LRU)
                 );
 
-        // Map config for graph node cache
-        var graphNodeMapConfig = new MapConfig("graph-nodes")
-                .setTimeToLiveSeconds(600)
+        // --- Cache map configs ---
+
+        // graph-stats: infrequently updated, long TTL
+        config.addMapConfig(new MapConfig("graph-stats")
+                .setTimeToLiveSeconds(600));
+
+        // kinds-list: infrequently updated, long TTL
+        config.addMapConfig(new MapConfig("kinds-list")
+                .setTimeToLiveSeconds(600));
+
+        // kind-nodes: paginated results, medium TTL
+        config.addMapConfig(new MapConfig("kind-nodes")
+                .setTimeToLiveSeconds(300)
+                .setEvictionConfig(
+                        new EvictionConfig()
+                                .setMaxSizePolicy(MaxSizePolicy.ENTRY_COUNT)
+                                .setSize(5_000)
+                                .setEvictionPolicy(EvictionPolicy.LRU)
+                ));
+
+        // node-detail: per-node detail with edges, near-cached
+        config.addMapConfig(new MapConfig("node-detail")
+                .setTimeToLiveSeconds(300)
                 .setEvictionConfig(
                         new EvictionConfig()
                                 .setMaxSizePolicy(MaxSizePolicy.FREE_HEAP_PERCENTAGE)
                                 .setSize(25)
                                 .setEvictionPolicy(EvictionPolicy.LRU)
                 )
-                .setNearCacheConfig(nearCacheConfig);
+                .setNearCacheConfig(nearCacheConfig));
 
-        config.addMapConfig(graphNodeMapConfig);
-
-        // Map config for search results
-        var searchMapConfig = new MapConfig("search-results")
+        // search-results: short TTL, bounded size
+        config.addMapConfig(new MapConfig("search-results")
                 .setTimeToLiveSeconds(120)
                 .setEvictionConfig(
                         new EvictionConfig()
                                 .setMaxSizePolicy(MaxSizePolicy.ENTRY_COUNT)
                                 .setSize(1_000)
                                 .setEvictionPolicy(EvictionPolicy.LRU)
-                );
+                ));
 
-        config.addMapConfig(searchMapConfig);
+        // impact-trace: graph traversal results, medium TTL
+        config.addMapConfig(new MapConfig("impact-trace")
+                .setTimeToLiveSeconds(300)
+                .setEvictionConfig(
+                        new EvictionConfig()
+                                .setMaxSizePolicy(MaxSizePolicy.ENTRY_COUNT)
+                                .setSize(2_000)
+                                .setEvictionPolicy(EvictionPolicy.LRU)
+                ));
 
-        // K8s pod discovery — when running in Kubernetes, use DNS-based discovery
+        // --- K8s pod discovery ---
         if (k8sDiscovery) {
             var networkConfig = config.getNetworkConfig();
             var joinConfig = networkConfig.getJoin();
             joinConfig.getMulticastConfig().setEnabled(false);
             joinConfig.getTcpIpConfig().setEnabled(false);
 
-            // Use Hazelcast Kubernetes plugin via DNS lookup
-            // Requires the hazelcast-kubernetes plugin on the classpath
             if (k8sServiceDns != null && !k8sServiceDns.isBlank()) {
                 joinConfig.getTcpIpConfig().setEnabled(true);
                 joinConfig.getTcpIpConfig().addMember(k8sServiceDns);

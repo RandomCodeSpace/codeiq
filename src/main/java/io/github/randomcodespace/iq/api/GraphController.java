@@ -1,0 +1,172 @@
+package io.github.randomcodespace.iq.api;
+
+import io.github.randomcodespace.iq.analyzer.AnalysisResult;
+import io.github.randomcodespace.iq.analyzer.Analyzer;
+import io.github.randomcodespace.iq.config.CodeIqConfig;
+import io.github.randomcodespace.iq.query.QueryService;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.server.ResponseStatusException;
+
+import java.nio.file.Path;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
+
+/**
+ * REST API controller matching the Python OSSCodeIQ API paths.
+ */
+@RestController
+@RequestMapping("/api")
+public class GraphController {
+
+    private final QueryService queryService;
+    private final Analyzer analyzer;
+    private final CodeIqConfig config;
+
+    public GraphController(QueryService queryService, Analyzer analyzer, CodeIqConfig config) {
+        this.queryService = queryService;
+        this.analyzer = analyzer;
+        this.config = config;
+    }
+
+    @GetMapping("/stats")
+    public Map<String, Object> getStats() {
+        return queryService.getStats();
+    }
+
+    @GetMapping("/kinds")
+    public Map<String, Object> listKinds() {
+        return queryService.listKinds();
+    }
+
+    @GetMapping("/kinds/{kind}")
+    public Map<String, Object> nodesByKind(
+            @PathVariable String kind,
+            @RequestParam(defaultValue = "50") int limit,
+            @RequestParam(defaultValue = "0") int offset) {
+        return queryService.nodesByKind(kind, limit, offset);
+    }
+
+    @GetMapping("/nodes")
+    public Map<String, Object> listNodes(
+            @RequestParam(required = false) String kind,
+            @RequestParam(defaultValue = "100") int limit,
+            @RequestParam(defaultValue = "0") int offset) {
+        return queryService.listNodes(kind, limit, offset);
+    }
+
+    @GetMapping("/nodes/{nodeId}/detail")
+    public Map<String, Object> nodeDetail(@PathVariable String nodeId) {
+        Map<String, Object> result = queryService.nodeDetailWithEdges(nodeId);
+        if (result == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Node not found: " + nodeId);
+        }
+        return result;
+    }
+
+    @GetMapping("/nodes/{nodeId}/neighbors")
+    public Map<String, Object> neighbors(
+            @PathVariable String nodeId,
+            @RequestParam(defaultValue = "both") String direction) {
+        return queryService.getNeighbors(nodeId, direction);
+    }
+
+    @GetMapping("/edges")
+    public Map<String, Object> listEdges(
+            @RequestParam(required = false) String kind,
+            @RequestParam(defaultValue = "100") int limit,
+            @RequestParam(defaultValue = "0") int offset) {
+        return queryService.listEdges(kind, limit, offset);
+    }
+
+    @GetMapping("/ego/{center}")
+    public Map<String, Object> egoGraph(
+            @PathVariable String center,
+            @RequestParam(defaultValue = "2") int radius) {
+        int cappedRadius = Math.min(radius, config.getMaxRadius());
+        return queryService.egoGraph(center, cappedRadius);
+    }
+
+    @GetMapping("/query/cycles")
+    public Map<String, Object> findCycles(@RequestParam(defaultValue = "100") int limit) {
+        return queryService.findCycles(limit);
+    }
+
+    @GetMapping("/query/shortest-path")
+    public Map<String, Object> shortestPath(
+            @RequestParam String source,
+            @RequestParam String target) {
+        Map<String, Object> result = queryService.shortestPath(source, target);
+        if (result == null) {
+            throw new ResponseStatusException(HttpStatus.NOT_FOUND,
+                    "No path found between " + source + " and " + target);
+        }
+        return result;
+    }
+
+    @GetMapping("/query/consumers/{targetId}")
+    public Map<String, Object> consumersOf(@PathVariable String targetId) {
+        return queryService.consumersOf(targetId);
+    }
+
+    @GetMapping("/query/producers/{targetId}")
+    public Map<String, Object> producersOf(@PathVariable String targetId) {
+        return queryService.producersOf(targetId);
+    }
+
+    @GetMapping("/query/callers/{targetId}")
+    public Map<String, Object> callersOf(@PathVariable String targetId) {
+        return queryService.callersOf(targetId);
+    }
+
+    @GetMapping("/query/dependencies/{moduleId}")
+    public Map<String, Object> dependenciesOf(@PathVariable String moduleId) {
+        return queryService.dependenciesOf(moduleId);
+    }
+
+    @GetMapping("/query/dependents/{moduleId}")
+    public Map<String, Object> dependentsOf(@PathVariable String moduleId) {
+        return queryService.dependentsOf(moduleId);
+    }
+
+    @GetMapping("/triage/component")
+    public Map<String, Object> findComponent(@RequestParam String file) {
+        return queryService.findComponentByFile(file);
+    }
+
+    @GetMapping("/triage/impact/{nodeId}")
+    public Map<String, Object> traceImpact(
+            @PathVariable String nodeId,
+            @RequestParam(defaultValue = "3") int depth) {
+        int cappedDepth = Math.min(depth, config.getMaxDepth());
+        return queryService.traceImpact(nodeId, cappedDepth);
+    }
+
+    @GetMapping("/search")
+    public List<Map<String, Object>> searchGraph(
+            @RequestParam String q,
+            @RequestParam(defaultValue = "50") int limit) {
+        return queryService.searchGraph(q, limit);
+    }
+
+    @PostMapping("/analyze")
+    public Map<String, Object> triggerAnalysis(
+            @RequestParam(defaultValue = "false") boolean incremental) {
+        AnalysisResult result = analyzer.run(Path.of(config.getRootPath()), null);
+
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("status", "complete");
+        response.put("total_files", result.totalFiles());
+        response.put("files_analyzed", result.filesAnalyzed());
+        response.put("node_count", result.nodeCount());
+        response.put("edge_count", result.edgeCount());
+        response.put("elapsed_ms", result.elapsed().toMillis());
+        return response;
+    }
+}

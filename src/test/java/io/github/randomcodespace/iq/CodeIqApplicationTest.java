@@ -1,14 +1,22 @@
 package io.github.randomcodespace.iq;
 
+import com.fasterxml.jackson.databind.ObjectMapper;
+import io.github.randomcodespace.iq.graph.GraphRepository;
+import io.github.randomcodespace.iq.graph.GraphStore;
 import org.junit.jupiter.api.Test;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
 import org.springframework.test.context.ActiveProfiles;
+import org.springframework.test.context.bean.override.mockito.MockitoBean;
 
 /**
  * Verifies that the Spring application context starts without errors.
  *
  * Neo4j embedded and related auto-configuration are disabled via properties
- * since no Neo4j instance is available during unit tests.
+ * since no Neo4j instance is available during unit tests. We mock GraphRepository
+ * and GraphStore so that beans depending on them (QueryService, GraphController,
+ * McpTools, GraphHealthIndicator) can be created.
  */
 @SpringBootTest(
         webEnvironment = SpringBootTest.WebEnvironment.MOCK,
@@ -22,6 +30,20 @@ import org.springframework.test.context.ActiveProfiles;
 )
 @ActiveProfiles("indexing")
 class CodeIqApplicationTest {
+
+    @MockitoBean
+    private GraphRepository graphRepository;
+
+    @MockitoBean
+    private GraphStore graphStore;
+
+    @Configuration
+    static class TestConfig {
+        @Bean
+        ObjectMapper objectMapper() {
+            return new ObjectMapper();
+        }
+    }
 
     @Test
     void contextLoads() {
