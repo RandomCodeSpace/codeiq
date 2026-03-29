@@ -26,7 +26,8 @@ def setup_ui(service: CodeIQService) -> None:
             with ui.row().classes("items-center gap-3"):
                 ui.icon("hub").style(f"color: {BRAND_COLOR}; font-size: 28px")
                 ui.label("OSSCodeIQ").classes("text-lg font-bold")
-            with ui.row().classes("items-center gap-2"):
+            with ui.row().classes("items-center gap-3"):
+                # Stats badges
                 try:
                     stats = service.get_stats()
                     ui.badge(
@@ -35,10 +36,31 @@ def setup_ui(service: CodeIQService) -> None:
                     ui.badge(
                         f"{stats.get('total_edges', 0):,} edges"
                     ).props("color=positive outline")
+                    ui.badge(
+                        stats.get("backend", "?")
+                    ).props("outline")
                 except Exception:  # noqa: BLE001
                     ui.badge("stats unavailable").props(
                         "color=warning outline"
                     )
+
+                ui.separator().props("vertical")
+
+                # Quick links
+                ui.button(
+                    "API Docs",
+                    icon="description",
+                    on_click=lambda: ui.navigate.to("/docs", new_tab=True),
+                ).props("flat dense no-caps")
+                ui.button(
+                    "Stats JSON",
+                    icon="data_object",
+                    on_click=lambda: ui.navigate.to("/api/stats", new_tab=True),
+                ).props("flat dense no-caps")
+
+                ui.separator().props("vertical")
+
+                # Theme toggles
                 ui.button(
                     icon="light_mode",
                     on_click=lambda: dark.set_value(False),
