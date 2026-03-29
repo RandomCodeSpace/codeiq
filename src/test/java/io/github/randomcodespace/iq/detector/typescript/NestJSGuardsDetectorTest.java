@@ -1,0 +1,51 @@
+package io.github.randomcodespace.iq.detector.typescript;
+
+import io.github.randomcodespace.iq.detector.DetectorContext;
+import io.github.randomcodespace.iq.detector.DetectorResult;
+import io.github.randomcodespace.iq.detector.DetectorTestUtils;
+import io.github.randomcodespace.iq.model.NodeKind;
+import org.junit.jupiter.api.Test;
+
+import static org.junit.jupiter.api.Assertions.*;
+
+class NestJSGuardsDetectorTest {
+
+    private final NestJSGuardsDetector detector = new NestJSGuardsDetector();
+
+    @Test
+    void detectsGuardsAndRoles() {
+        String code = """
+                @UseGuards(JwtAuthGuard, RolesGuard)
+                @Roles('admin', 'user')
+                canActivate(context) {
+                    return true;
+                }
+                AuthGuard('jwt')
+                """;
+        DetectorContext ctx = DetectorTestUtils.contextFor("src/auth.guard.ts", "typescript", code);
+        DetectorResult result = detector.detect(ctx);
+
+        // 2 UseGuards + 1 Roles + 1 canActivate + 1 AuthGuard = 5
+        assertEquals(5, result.nodes().size());
+        assertTrue(result.nodes().stream().allMatch(n -> n.getKind() == NodeKind.GUARD));
+        assertTrue(result.nodes().stream().anyMatch(n ->
+                "UseGuards(JwtAuthGuard)".equals(n.getLabel())));
+        assertTrue(result.nodes().stream().anyMatch(n ->
+                n.getLabel().contains("Roles(admin, user)")));
+    }
+
+    @Test
+    void noMatchOnNonGuardCode() {
+        String code = "class SomeService {}";
+        DetectorContext ctx = DetectorTestUtils.contextFor("typescript", code);
+        DetectorResult result = detector.detect(ctx);
+        assertTrue(result.nodes().isEmpty());
+    }
+
+    @Test
+    void deterministic() {
+        String code = "@UseGuards(AuthGuard)\n@Roles('admin')";
+        DetectorContext ctx = DetectorTestUtils.contextFor("typescript", code);
+        DetectorTestUtils.assertDeterministic(detector, ctx);
+    }
+}
