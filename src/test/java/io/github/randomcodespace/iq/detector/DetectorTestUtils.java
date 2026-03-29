@@ -40,6 +40,24 @@ public final class DetectorTestUtils {
             case "rust" -> "rs";
             case "kotlin" -> "kt";
             case "csharp" -> "cs";
+            case "bash" -> "sh";
+            case "powershell" -> "ps1";
+            case "scala" -> "scala";
+            case "cpp" -> "cpp";
+            case "c" -> "c";
+            case "markdown" -> "md";
+            case "ruby" -> "rb";
+            case "swift" -> "swift";
+            case "perl" -> "pl";
+            case "lua" -> "lua";
+            case "dart" -> "dart";
+            case "r" -> "R";
+            case "proto" -> "proto";
+            case "terraform" -> "tf";
+            case "bicep" -> "bicep";
+            case "dockerfile" -> "Dockerfile";
+            case "vue" -> "vue";
+            case "svelte" -> "svelte";
             default -> "txt";
         };
     }
