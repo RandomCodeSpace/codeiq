@@ -12,6 +12,7 @@ import io.github.randomcodespace.iq.model.CodeEdge;
 import io.github.randomcodespace.iq.model.CodeNode;
 import io.github.randomcodespace.iq.query.QueryService;
 import io.github.randomcodespace.iq.query.StatsService;
+import io.github.randomcodespace.iq.query.TopologyService;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Result;
 import org.springframework.ai.tool.annotation.Tool;
@@ -40,11 +41,12 @@ public class McpTools {
     private final FlowEngine flowEngine;
     private final GraphDatabaseService graphDb;
     private final StatsService statsService;
+    private final TopologyService topologyService;
 
     public McpTools(QueryService queryService, Analyzer analyzer,
                     CodeIqConfig config, ObjectMapper objectMapper,
                     FlowEngine flowEngine, GraphDatabaseService graphDb,
-                    StatsService statsService) {
+                    StatsService statsService, TopologyService topologyService) {
         this.queryService = queryService;
         this.analyzer = analyzer;
         this.config = config;
@@ -52,6 +54,7 @@ public class McpTools {
         this.flowEngine = flowEngine;
         this.graphDb = graphDb;
         this.statsService = statsService;
+        this.topologyService = topologyService;
     }
 
     @Tool(name = "get_stats", description = "Get project graph statistics - node counts, edge counts, backend info.")
@@ -299,6 +302,145 @@ public class McpTools {
             return "Error: " + e.getMessage();
         }
     }
+
+    // --- Topology tools ---
+
+    @Tool(name = "get_topology", description = "Get service topology map — all services and their connections")
+    public String getTopology() {
+        try {
+            var data = loadCacheData();
+            return toJson(topologyService.getTopology(data.nodes, data.edges));
+        } catch (Exception e) {
+            return toJson(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @Tool(name = "service_detail", description = "Get detailed view of a specific service")
+    public String serviceDetail(
+            @ToolParam(description = "Service name") String serviceName) {
+        try {
+            var data = loadCacheData();
+            return toJson(topologyService.serviceDetail(serviceName, data.nodes, data.edges));
+        } catch (Exception e) {
+            return toJson(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @Tool(name = "service_dependencies", description = "Get dependencies of a service (databases, queues, other services)")
+    public String serviceDependencies(
+            @ToolParam(description = "Service name") String serviceName) {
+        try {
+            var data = loadCacheData();
+            return toJson(topologyService.serviceDependencies(serviceName, data.nodes, data.edges));
+        } catch (Exception e) {
+            return toJson(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @Tool(name = "service_dependents", description = "Get services that depend on this service")
+    public String serviceDependents(
+            @ToolParam(description = "Service name") String serviceName) {
+        try {
+            var data = loadCacheData();
+            return toJson(topologyService.serviceDependents(serviceName, data.nodes, data.edges));
+        } catch (Exception e) {
+            return toJson(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @Tool(name = "blast_radius", description = "Analyze blast radius — what's affected if this node changes")
+    public String blastRadius(
+            @ToolParam(description = "Node ID") String nodeId) {
+        try {
+            var data = loadCacheData();
+            return toJson(topologyService.blastRadius(nodeId, data.nodes, data.edges));
+        } catch (Exception e) {
+            return toJson(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @Tool(name = "find_path", description = "Find connection path between two services")
+    public String findPath(
+            @ToolParam(description = "Source service") String source,
+            @ToolParam(description = "Target service") String target) {
+        try {
+            var data = loadCacheData();
+            return toJson(topologyService.findPath(source, target, data.nodes, data.edges));
+        } catch (Exception e) {
+            return toJson(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @Tool(name = "find_bottlenecks", description = "Find bottleneck services with most connections")
+    public String findBottlenecks() {
+        try {
+            var data = loadCacheData();
+            return toJson(topologyService.findBottlenecks(data.nodes, data.edges));
+        } catch (Exception e) {
+            return toJson(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @Tool(name = "find_circular_deps", description = "Find circular service-to-service dependencies")
+    public String findCircularDeps() {
+        try {
+            var data = loadCacheData();
+            return toJson(topologyService.findCircularDeps(data.nodes, data.edges));
+        } catch (Exception e) {
+            return toJson(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @Tool(name = "find_dead_services", description = "Find dead services with no incoming connections")
+    public String findDeadServices() {
+        try {
+            var data = loadCacheData();
+            return toJson(topologyService.findDeadServices(data.nodes, data.edges));
+        } catch (Exception e) {
+            return toJson(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @Tool(name = "find_node", description = "Find a node by name — exact match priority, then partial")
+    public String findNode(
+            @ToolParam(description = "Search query") String query) {
+        try {
+            var data = loadCacheData();
+            return toJson(topologyService.findNode(query, data.nodes));
+        } catch (Exception e) {
+            return toJson(Map.of("error", e.getMessage()));
+        }
+    }
+
+    /**
+     * Load nodes and edges from the H2 analysis cache.
+     */
+    private CacheData loadCacheData() {
+        Path root = Path.of(config.getRootPath()).toAbsolutePath().normalize();
+        Path cachePath = root.resolve("analysis-cache.db");
+
+        // Try standard cache dir location
+        Path standardCachePath = root.resolve(config.getRootPath() != null
+                ? Path.of(config.getRootPath()).toAbsolutePath().normalize()
+                        .resolve(config.getCacheDir()).resolve("analysis-cache.db")
+                : Path.of(config.getCacheDir()).resolve("analysis-cache.db"));
+
+        // Resolve from root path
+        Path actualPath = Path.of(config.getRootPath()).toAbsolutePath().normalize()
+                .resolve(config.getCacheDir()).resolve("analysis-cache.db");
+        Path h2File = actualPath.getParent().resolve("analysis-cache.mv.db");
+
+        if (!java.nio.file.Files.exists(h2File)) {
+            throw new RuntimeException("No analysis cache found. Run analyze first.");
+        }
+
+        try (AnalysisCache cache = new AnalysisCache(actualPath)) {
+            return new CacheData(cache.loadAllNodes(), cache.loadAllEdges());
+        }
+    }
+
+    private record CacheData(java.util.List<io.github.randomcodespace.iq.model.CodeNode> nodes,
+                              java.util.List<io.github.randomcodespace.iq.model.CodeEdge> edges) {}
 
     /**
      * Convert Neo4j node/relationship values to JSON-serializable types.

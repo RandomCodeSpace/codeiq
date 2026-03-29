@@ -8,6 +8,7 @@ import io.github.randomcodespace.iq.model.CodeEdge;
 import io.github.randomcodespace.iq.model.CodeNode;
 import io.github.randomcodespace.iq.query.QueryService;
 import io.github.randomcodespace.iq.query.StatsService;
+import io.github.randomcodespace.iq.query.TopologyService;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -38,13 +39,16 @@ public class GraphController {
     private final Analyzer analyzer;
     private final CodeIqConfig config;
     private final StatsService statsService;
+    private final TopologyService topologyService;
 
     public GraphController(QueryService queryService, Analyzer analyzer,
-                           CodeIqConfig config, StatsService statsService) {
+                           CodeIqConfig config, StatsService statsService,
+                           TopologyService topologyService) {
         this.queryService = queryService;
         this.analyzer = analyzer;
         this.config = config;
         this.statsService = statsService;
+        this.topologyService = topologyService;
     }
 
     @GetMapping("/stats")
@@ -104,6 +108,22 @@ public class GraphController {
             @RequestParam(defaultValue = "100") int limit,
             @RequestParam(defaultValue = "0") int offset) {
         return queryService.listNodes(kind, limit, offset);
+    }
+
+    @GetMapping("/nodes/find")
+    public List<Map<String, Object>> findNode(@RequestParam String q) {
+        Path root = Path.of(config.getRootPath()).toAbsolutePath().normalize();
+        Path cachePath = root.resolve(config.getCacheDir()).resolve("analysis-cache.db");
+        Path h2File = root.resolve(config.getCacheDir()).resolve("analysis-cache.mv.db");
+
+        if (!Files.exists(h2File)) {
+            return List.of();
+        }
+
+        try (AnalysisCache cache = new AnalysisCache(cachePath)) {
+            List<CodeNode> nodes = cache.loadAllNodes();
+            return topologyService.findNode(q, nodes);
+        }
     }
 
     @GetMapping("/nodes/{nodeId}/detail")

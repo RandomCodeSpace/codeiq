@@ -128,6 +128,20 @@ public class EnrichCommand implements Callable<Integer> {
         CliOutput.step("\uD83C\uDFF7\uFE0F", "Classifying layers...");
         layerClassifier.classify(enrichedNodes);
 
+        // 3b. Detect services
+        CliOutput.step("\uD83C\uDFD7\uFE0F", "Detecting service boundaries...");
+        var serviceDetector = new io.github.randomcodespace.iq.analyzer.ServiceDetector();
+        String projectName = root.getFileName().toString();
+        var serviceResult = serviceDetector.detect(enrichedNodes, enrichedEdges, projectName);
+        if (!serviceResult.serviceNodes().isEmpty()) {
+            // Add service nodes and edges to the builder
+            builder.addNodes(serviceResult.serviceNodes());
+            builder.addEdges(serviceResult.serviceEdges());
+            enrichedNodes = builder.getNodes();
+            enrichedEdges = builder.getEdges();
+            CliOutput.info("  Detected " + serviceResult.serviceNodes().size() + " service(s)");
+        }
+
         // 4. Start Neo4j Embedded and bulk-load
         Path neo4jPath = root.resolve(config.getCacheDir()).resolve("../.osscodeiq/graph.db")
                 .normalize();

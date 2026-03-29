@@ -62,7 +62,7 @@ class McpToolsTest {
         config = new CodeIqConfig();
         config.setRootPath(".");
         objectMapper = new ObjectMapper();
-        mcpTools = new McpTools(queryService, analyzer, config, objectMapper, flowEngine, graphDb, statsService);
+        mcpTools = new McpTools(queryService, analyzer, config, objectMapper, flowEngine, graphDb, statsService, new io.github.randomcodespace.iq.query.TopologyService());
     }
 
     private Map<String, Object> parseJson(String json) throws IOException {
