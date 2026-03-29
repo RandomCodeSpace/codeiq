@@ -16,6 +16,21 @@ class StructuredParserTest {
         parser = new StructuredParser();
     }
 
+    // ---- Helper to extract wrapped data ----
+
+    @SuppressWarnings("unchecked")
+    private Map<String, Object> asWrapper(Object result) {
+        assertNotNull(result);
+        assertInstanceOf(Map.class, result);
+        return (Map<String, Object>) result;
+    }
+
+    @SuppressWarnings("unchecked")
+    private <T> T getData(Object result) {
+        Map<String, Object> wrapper = asWrapper(result);
+        return (T) wrapper.get("data");
+    }
+
     // ---- YAML ----
 
     @Test
@@ -26,11 +41,13 @@ class StructuredParserTest {
                 """;
         Object result = parser.parse("yaml", yaml, "test.yaml");
 
-        assertNotNull(result);
-        assertInstanceOf(Map.class, result);
+        Map<String, Object> wrapper = asWrapper(result);
+        assertEquals("yaml", wrapper.get("type"));
+
         @SuppressWarnings("unchecked")
-        Map<String, Object> map = (Map<String, Object>) result;
-        assertEquals("test", map.get("name"));
+        Map<String, Object> data = (Map<String, Object>) wrapper.get("data");
+        assertNotNull(data);
+        assertEquals("test", data.get("name"));
     }
 
     @Test
@@ -42,10 +59,11 @@ class StructuredParserTest {
                 """;
         Object result = parser.parse("yaml", yaml, "config.yaml");
 
-        assertNotNull(result);
+        Map<String, Object> wrapper = asWrapper(result);
         @SuppressWarnings("unchecked")
-        Map<String, Object> map = (Map<String, Object>) result;
-        assertInstanceOf(Map.class, map.get("server"));
+        Map<String, Object> data = (Map<String, Object>) wrapper.get("data");
+        assertNotNull(data);
+        assertInstanceOf(Map.class, data.get("server"));
     }
 
     @Test
@@ -65,11 +83,14 @@ class StructuredParserTest {
                 """;
         Object result = parser.parse("json", json, "test.json");
 
-        assertNotNull(result);
+        Map<String, Object> wrapper = asWrapper(result);
+        assertEquals("json", wrapper.get("type"));
+
         @SuppressWarnings("unchecked")
-        Map<String, Object> map = (Map<String, Object>) result;
-        assertEquals("test", map.get("name"));
-        assertEquals(42, map.get("count"));
+        Map<String, Object> data = (Map<String, Object>) wrapper.get("data");
+        assertNotNull(data);
+        assertEquals("test", data.get("name"));
+        assertEquals(42, data.get("count"));
     }
 
     @Test
@@ -90,11 +111,9 @@ class StructuredParserTest {
                 """;
         Object result = parser.parse("xml", xml, "pom.xml");
 
-        assertNotNull(result);
-        @SuppressWarnings("unchecked")
-        Map<String, Object> map = (Map<String, Object>) result;
-        assertEquals("xml", map.get("type"));
-        assertEquals("project", map.get("rootElement"));
+        Map<String, Object> wrapper = asWrapper(result);
+        assertEquals("xml", wrapper.get("type"));
+        assertEquals("project", wrapper.get("rootElement"));
     }
 
     @Test
@@ -116,11 +135,14 @@ class StructuredParserTest {
                 """;
         Object result = parser.parse("toml", toml, "config.toml");
 
-        assertNotNull(result);
+        Map<String, Object> wrapper = asWrapper(result);
+        assertEquals("toml", wrapper.get("type"));
+
         @SuppressWarnings("unchecked")
-        Map<String, Object> map = (Map<String, Object>) result;
-        assertEquals("test", map.get("name"));
-        assertInstanceOf(Map.class, map.get("server"));
+        Map<String, Object> data = (Map<String, Object>) wrapper.get("data");
+        assertNotNull(data);
+        assertEquals("test", data.get("name"));
+        assertInstanceOf(Map.class, data.get("server"));
     }
 
     // ---- INI ----
@@ -134,10 +156,13 @@ class StructuredParserTest {
                 """;
         Object result = parser.parse("ini", ini, "config.ini");
 
-        assertNotNull(result);
+        Map<String, Object> wrapper = asWrapper(result);
+        assertEquals("ini", wrapper.get("type"));
+
         @SuppressWarnings("unchecked")
-        Map<String, Object> map = (Map<String, Object>) result;
-        assertInstanceOf(Map.class, map.get("database"));
+        Map<String, Object> data = (Map<String, Object>) wrapper.get("data");
+        assertNotNull(data);
+        assertInstanceOf(Map.class, data.get("database"));
     }
 
     // ---- Properties ----
@@ -150,11 +175,14 @@ class StructuredParserTest {
                 """;
         Object result = parser.parse("properties", props, "app.properties");
 
-        assertNotNull(result);
+        Map<String, Object> wrapper = asWrapper(result);
+        assertEquals("properties", wrapper.get("type"));
+
         @SuppressWarnings("unchecked")
-        Map<String, String> map = (Map<String, String>) result;
-        assertEquals("8080", map.get("server.port"));
-        assertEquals("test", map.get("app.name"));
+        Map<String, Object> data = (Map<String, Object>) wrapper.get("data");
+        assertNotNull(data);
+        assertEquals("8080", data.get("server.port"));
+        assertEquals("test", data.get("app.name"));
     }
 
     // ---- Edge cases ----

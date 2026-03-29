@@ -62,20 +62,29 @@ public class StructuredParser {
     @SuppressWarnings("unchecked")
     private Object parseYaml(String content) {
         var yaml = new Yaml();
-        // loadAll handles multi-doc YAML; return first document as a Map
-        var docs = yaml.loadAll(content);
-        for (Object doc : docs) {
-            if (doc instanceof Map<?, ?>) {
-                return doc;
-            }
+        var docs = new java.util.ArrayList<>();
+        for (Object doc : yaml.loadAll(content)) {
+            docs.add(doc);
         }
-        // Single non-map document — return as-is
-        return yaml.load(content);
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        if (docs.size() <= 1) {
+            result.put("type", "yaml");
+            result.put("data", docs.isEmpty() ? null : docs.getFirst());
+        } else {
+            result.put("type", "yaml_multi");
+            result.put("documents", docs);
+        }
+        return result;
     }
 
     @SuppressWarnings("unchecked")
     private Object parseJson(String content) throws Exception {
-        return objectMapper.readValue(content, Object.class);
+        Object data = objectMapper.readValue(content, Object.class);
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("type", "json");
+        result.put("data", data);
+        return result;
     }
 
     private Object parseXml(String content, String filePath) throws Exception {
@@ -100,9 +109,8 @@ public class StructuredParser {
      * dedicated library.
      */
     private Object parseToml(String content) {
-        Map<String, Object> result = new LinkedHashMap<>();
-        Map<String, Object> currentSection = result;
-        String currentSectionName = null;
+        Map<String, Object> data = new LinkedHashMap<>();
+        Map<String, Object> currentSection = data;
 
         for (String line : content.split("\n")) {
             String trimmed = line.trim();
@@ -110,9 +118,9 @@ public class StructuredParser {
 
             // Section header
             if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
-                currentSectionName = trimmed.substring(1, trimmed.length() - 1).trim();
+                String sectionName = trimmed.substring(1, trimmed.length() - 1).trim();
                 currentSection = new LinkedHashMap<>();
-                result.put(currentSectionName, currentSection);
+                data.put(sectionName, currentSection);
                 continue;
             }
 
@@ -130,14 +138,17 @@ public class StructuredParser {
                 currentSection.put(key, value);
             }
         }
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("type", "toml");
+        result.put("data", data);
         return result;
     }
 
     private Object parseIni(String content) {
-        Map<String, Object> result = new LinkedHashMap<>();
+        Map<String, Object> data = new LinkedHashMap<>();
         Map<String, String> currentSection = new LinkedHashMap<>();
         String sectionName = "DEFAULT";
-        result.put(sectionName, currentSection);
+        data.put(sectionName, currentSection);
 
         for (String line : content.split("\n")) {
             String trimmed = line.trim();
@@ -146,7 +157,7 @@ public class StructuredParser {
             if (trimmed.startsWith("[") && trimmed.endsWith("]")) {
                 sectionName = trimmed.substring(1, trimmed.length() - 1).trim();
                 currentSection = new LinkedHashMap<>();
-                result.put(sectionName, currentSection);
+                data.put(sectionName, currentSection);
                 continue;
             }
 
@@ -157,16 +168,24 @@ public class StructuredParser {
                 currentSection.put(key, value);
             }
         }
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("type", "ini");
+        result.put("data", data);
         return result;
     }
 
     private Object parseProperties(String content) throws Exception {
         var props = new Properties();
         props.load(new StringReader(content));
-        Map<String, String> result = new LinkedHashMap<>();
-        for (String key : props.stringPropertyNames()) {
-            result.put(key, props.getProperty(key));
+        Map<String, String> data = new LinkedHashMap<>();
+        // Sort keys for determinism (Properties uses a HashTable internally)
+        var sortedKeys = new java.util.TreeSet<>(props.stringPropertyNames());
+        for (String key : sortedKeys) {
+            data.put(key, props.getProperty(key));
         }
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("type", "properties");
+        result.put("data", data);
         return result;
     }
 }

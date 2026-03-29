@@ -21,5 +21,6 @@ public record AnalysisResult(
         int edgeCount,
         Map<String, Integer> languageBreakdown,
         Map<String, Integer> nodeBreakdown,
+        Map<String, Integer> edgeBreakdown,
         Duration elapsed
 ) {}

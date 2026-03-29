@@ -107,11 +107,14 @@ import io.github.randomcodespace.iq.detector.typescript.TypeScriptStructuresDete
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
+import io.github.randomcodespace.iq.model.CodeEdge;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -310,6 +313,13 @@ class FullAnalysisIntegrationTest {
                 .forEach(e -> System.out.printf("║    %-28s %,8d nodes              ║%n",
                         e.getKey(), e.getValue()));
         System.out.println("╠══════════════════════════════════════════════════════════════╣");
+        System.out.println("║  EDGE TYPE BREAKDOWN                                        ║");
+        System.out.println("╠══════════════════════════════════════════════════════════════╣");
+        result.edgeBreakdown().entrySet().stream()
+                .sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
+                .forEach(e -> System.out.printf("║    %-28s %,8d edges              ║%n",
+                        e.getKey(), e.getValue()));
+        System.out.println("╠══════════════════════════════════════════════════════════════╣");
         System.out.println("║  PYTHON BASELINE COMPARISON                                 ║");
         System.out.println("╠══════════════════════════════════════════════════════════════╣");
         System.out.printf("║    %-20s %12s %12s %8s   ║%n", "Metric", "Python", "Java", "Ratio");
@@ -320,8 +330,8 @@ class FullAnalysisIntegrationTest {
                 "Nodes", 27_446, result.nodeCount(),
                 result.nodeCount() * 100.0 / 27_446);
         System.out.printf("║    %-20s %,12d %,12d %7.1f%%   ║%n",
-                "Edges", 42_025, result.edgeCount(),
-                result.edgeCount() * 100.0 / 42_025);
+                "Edges", 32_890, result.edgeCount(),
+                result.edgeCount() * 100.0 / 32_890);
         System.out.printf("║    %-20s %12s %12s %7.1fx   ║%n",
                 "Time", "47s", formatDuration(result.elapsed()),
                 47_000.0 / result.elapsed().toMillis());

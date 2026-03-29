@@ -162,6 +162,13 @@ public class Analyzer {
             nodeBreakdown.merge(kindValue, 1, Integer::sum);
         }
 
+        // 7. Compute edge breakdown
+        Map<String, Integer> edgeBreakdown = new HashMap<>();
+        for (var edge : builder.getEdges()) {
+            String kindValue = edge.getKind().getValue();
+            edgeBreakdown.merge(kindValue, 1, Integer::sum);
+        }
+
         Duration elapsed = Duration.between(start, Instant.now());
         int nodeCount = builder.getNodeCount();
         int edgeCount = builder.getEdgeCount();
@@ -177,6 +184,7 @@ public class Analyzer {
                 edgeCount,
                 languageBreakdown,
                 nodeBreakdown,
+                edgeBreakdown,
                 elapsed
         );
     }
@@ -232,6 +240,15 @@ public class Analyzer {
             } catch (Exception e) {
                 log.debug("Detector {} failed on {}: {}",
                         detector.getName(), file.path(), e.getMessage());
+            }
+        }
+
+        // Set module on all nodes that don't have one yet
+        if (moduleName != null) {
+            for (CodeNode node : allNodes) {
+                if (node.getModule() == null || node.getModule().isEmpty()) {
+                    node.setModule(moduleName);
+                }
             }
         }
 
