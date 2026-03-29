@@ -26,13 +26,13 @@ import java.util.Map;
 import java.util.UUID;
 
 /**
- * SQLite-backed cache for incremental analysis results.
+ * H2-backed cache for incremental analysis results.
  * <p>
  * Stores per-file parse results (nodes and edges) keyed by content hash,
  * enabling fast incremental re-analysis when only a subset of files change.
  * <p>
- * Uses plain JDBC with SQLite -- not Neo4j -- as the cache is a flat
- * lookup table, not a graph.
+ * Uses H2 in embedded mode — pure Java, no JNI, MVCC concurrency,
+ * fully compatible with virtual threads.
  */
 public class AnalysisCache implements Closeable {
 
@@ -40,33 +40,32 @@ public class AnalysisCache implements Closeable {
 
     private static final String SCHEMA_SQL = """
             CREATE TABLE IF NOT EXISTS files (
-                content_hash TEXT PRIMARY KEY,
-                path TEXT NOT NULL,
-                language TEXT NOT NULL,
-                parsed_at TEXT NOT NULL
+                content_hash VARCHAR PRIMARY KEY,
+                path VARCHAR NOT NULL,
+                language VARCHAR NOT NULL,
+                parsed_at VARCHAR NOT NULL
             );
 
             CREATE TABLE IF NOT EXISTS nodes (
-                id TEXT PRIMARY KEY,
-                content_hash TEXT NOT NULL,
-                kind TEXT NOT NULL,
-                data TEXT NOT NULL,
+                id VARCHAR PRIMARY KEY,
+                content_hash VARCHAR NOT NULL,
+                kind VARCHAR NOT NULL,
+                data VARCHAR NOT NULL,
                 FOREIGN KEY (content_hash) REFERENCES files(content_hash)
             );
 
             CREATE TABLE IF NOT EXISTS edges (
-                source TEXT NOT NULL,
-                target TEXT NOT NULL,
-                content_hash TEXT NOT NULL,
-                kind TEXT NOT NULL,
-                data TEXT NOT NULL,
-                FOREIGN KEY (content_hash) REFERENCES files(content_hash)
+                source VARCHAR NOT NULL,
+                target VARCHAR NOT NULL,
+                content_hash VARCHAR NOT NULL,
+                kind VARCHAR NOT NULL,
+                data VARCHAR NOT NULL
             );
 
             CREATE TABLE IF NOT EXISTS analysis_runs (
-                run_id TEXT PRIMARY KEY,
-                commit_sha TEXT,
-                timestamp TEXT NOT NULL,
+                run_id VARCHAR PRIMARY KEY,
+                commit_sha VARCHAR,
+                timestamp VARCHAR NOT NULL,
                 file_count INTEGER NOT NULL
             );
 
@@ -82,27 +81,26 @@ public class AnalysisCache implements Closeable {
 
     /**
      * Open or create an analysis cache at the given path.
+     * <p>
+     * The path should point to the desired database file location.
+     * H2 will append {@code .mv.db} to the actual file on disk.
      *
-     * @param dbPath path to the SQLite database file
+     * @param dbPath path to the H2 database file (without extension)
      */
     public AnalysisCache(Path dbPath) {
         this.dbPath = dbPath;
         try {
             Files.createDirectories(dbPath.getParent());
-            this.conn = DriverManager.getConnection("jdbc:sqlite:" + dbPath);
-            // Configure pragmas using separate statements, each closed before the next
-            executePragma("PRAGMA journal_mode=WAL");
-            executePragma("PRAGMA busy_timeout=5000");
-            executePragma("PRAGMA foreign_keys=ON");
+            // Strip .db extension if present — H2 appends its own .mv.db
+            String dbFile = dbPath.toString();
+            if (dbFile.endsWith(".db")) {
+                dbFile = dbFile.substring(0, dbFile.length() - 3);
+            }
+            this.conn = DriverManager.getConnection(
+                    "jdbc:h2:file:" + dbFile + ";AUTO_SERVER=FALSE;MODE=MySQL");
             initDb();
         } catch (Exception e) {
             throw new RuntimeException("Failed to open analysis cache at " + dbPath, e);
-        }
-    }
-
-    private void executePragma(String pragma) throws SQLException {
-        try (var stmt = conn.createStatement()) {
-            stmt.execute(pragma);
         }
     }
 
@@ -158,14 +156,13 @@ public class AnalysisCache implements Closeable {
      */
     public void storeResults(String contentHash, String filePath, String language,
                              List<CodeNode> nodes, List<CodeEdge> edges) {
-        synchronized (conn) {
         try {
             conn.setAutoCommit(false);
             String now = Instant.now().toString();
 
-            // Upsert file record
+            // Upsert file record (H2 MySQL mode supports INSERT ... ON DUPLICATE KEY UPDATE)
             try (var stmt = conn.prepareStatement(
-                    "INSERT OR REPLACE INTO files (content_hash, path, language, parsed_at) VALUES (?, ?, ?, ?)")) {
+                    "MERGE INTO files (content_hash, path, language, parsed_at) KEY (content_hash) VALUES (?, ?, ?, ?)")) {
                 stmt.setString(1, contentHash);
                 stmt.setString(2, filePath);
                 stmt.setString(3, language);
@@ -185,7 +182,7 @@ public class AnalysisCache implements Closeable {
 
             // Insert nodes
             try (var stmt = conn.prepareStatement(
-                    "INSERT OR IGNORE INTO nodes (id, content_hash, kind, data) VALUES (?, ?, ?, ?)")) {
+                    "INSERT INTO nodes (id, content_hash, kind, data) VALUES (?, ?, ?, ?)")) {
                 for (CodeNode node : nodes) {
                     stmt.setString(1, node.getId());
                     stmt.setString(2, contentHash);
@@ -223,7 +220,6 @@ public class AnalysisCache implements Closeable {
             } catch (SQLException ignored) {
             }
         }
-        } // synchronized
     }
 
     // --- Load cached results ---

@@ -11,6 +11,7 @@ import io.github.randomcodespace.iq.detector.DetectorResult;
 import io.github.randomcodespace.iq.detector.DetectorUtils;
 import io.github.randomcodespace.iq.grammar.AntlrParserFactory;
 import io.github.randomcodespace.iq.model.CodeNode;
+import io.github.randomcodespace.iq.model.NodeKind;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
@@ -302,6 +303,32 @@ public class Analyzer {
     /**
      * Analyze a single file: read content, parse if structured, run matching detectors.
      */
+    /**
+     * Check whether a file is minified (e.g. *.min.js, *.bundle.js) and large
+     * enough that running detectors would be wasteful.
+     * <p>
+     * Heuristic: filename ends with .min.js or .bundle.js, file is &gt; 10 KB,
+     * and average line length exceeds 500 characters.
+     */
+    private boolean isMinified(DiscoveredFile file, String content) {
+        String name = file.path().getFileName().toString();
+        if (!(name.endsWith(".min.js") || name.endsWith(".bundle.js")
+                || name.endsWith(".min.css") || name.endsWith(".min.mjs"))) {
+            return false;
+        }
+        if (file.sizeBytes() <= 10_240) {
+            return false;
+        }
+        // Average line length check
+        String[] lines = content.split("\n", -1);
+        if (lines.length == 0) return false;
+        long totalChars = 0;
+        for (String line : lines) {
+            totalChars += line.length();
+        }
+        return (totalChars / lines.length) > 500;
+    }
+
     DetectorResult analyzeFile(DiscoveredFile file, Path repoPath) {
         Instant fileStart = Instant.now();
         Path absPath = repoPath.resolve(file.path());
@@ -314,6 +341,20 @@ public class Analyzer {
         } catch (IOException e) {
             log.debug("Could not read file: {}", absPath, e);
             return DetectorResult.empty();
+        }
+
+        // Minified file detection: create a node with minified=true but skip detectors
+        if (isMinified(file, content)) {
+            log.debug("Skipping detectors for minified file: {}", file.path());
+            String moduleName = DetectorUtils.deriveModuleName(file.path().toString(), file.language());
+            CodeNode node = new CodeNode(
+                    "file:" + file.path() + ":module:" + (moduleName != null ? moduleName : file.path().getFileName().toString()),
+                    NodeKind.MODULE,
+                    file.path().getFileName().toString());
+            node.setFilePath(file.path().toString());
+            node.setModule(moduleName);
+            node.setProperties(new java.util.LinkedHashMap<>(Map.of("minified", true)));
+            return DetectorResult.of(List.of(node), List.of());
         }
 
         // Parse structured data if applicable

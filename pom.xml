@@ -128,11 +128,10 @@
             <version>4.13.2</version>
         </dependency>
 
-        <!-- SQLite JDBC for incremental analysis cache -->
+        <!-- H2 Database for incremental analysis cache (pure Java — no JNI, virtual-thread friendly) -->
         <dependency>
-            <groupId>org.xerial</groupId>
-            <artifactId>sqlite-jdbc</artifactId>
-            <version>3.49.1.0</version>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
         </dependency>
 
         <!-- Testing -->

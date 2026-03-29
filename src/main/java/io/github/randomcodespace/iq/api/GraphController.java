@@ -57,8 +57,10 @@ public class GraphController {
             @RequestParam(defaultValue = "all") String category) {
         Path root = Path.of(config.getRootPath()).toAbsolutePath().normalize();
         Path cachePath = root.resolve(config.getCacheDir()).resolve("analysis-cache.db");
+        // H2 stores data in analysis-cache.mv.db — check for that file on disk
+        Path h2File = root.resolve(config.getCacheDir()).resolve("analysis-cache.mv.db");
 
-        if (!Files.exists(cachePath)) {
+        if (!Files.exists(h2File)) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND,
                     "No analysis cache found. Run analyze first.");
         }

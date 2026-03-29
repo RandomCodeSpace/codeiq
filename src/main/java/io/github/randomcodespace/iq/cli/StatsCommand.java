@@ -27,7 +27,7 @@ import java.util.concurrent.Callable;
 
 /**
  * Show rich categorized statistics from an already-analyzed graph.
- * Reads from the SQLite analysis cache -- no re-scan.
+ * Reads from the H2 analysis cache -- no re-scan.
  */
 @Component
 @Command(name = "stats", mixinStandardHelpOptions = true,
@@ -80,8 +80,10 @@ public class StatsCommand implements Callable<Integer> {
 
         Path root = path.toAbsolutePath().normalize();
         Path cachePath = root.resolve(config.getCacheDir()).resolve("analysis-cache.db");
+        // H2 stores data in analysis-cache.mv.db — check for that file on disk
+        Path h2File = root.resolve(config.getCacheDir()).resolve("analysis-cache.mv.db");
 
-        if (!Files.exists(cachePath)) {
+        if (!Files.exists(h2File)) {
             CliOutput.warn("No analysis cache found at " + cachePath);
             CliOutput.info("Run 'code-iq analyze' first to scan the codebase.");
             return 1;

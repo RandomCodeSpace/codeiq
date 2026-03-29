@@ -65,8 +65,10 @@ public class McpTools {
         try {
             java.nio.file.Path root = java.nio.file.Path.of(config.getRootPath()).toAbsolutePath().normalize();
             java.nio.file.Path cachePath = root.resolve(config.getCacheDir()).resolve("analysis-cache.db");
+            // H2 stores data in analysis-cache.mv.db — check for that file on disk
+            java.nio.file.Path h2File = root.resolve(config.getCacheDir()).resolve("analysis-cache.mv.db");
 
-            if (!java.nio.file.Files.exists(cachePath)) {
+            if (!java.nio.file.Files.exists(h2File)) {
                 return toJson(Map.of("error", "No analysis cache found. Run analyze first."));
             }
 
