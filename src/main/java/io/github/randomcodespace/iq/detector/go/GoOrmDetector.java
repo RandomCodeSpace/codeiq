@@ -1,6 +1,8 @@
 package io.github.randomcodespace.iq.detector.go;
 
-import io.github.randomcodespace.iq.detector.AbstractRegexDetector;
+import io.github.randomcodespace.iq.detector.AbstractAntlrDetector;
+import io.github.randomcodespace.iq.grammar.AntlrParserFactory;
+import org.antlr.v4.runtime.tree.ParseTree;
 import io.github.randomcodespace.iq.detector.DetectorContext;
 import io.github.randomcodespace.iq.detector.DetectorResult;
 import io.github.randomcodespace.iq.model.CodeEdge;
@@ -16,7 +18,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Component
-public class GoOrmDetector extends AbstractRegexDetector {
+public class GoOrmDetector extends AbstractAntlrDetector {
 
     private static final Pattern GORM_MODEL_RE = Pattern.compile("type\\s+(?<name>\\w+)\\s+struct\\s*\\{[^}]*gorm\\.Model", Pattern.DOTALL);
     private static final Pattern GORM_MIGRATE_RE = Pattern.compile("\\.AutoMigrate\\s*\\(", Pattern.MULTILINE);
@@ -45,9 +47,19 @@ public class GoOrmDetector extends AbstractRegexDetector {
         if (HAS_DATABASE_SQL_RE.matcher(text).find()) return "database_sql";
         return null;
     }
+    @Override
+    protected ParseTree parse(DetectorContext ctx) {
+        if (!"go".equals(ctx.language())) return null;
+        return AntlrParserFactory.parse("go", ctx.content());
+    }
 
     @Override
-    public DetectorResult detect(DetectorContext ctx) {
+    protected DetectorResult detectWithAst(ParseTree tree, DetectorContext ctx) {
+        return detectWithRegex(ctx);
+    }
+
+    @Override
+    protected DetectorResult detectWithRegex(DetectorContext ctx) {
         String text = ctx.content();
         if (text == null || text.isEmpty()) return DetectorResult.empty();
 

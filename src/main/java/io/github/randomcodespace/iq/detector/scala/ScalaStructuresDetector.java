@@ -1,6 +1,8 @@
 package io.github.randomcodespace.iq.detector.scala;
 
-import io.github.randomcodespace.iq.detector.AbstractRegexDetector;
+import io.github.randomcodespace.iq.detector.AbstractAntlrDetector;
+import io.github.randomcodespace.iq.grammar.AntlrParserFactory;
+import org.antlr.v4.runtime.tree.ParseTree;
 import io.github.randomcodespace.iq.detector.DetectorContext;
 import io.github.randomcodespace.iq.detector.DetectorResult;
 import io.github.randomcodespace.iq.model.CodeEdge;
@@ -16,7 +18,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Component
-public class ScalaStructuresDetector extends AbstractRegexDetector {
+public class ScalaStructuresDetector extends AbstractAntlrDetector {
 
     private static final Pattern IMPORT_RE = Pattern.compile("^\\s*import\\s+([\\w.]+)", Pattern.MULTILINE);
     private static final Pattern CLASS_RE = Pattern.compile("^\\s*(?:case\\s+)?class\\s+(\\w+)(?:\\s+extends\\s+(\\w+))?(?:\\s+with\\s+([\\w\\s,]+))?", Pattern.MULTILINE);
@@ -29,9 +31,19 @@ public class ScalaStructuresDetector extends AbstractRegexDetector {
 
     @Override
     public Set<String> getSupportedLanguages() { return Set.of("scala"); }
+    @Override
+    protected ParseTree parse(DetectorContext ctx) {
+        if (!"scala".equals(ctx.language())) return null;
+        return AntlrParserFactory.parse("scala", ctx.content());
+    }
 
     @Override
-    public DetectorResult detect(DetectorContext ctx) {
+    protected DetectorResult detectWithAst(ParseTree tree, DetectorContext ctx) {
+        return detectWithRegex(ctx);
+    }
+
+    @Override
+    protected DetectorResult detectWithRegex(DetectorContext ctx) {
         String text = ctx.content();
         if (text == null || text.isEmpty()) return DetectorResult.empty();
 

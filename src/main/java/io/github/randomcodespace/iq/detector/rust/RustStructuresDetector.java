@@ -1,6 +1,8 @@
 package io.github.randomcodespace.iq.detector.rust;
 
-import io.github.randomcodespace.iq.detector.AbstractRegexDetector;
+import io.github.randomcodespace.iq.detector.AbstractAntlrDetector;
+import io.github.randomcodespace.iq.grammar.AntlrParserFactory;
+import org.antlr.v4.runtime.tree.ParseTree;
 import io.github.randomcodespace.iq.detector.DetectorContext;
 import io.github.randomcodespace.iq.detector.DetectorResult;
 import io.github.randomcodespace.iq.model.CodeEdge;
@@ -16,7 +18,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Component
-public class RustStructuresDetector extends AbstractRegexDetector {
+public class RustStructuresDetector extends AbstractAntlrDetector {
 
     private static final Pattern USE_RE = Pattern.compile("^\\s*use\\s+([\\w:]+)", Pattern.MULTILINE);
     private static final Pattern STRUCT_RE = Pattern.compile("^\\s*(?:pub\\s+)?struct\\s+(\\w+)", Pattern.MULTILINE);
@@ -32,9 +34,19 @@ public class RustStructuresDetector extends AbstractRegexDetector {
 
     @Override
     public Set<String> getSupportedLanguages() { return Set.of("rust"); }
+    @Override
+    protected ParseTree parse(DetectorContext ctx) {
+        if (!"rust".equals(ctx.language())) return null;
+        return AntlrParserFactory.parse("rust", ctx.content());
+    }
 
     @Override
-    public DetectorResult detect(DetectorContext ctx) {
+    protected DetectorResult detectWithAst(ParseTree tree, DetectorContext ctx) {
+        return detectWithRegex(ctx);
+    }
+
+    @Override
+    protected DetectorResult detectWithRegex(DetectorContext ctx) {
         String text = ctx.content();
         if (text == null || text.isEmpty()) return DetectorResult.empty();
 

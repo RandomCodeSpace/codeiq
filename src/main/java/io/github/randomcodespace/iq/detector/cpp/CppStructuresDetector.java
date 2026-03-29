@@ -1,6 +1,8 @@
 package io.github.randomcodespace.iq.detector.cpp;
 
-import io.github.randomcodespace.iq.detector.AbstractRegexDetector;
+import io.github.randomcodespace.iq.detector.AbstractAntlrDetector;
+import io.github.randomcodespace.iq.grammar.AntlrParserFactory;
+import org.antlr.v4.runtime.tree.ParseTree;
 import io.github.randomcodespace.iq.detector.DetectorContext;
 import io.github.randomcodespace.iq.detector.DetectorResult;
 import io.github.randomcodespace.iq.model.CodeEdge;
@@ -16,7 +18,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Component
-public class CppStructuresDetector extends AbstractRegexDetector {
+public class CppStructuresDetector extends AbstractAntlrDetector {
 
     private static final Pattern CLASS_RE = Pattern.compile("(?:template\\s*<[^>]*>\\s*)?class\\s+(\\w+)(?:\\s*:\\s*(?:public|protected|private)\\s+(\\w+))?");
     private static final Pattern STRUCT_RE = Pattern.compile("struct\\s+(\\w+)(?:\\s*:\\s*(?:public|protected|private)\\s+(\\w+))?\\s*\\{");
@@ -35,9 +37,19 @@ public class CppStructuresDetector extends AbstractRegexDetector {
         String stripped = line.stripTrailing();
         return stripped.endsWith(";") && !stripped.contains("{");
     }
+    @Override
+    protected ParseTree parse(DetectorContext ctx) {
+        if (!"cpp".equals(ctx.language()) && !"c".equals(ctx.language())) return null;
+        return AntlrParserFactory.parse("cpp", ctx.content());
+    }
 
     @Override
-    public DetectorResult detect(DetectorContext ctx) {
+    protected DetectorResult detectWithAst(ParseTree tree, DetectorContext ctx) {
+        return detectWithRegex(ctx);
+    }
+
+    @Override
+    protected DetectorResult detectWithRegex(DetectorContext ctx) {
         String text = ctx.content();
         if (text == null || text.isEmpty()) return DetectorResult.empty();
 

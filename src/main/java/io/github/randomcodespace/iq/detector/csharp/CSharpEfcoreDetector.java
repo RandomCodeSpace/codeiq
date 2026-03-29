@@ -1,6 +1,8 @@
 package io.github.randomcodespace.iq.detector.csharp;
 
-import io.github.randomcodespace.iq.detector.AbstractRegexDetector;
+import io.github.randomcodespace.iq.detector.AbstractAntlrDetector;
+import io.github.randomcodespace.iq.grammar.AntlrParserFactory;
+import org.antlr.v4.runtime.tree.ParseTree;
 import io.github.randomcodespace.iq.detector.DetectorContext;
 import io.github.randomcodespace.iq.detector.DetectorResult;
 import io.github.randomcodespace.iq.model.CodeEdge;
@@ -16,7 +18,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Component
-public class CSharpEfcoreDetector extends AbstractRegexDetector {
+public class CSharpEfcoreDetector extends AbstractAntlrDetector {
 
     private static final Pattern DBCONTEXT_RE = Pattern.compile("class\\s+(\\w+)\\s*:\\s*(?:[\\w.]+\\.)?DbContext", Pattern.MULTILINE);
     private static final Pattern DBSET_RE = Pattern.compile("DbSet<(\\w+)>", Pattern.MULTILINE);
@@ -28,9 +30,19 @@ public class CSharpEfcoreDetector extends AbstractRegexDetector {
 
     @Override
     public Set<String> getSupportedLanguages() { return Set.of("csharp"); }
+    @Override
+    protected ParseTree parse(DetectorContext ctx) {
+        if (!"csharp".equals(ctx.language())) return null;
+        return AntlrParserFactory.parse("csharp", ctx.content());
+    }
 
     @Override
-    public DetectorResult detect(DetectorContext ctx) {
+    protected DetectorResult detectWithAst(ParseTree tree, DetectorContext ctx) {
+        return detectWithRegex(ctx);
+    }
+
+    @Override
+    protected DetectorResult detectWithRegex(DetectorContext ctx) {
         String text = ctx.content();
         if (text == null || text.isEmpty()) return DetectorResult.empty();
 

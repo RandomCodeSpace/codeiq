@@ -1,6 +1,8 @@
 package io.github.randomcodespace.iq.detector.kotlin;
 
-import io.github.randomcodespace.iq.detector.AbstractRegexDetector;
+import io.github.randomcodespace.iq.detector.AbstractAntlrDetector;
+import io.github.randomcodespace.iq.grammar.AntlrParserFactory;
+import org.antlr.v4.runtime.tree.ParseTree;
 import io.github.randomcodespace.iq.detector.DetectorContext;
 import io.github.randomcodespace.iq.detector.DetectorResult;
 import io.github.randomcodespace.iq.model.CodeNode;
@@ -12,7 +14,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Component
-public class KtorRouteDetector extends AbstractRegexDetector {
+public class KtorRouteDetector extends AbstractAntlrDetector {
 
     private static final Pattern ENDPOINT_PATTERN = Pattern.compile("\\b(get|post|put|delete|patch)\\(\\s*\"([^\"]+)\"\\s*\\)\\s*\\{");
     private static final Pattern ROUTING_PATTERN = Pattern.compile("\\brouting\\s*\\{");
@@ -61,9 +63,19 @@ public class KtorRouteDetector extends AbstractRegexDetector {
         for (int i = 0; i < s.length(); i++) if (s.charAt(i) == c) count++;
         return count;
     }
+    @Override
+    protected ParseTree parse(DetectorContext ctx) {
+        if (!"kotlin".equals(ctx.language())) return null;
+        return AntlrParserFactory.parse("kotlin", ctx.content());
+    }
 
     @Override
-    public DetectorResult detect(DetectorContext ctx) {
+    protected DetectorResult detectWithAst(ParseTree tree, DetectorContext ctx) {
+        return detectWithRegex(ctx);
+    }
+
+    @Override
+    protected DetectorResult detectWithRegex(DetectorContext ctx) {
         String text = ctx.content();
         if (text == null || text.isEmpty()) return DetectorResult.empty();
 

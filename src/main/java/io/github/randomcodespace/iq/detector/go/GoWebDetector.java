@@ -1,6 +1,8 @@
 package io.github.randomcodespace.iq.detector.go;
 
-import io.github.randomcodespace.iq.detector.AbstractRegexDetector;
+import io.github.randomcodespace.iq.detector.AbstractAntlrDetector;
+import io.github.randomcodespace.iq.grammar.AntlrParserFactory;
+import org.antlr.v4.runtime.tree.ParseTree;
 import io.github.randomcodespace.iq.detector.DetectorContext;
 import io.github.randomcodespace.iq.detector.DetectorResult;
 import io.github.randomcodespace.iq.model.CodeNode;
@@ -12,7 +14,7 @@ import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
 @Component
-public class GoWebDetector extends AbstractRegexDetector {
+public class GoWebDetector extends AbstractAntlrDetector {
 
     private static final Pattern UPPER_ROUTE_RE = Pattern.compile("\\.(?<method>GET|POST|PUT|DELETE|PATCH|HEAD|OPTIONS)\\s*\\(\\s*\"(?<path>[^\"]*)\"", Pattern.MULTILINE);
     private static final Pattern LOWER_ROUTE_RE = Pattern.compile("\\.(?<method>Get|Post|Put|Delete|Patch|Head|Options)\\s*\\(\\s*\"(?<path>[^\"]*)\"", Pattern.MULTILINE);
@@ -42,9 +44,19 @@ public class GoWebDetector extends AbstractRegexDetector {
         if (MUX_RE.matcher(text).find()) return "mux";
         return "net_http";
     }
+    @Override
+    protected ParseTree parse(DetectorContext ctx) {
+        if (!"go".equals(ctx.language())) return null;
+        return AntlrParserFactory.parse("go", ctx.content());
+    }
 
     @Override
-    public DetectorResult detect(DetectorContext ctx) {
+    protected DetectorResult detectWithAst(ParseTree tree, DetectorContext ctx) {
+        return detectWithRegex(ctx);
+    }
+
+    @Override
+    protected DetectorResult detectWithRegex(DetectorContext ctx) {
         String text = ctx.content();
         if (text == null || text.isEmpty()) return DetectorResult.empty();
 
