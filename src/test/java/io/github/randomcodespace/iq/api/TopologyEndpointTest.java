@@ -6,6 +6,8 @@ import io.github.randomcodespace.iq.analyzer.Analyzer;
 import io.github.randomcodespace.iq.config.CodeIqConfig;
 import io.github.randomcodespace.iq.graph.GraphStore;
 import io.github.randomcodespace.iq.mcp.McpTools;
+import io.github.randomcodespace.iq.model.CodeEdge;
+import io.github.randomcodespace.iq.model.CodeNode;
 import io.github.randomcodespace.iq.query.QueryService;
 import io.github.randomcodespace.iq.query.StatsService;
 import io.github.randomcodespace.iq.query.TopologyService;
@@ -25,6 +27,7 @@ import java.util.Map;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.anyList;
 import static org.mockito.Mockito.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
@@ -47,6 +50,9 @@ class TopologyEndpointTest {
     @Mock
     private GraphDatabaseService graphDb;
 
+    @Mock
+    private TopologyService topologyService;
+
     private CodeIqConfig config;
     private MockMvc mockMvc;
     private McpTools mcpTools;
@@ -58,9 +64,16 @@ class TopologyEndpointTest {
         config.setMaxDepth(10);
         config.setMaxRadius(10);
         config.setRootPath(".");
+
         objectMapper = new ObjectMapper();
-        var controller = new GraphController(queryService, analyzer, config);
-        mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
+
+        // GraphStore returns >0 count so TopologyController loads from Neo4j
+        lenient().when(graphStore.count()).thenReturn(1L);
+        lenient().when(graphStore.findAll()).thenReturn(List.of());
+
+        var topologyController = new TopologyController(topologyService, graphStore, config);
+        mockMvc = MockMvcBuilders.standaloneSetup(topologyController).build();
+
         mcpTools = new McpTools(queryService, analyzer, config, objectMapper,
                 Optional.empty(), graphDb, new StatsService(),
                 new TopologyService(), graphStore);
@@ -97,7 +110,7 @@ class TopologyEndpointTest {
 
     @Test
     void getTopologyShouldReturnTopologyResponse() throws Exception {
-        when(queryService.getTopology()).thenReturn(buildTopologyResponse());
+        when(topologyService.getTopology(anyList(), anyList())).thenReturn(buildTopologyResponse());
 
         mockMvc.perform(get("/api/topology"))
                 .andExpect(status().isOk())
@@ -109,7 +122,7 @@ class TopologyEndpointTest {
 
     @Test
     void getTopologyShouldReturnServiceDetails() throws Exception {
-        when(queryService.getTopology()).thenReturn(buildTopologyResponse());
+        when(topologyService.getTopology(anyList(), anyList())).thenReturn(buildTopologyResponse());
 
         mockMvc.perform(get("/api/topology"))
                 .andExpect(status().isOk())
@@ -121,7 +134,7 @@ class TopologyEndpointTest {
 
     @Test
     void getTopologyShouldReturnInfraDetails() throws Exception {
-        when(queryService.getTopology()).thenReturn(buildTopologyResponse());
+        when(topologyService.getTopology(anyList(), anyList())).thenReturn(buildTopologyResponse());
 
         mockMvc.perform(get("/api/topology"))
                 .andExpect(status().isOk())
@@ -132,7 +145,7 @@ class TopologyEndpointTest {
 
     @Test
     void getTopologyShouldReturnConnectionDetails() throws Exception {
-        when(queryService.getTopology()).thenReturn(buildTopologyResponse());
+        when(topologyService.getTopology(anyList(), anyList())).thenReturn(buildTopologyResponse());
 
         mockMvc.perform(get("/api/topology"))
                 .andExpect(status().isOk())
@@ -143,12 +156,12 @@ class TopologyEndpointTest {
     }
 
     @Test
-    void getTopologyDelegatesToQueryService() throws Exception {
-        when(queryService.getTopology()).thenReturn(buildTopologyResponse());
+    void getTopologyDelegatesToTopologyService() throws Exception {
+        when(topologyService.getTopology(anyList(), anyList())).thenReturn(buildTopologyResponse());
 
         mockMvc.perform(get("/api/topology")).andExpect(status().isOk());
 
-        verify(queryService).getTopology();
+        verify(topologyService).getTopology(anyList(), anyList());
     }
 
     @Test
@@ -157,7 +170,7 @@ class TopologyEndpointTest {
         empty.put("services", List.of());
         empty.put("infrastructure", List.of());
         empty.put("connections", List.of());
-        when(queryService.getTopology()).thenReturn(empty);
+        when(topologyService.getTopology(anyList(), anyList())).thenReturn(empty);
 
         mockMvc.perform(get("/api/topology"))
                 .andExpect(status().isOk())
