@@ -49,6 +49,9 @@ public class EnrichCommand implements Callable<Integer> {
     @Parameters(index = "0", defaultValue = ".", description = "Path to indexed codebase")
     private Path path;
 
+    @picocli.CommandLine.Option(names = {"--graph"}, description = "Path to shared graph directory (for multi-repo)")
+    private Path graphDir;
+
     private final CodeIqConfig config;
     private final LayerClassifier layerClassifier;
     private final List<Linker> linkers;
@@ -64,6 +67,12 @@ public class EnrichCommand implements Callable<Integer> {
         Instant start = Instant.now();
         Path root = path.toAbsolutePath().normalize();
         NumberFormat nf = NumberFormat.getIntegerInstance(Locale.US);
+
+        // If --graph is set, override cache directory to shared location
+        if (graphDir != null) {
+            config.setCacheDir(graphDir.toAbsolutePath().normalize().toString());
+            CliOutput.info("  Graph dir: " + graphDir.toAbsolutePath().normalize() + " (shared multi-repo)");
+        }
 
         // 1. Open H2 file
         Path cachePath = root.resolve(config.getCacheDir()).resolve("analysis-cache.db");
@@ -144,13 +153,9 @@ public class EnrichCommand implements Callable<Integer> {
         }
 
         // 4. Start Neo4j Embedded and bulk-load
-        Path neo4jPath = root.resolve(config.getCacheDir()).resolve("../.osscodeiq/graph.db")
-                .normalize();
-        // Use the configured graph path
-        String graphPathStr = config.getRootPath() != null
-                ? root.resolve(".osscodeiq/graph.db").toString()
-                : ".osscodeiq/graph.db";
-        Path graphPath = root.resolve(".osscodeiq/graph.db");
+        Path graphPath = graphDir != null
+                ? graphDir.toAbsolutePath().normalize().resolve("graph.db")
+                : root.resolve(".osscodeiq/graph.db");
 
         CliOutput.step("\uD83D\uDCBE", "Bulk-loading into Neo4j at " + graphPath + "...");
 
