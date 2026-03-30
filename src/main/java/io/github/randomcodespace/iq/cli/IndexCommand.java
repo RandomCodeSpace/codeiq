@@ -91,22 +91,28 @@ public class IndexCommand implements Callable<Integer> {
 
         CliOutput.step("\uD83D\uDD0D", "Indexing " + root + " ...");
         CliOutput.info("  (batch size: " + effectiveBatchSize + " files, "
-                + cores + " cores, H2 store)");
+                + cores + " cores, H2 store, config-first smart pipeline)");
         if (useIncremental) {
             CliOutput.info("  (incremental mode -- use --no-cache for full re-index)");
         }
 
-        AnalysisResult result = analyzer.runBatchedIndex(root, parallelism, effectiveBatchSize,
+        AnalysisResult result = analyzer.runSmartIndex(root, parallelism, effectiveBatchSize,
                 useIncremental, msg -> {
-            if (msg.startsWith("Discovering")) {
-                CliOutput.step("\uD83D\uDD0D", msg);
-            } else if (msg.startsWith("Found")) {
-                CliOutput.step("\uD83D\uDCC1", "@|cyan " + msg + "|@");
-            } else if (msg.startsWith("Indexing") || msg.startsWith("Processing batch")) {
+            if (msg.startsWith("Phase 1")) {
+                CliOutput.step("\uD83D\uDD0D", "@|bold " + msg + "|@");
+            } else if (msg.startsWith("Phase 2")) {
+                CliOutput.step("\uD83D\uDCC1", "@|bold " + msg + "|@");
+            } else if (msg.startsWith("Processing module")) {
+                CliOutput.step("\uD83E\uDDF1", msg);
+            } else if (msg.startsWith("Processing batch")) {
                 CliOutput.step("\u2699\uFE0F", msg);
+            } else if (msg.startsWith("Keyword filter")) {
+                CliOutput.step("\u26A1", "@|green " + msg + "|@");
             } else if (msg.startsWith("Cache hits")) {
                 CliOutput.step("\u26A1", "@|green " + msg + "|@");
-            } else if (msg.startsWith("Index complete")) {
+            } else if (msg.startsWith("Service:")) {
+                CliOutput.info("  " + msg);
+            } else if (msg.startsWith("Smart index complete")) {
                 // handled below
             } else {
                 CliOutput.info(msg);

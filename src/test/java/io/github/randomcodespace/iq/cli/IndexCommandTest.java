@@ -55,7 +55,7 @@ class IndexCommandTest {
                 Map.of("calls", 50, "contains", 35), Map.of("spring", 30),
                 Duration.ofMillis(1234)
         );
-        when(analyzer.runBatchedIndex(any(Path.class), any(), anyInt(), anyBoolean(), any(Consumer.class)))
+        when(analyzer.runSmartIndex(any(Path.class), any(), anyInt(), anyBoolean(), any(Consumer.class)))
                 .thenReturn(result);
 
         var cmd = new IndexCommand(analyzer, config);
@@ -84,7 +84,7 @@ class IndexCommandTest {
                 Map.of("calls", 15), Map.of(),
                 Duration.ofMillis(500)
         );
-        when(analyzer.runBatchedIndex(any(Path.class), any(), anyInt(), anyBoolean(), any(Consumer.class)))
+        when(analyzer.runSmartIndex(any(Path.class), any(), anyInt(), anyBoolean(), any(Consumer.class)))
                 .thenReturn(result);
 
         var cmd = new IndexCommand(analyzer, config);
@@ -92,7 +92,7 @@ class IndexCommandTest {
         int exitCode = cmdLine.execute(tempDir.toString(), "--batch-size", "100");
 
         assertEquals(0, exitCode);
-        verify(analyzer).runBatchedIndex(any(Path.class), eq(null), eq(100), eq(true), any(Consumer.class));
+        verify(analyzer).runSmartIndex(any(Path.class), eq(null), eq(100), eq(true), any(Consumer.class));
     }
 
     @Test
@@ -108,7 +108,7 @@ class IndexCommandTest {
                 Map.of("calls", 5), Map.of(),
                 Duration.ofMillis(200)
         );
-        when(analyzer.runBatchedIndex(any(Path.class), any(), anyInt(), anyBoolean(), any(Consumer.class)))
+        when(analyzer.runSmartIndex(any(Path.class), any(), anyInt(), anyBoolean(), any(Consumer.class)))
                 .thenReturn(result);
 
         var cmd = new IndexCommand(analyzer, config);
@@ -116,7 +116,7 @@ class IndexCommandTest {
         int exitCode = cmdLine.execute(tempDir.toString(), "--no-cache");
 
         assertEquals(0, exitCode);
-        verify(analyzer).runBatchedIndex(any(Path.class), eq(null), eq(1000), eq(false), any(Consumer.class));
+        verify(analyzer).runSmartIndex(any(Path.class), eq(null), eq(1000), eq(false), any(Consumer.class));
     }
 
     @Test
@@ -132,7 +132,7 @@ class IndexCommandTest {
                 Map.of("calls", 15), Map.of(),
                 Duration.ofMillis(500)
         );
-        when(analyzer.runBatchedIndex(any(Path.class), any(), anyInt(), anyBoolean(), any(Consumer.class)))
+        when(analyzer.runSmartIndex(any(Path.class), any(), anyInt(), anyBoolean(), any(Consumer.class)))
                 .thenReturn(result);
 
         var cmd = new IndexCommand(analyzer, config);
@@ -140,6 +140,6 @@ class IndexCommandTest {
         int exitCode = cmdLine.execute(tempDir.toString(), "--parallelism", "4");
 
         assertEquals(0, exitCode);
-        verify(analyzer).runBatchedIndex(any(Path.class), eq(4), eq(1000), eq(true), any(Consumer.class));
+        verify(analyzer).runSmartIndex(any(Path.class), eq(4), eq(1000), eq(true), any(Consumer.class));
     }
 }
