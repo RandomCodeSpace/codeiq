@@ -25,6 +25,9 @@ import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicBoolean;
 
+import io.github.randomcodespace.iq.graph.GraphStore;
+import org.springframework.cache.CacheManager;
+
 /**
  * REST API controller matching the Python OSSCodeIQ API paths.
  */
@@ -36,14 +39,20 @@ public class GraphController {
     private final QueryService queryService;
     private final Analyzer analyzer;
     private final CodeIqConfig config;
+    private final CacheManager cacheManager;
+    private final GraphStore graphStore;
     private final AtomicBoolean analysisRunning = new AtomicBoolean(false);
 
     public GraphController(@org.springframework.beans.factory.annotation.Autowired(required = false) QueryService queryService,
                            Analyzer analyzer,
-                           CodeIqConfig config) {
+                           CodeIqConfig config,
+                           @org.springframework.beans.factory.annotation.Autowired(required = false) CacheManager cacheManager,
+                           @org.springframework.beans.factory.annotation.Autowired(required = false) GraphStore graphStore) {
         this.queryService = queryService;
         this.analyzer = analyzer;
         this.config = config;
+        this.cacheManager = cacheManager;
+        this.graphStore = graphStore;
     }
 
     @GetMapping("/stats")
@@ -268,6 +277,19 @@ public class GraphController {
         }
         try {
             AnalysisResult result = analyzer.run(Path.of(config.getRootPath()), null);
+
+            // Persist to Neo4j if GraphStore is available
+            if (graphStore != null && result.nodes() != null && !result.nodes().isEmpty()) {
+                graphStore.bulkSave(result.nodes());
+            }
+
+            // Evict all Spring caches so queries pick up new data
+            if (cacheManager != null) {
+                cacheManager.getCacheNames().forEach(name -> {
+                    var cache = cacheManager.getCache(name);
+                    if (cache != null) cache.clear();
+                });
+            }
 
             Map<String, Object> response = new LinkedHashMap<>();
             response.put("status", "complete");

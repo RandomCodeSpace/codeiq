@@ -259,6 +259,11 @@ public class McpTools {
             boolean useIncremental = incremental != null ? incremental : true;
             AnalysisResult result = analyzer.run(Path.of(config.getRootPath()), null, useIncremental, null);
 
+            // Persist to Neo4j
+            if (graphStore != null && result.nodes() != null && !result.nodes().isEmpty()) {
+                graphStore.bulkSave(result.nodes());
+            }
+
             Map<String, Object> response = new LinkedHashMap<>();
             response.put("status", "complete");
             response.put("total_files", result.totalFiles());

@@ -435,6 +435,8 @@ public class QueryService {
         m.put("source", edge.getSourceId());
         if (edge.getTarget() != null) {
             m.put("target", edge.getTarget().getId());
+            m.put("target_label", edge.getTarget().getLabel());
+            m.put("target_kind", edge.getTarget().getKind().getValue());
         }
         if (edge.getProperties() != null && !edge.getProperties().isEmpty()) {
             m.put("properties", edge.getProperties());

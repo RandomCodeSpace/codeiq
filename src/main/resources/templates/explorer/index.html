@@ -139,12 +139,172 @@
         <!-- Content area -->
         <div id="content" class="animate-fade-in">
 
-            <!-- Layer summary cards -->
-            <div th:if="${stats != null and stats['nodes_by_layer'] != null}" class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-8">
-                <div th:each="entry : ${stats['nodes_by_layer']}"
+            <!-- Graph overview cards -->
+            <div th:if="${stats != null}" class="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
+                <div class="bg-card dark:bg-card-dark rounded-lg border border-slate-200 dark:border-slate-700 p-4 animate-slide-up">
+                    <div class="text-2xl font-bold text-brand-600 dark:text-brand-400" th:text="${stats['node_count']}">0</div>
+                    <div class="text-sm text-muted dark:text-muted-dark">Nodes</div>
+                </div>
+                <div class="bg-card dark:bg-card-dark rounded-lg border border-slate-200 dark:border-slate-700 p-4 animate-slide-up" style="animation-delay: 30ms">
+                    <div class="text-2xl font-bold text-emerald-600 dark:text-emerald-400" th:text="${stats['edge_count']}">0</div>
+                    <div class="text-sm text-muted dark:text-muted-dark">Edges</div>
+                </div>
+                <div th:if="${stats['graph'] != null}" class="bg-card dark:bg-card-dark rounded-lg border border-slate-200 dark:border-slate-700 p-4 animate-slide-up" style="animation-delay: 60ms">
+                    <div class="text-2xl font-bold text-violet-600 dark:text-violet-400" th:text="${stats['graph']['files']}">0</div>
+                    <div class="text-sm text-muted dark:text-muted-dark">Files</div>
+                </div>
+                <div th:if="${kinds != null}" class="bg-card dark:bg-card-dark rounded-lg border border-slate-200 dark:border-slate-700 p-4 animate-slide-up" style="animation-delay: 90ms">
+                    <div class="text-2xl font-bold text-amber-600 dark:text-amber-400" th:text="${#lists.size(kinds['kinds'])}">0</div>
+                    <div class="text-sm text-muted dark:text-muted-dark">Node Kinds</div>
+                </div>
+            </div>
+
+            <!-- Layer breakdown -->
+            <div th:if="${stats != null and stats['nodes_by_layer'] != null}" class="mb-6">
+                <h2 class="text-sm font-semibold text-muted dark:text-muted-dark uppercase tracking-wide mb-3">Architecture Layers</h2>
+                <div class="grid grid-cols-2 sm:grid-cols-5 gap-3">
+                    <div th:each="entry, iterStat : ${stats['nodes_by_layer']}"
+                         th:attr="style='animation-delay: ' + ${iterStat.index * 30} + 'ms'"
+                         class="bg-card dark:bg-card-dark rounded-lg border border-slate-200 dark:border-slate-700 p-3 animate-slide-up">
+                        <div class="text-lg font-bold"
+                             th:classappend="${entry.key == 'backend' ? 'text-blue-600 dark:text-blue-400' :
+                                               entry.key == 'frontend' ? 'text-green-600 dark:text-green-400' :
+                                               entry.key == 'infra' ? 'text-orange-600 dark:text-orange-400' :
+                                               entry.key == 'shared' ? 'text-purple-600 dark:text-purple-400' :
+                                               'text-slate-500 dark:text-slate-400'}"
+                             th:text="${entry.value}">0</div>
+                        <div class="text-xs text-muted dark:text-muted-dark capitalize" th:text="${entry.key}">layer</div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Intelligence panels: Languages, Frameworks, Connections -->
+            <div th:if="${stats != null}" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-6">
+
+                <!-- Languages -->
+                <div th:if="${stats['languages'] != null and !stats['languages'].isEmpty()}"
                      class="bg-card dark:bg-card-dark rounded-lg border border-slate-200 dark:border-slate-700 p-4 animate-slide-up">
-                    <div class="text-2xl font-bold text-brand-600 dark:text-brand-400" th:text="${entry.value}">0</div>
-                    <div class="text-sm text-muted dark:text-muted-dark capitalize" th:text="${entry.key}">layer</div>
+                    <h3 class="text-sm font-semibold text-muted dark:text-muted-dark uppercase tracking-wide mb-3">Languages</h3>
+                    <div class="space-y-2">
+                        <div th:each="lang : ${stats['languages']}" class="flex items-center justify-between">
+                            <span class="text-sm capitalize" th:text="${lang.key}">lang</span>
+                            <span class="text-xs font-mono bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full" th:text="${lang.value}">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Frameworks -->
+                <div th:if="${stats['frameworks'] != null and !stats['frameworks'].isEmpty()}"
+                     class="bg-card dark:bg-card-dark rounded-lg border border-slate-200 dark:border-slate-700 p-4 animate-slide-up" style="animation-delay: 30ms">
+                    <h3 class="text-sm font-semibold text-muted dark:text-muted-dark uppercase tracking-wide mb-3">Frameworks</h3>
+                    <div class="space-y-2">
+                        <div th:each="fw : ${stats['frameworks']}" class="flex items-center justify-between">
+                            <span class="text-sm" th:text="${fw.key}">framework</span>
+                            <span class="text-xs font-mono bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full" th:text="${fw.value}">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Connections -->
+                <div th:if="${stats['connections'] != null}"
+                     class="bg-card dark:bg-card-dark rounded-lg border border-slate-200 dark:border-slate-700 p-4 animate-slide-up" style="animation-delay: 60ms">
+                    <h3 class="text-sm font-semibold text-muted dark:text-muted-dark uppercase tracking-wide mb-3">Connections</h3>
+                    <div class="space-y-2">
+                        <div th:if="${stats['connections']['rest'] != null and stats['connections']['rest']['total'] > 0}" class="flex items-center justify-between">
+                            <span class="text-sm">REST Endpoints</span>
+                            <span class="text-xs font-mono bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 px-2 py-0.5 rounded-full"
+                                  th:text="${stats['connections']['rest']['total']}">0</span>
+                        </div>
+                        <div th:if="${stats['connections']['rest'] != null and stats['connections']['rest']['by_method'] != null}"
+                             class="flex flex-wrap gap-1 pl-2">
+                            <span th:each="method : ${stats['connections']['rest']['by_method']}"
+                                  class="text-[10px] font-mono px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400"
+                                  th:text="${method.key + ' ' + method.value}">GET 5</span>
+                        </div>
+                        <div th:if="${stats['connections']['grpc'] != null and stats['connections']['grpc'] > 0}" class="flex items-center justify-between">
+                            <span class="text-sm">gRPC</span>
+                            <span class="text-xs font-mono bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full"
+                                  th:text="${stats['connections']['grpc']}">0</span>
+                        </div>
+                        <div th:if="${stats['connections']['websocket'] != null and stats['connections']['websocket'] > 0}" class="flex items-center justify-between">
+                            <span class="text-sm">WebSocket</span>
+                            <span class="text-xs font-mono bg-violet-100 dark:bg-violet-900/30 text-violet-700 dark:text-violet-300 px-2 py-0.5 rounded-full"
+                                  th:text="${stats['connections']['websocket']}">0</span>
+                        </div>
+                        <div th:if="${stats['connections']['producers'] != null and stats['connections']['producers'] > 0}" class="flex items-center justify-between">
+                            <span class="text-sm">Producers</span>
+                            <span class="text-xs font-mono bg-amber-100 dark:bg-amber-900/30 text-amber-700 dark:text-amber-300 px-2 py-0.5 rounded-full"
+                                  th:text="${stats['connections']['producers']}">0</span>
+                        </div>
+                        <div th:if="${stats['connections']['consumers'] != null and stats['connections']['consumers'] > 0}" class="flex items-center justify-between">
+                            <span class="text-sm">Consumers</span>
+                            <span class="text-xs font-mono bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-300 px-2 py-0.5 rounded-full"
+                                  th:text="${stats['connections']['consumers']}">0</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Infrastructure + Auth + Architecture row -->
+            <div th:if="${stats != null}" class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-8">
+
+                <!-- Infrastructure -->
+                <div th:if="${stats['infra'] != null}"
+                     class="bg-card dark:bg-card-dark rounded-lg border border-slate-200 dark:border-slate-700 p-4 animate-slide-up">
+                    <h3 class="text-sm font-semibold text-muted dark:text-muted-dark uppercase tracking-wide mb-3">Infrastructure</h3>
+                    <div class="space-y-3">
+                        <div th:if="${stats['infra']['databases'] != null and !stats['infra']['databases'].isEmpty()}">
+                            <div class="text-xs text-muted dark:text-muted-dark mb-1">Databases</div>
+                            <div class="flex flex-wrap gap-1">
+                                <span th:each="db : ${stats['infra']['databases']}"
+                                      class="text-xs px-2 py-0.5 rounded-full bg-cyan-100 dark:bg-cyan-900/30 text-cyan-700 dark:text-cyan-300"
+                                      th:text="${db.key + ' (' + db.value + ')'}">db (1)</span>
+                            </div>
+                        </div>
+                        <div th:if="${stats['infra']['messaging'] != null and !stats['infra']['messaging'].isEmpty()}">
+                            <div class="text-xs text-muted dark:text-muted-dark mb-1">Messaging</div>
+                            <div class="flex flex-wrap gap-1">
+                                <span th:each="msg : ${stats['infra']['messaging']}"
+                                      class="text-xs px-2 py-0.5 rounded-full bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300"
+                                      th:text="${msg.key + ' (' + msg.value + ')'}">kafka (2)</span>
+                            </div>
+                        </div>
+                        <div th:if="${stats['infra']['cloud'] != null and !stats['infra']['cloud'].isEmpty()}">
+                            <div class="text-xs text-muted dark:text-muted-dark mb-1">Cloud Resources</div>
+                            <div class="flex flex-wrap gap-1">
+                                <span th:each="cloud : ${stats['infra']['cloud']}"
+                                      class="text-xs px-2 py-0.5 rounded-full bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300"
+                                      th:text="${cloud.key + ' (' + cloud.value + ')'}">vm (1)</span>
+                            </div>
+                        </div>
+                        <div th:if="${(stats['infra']['databases'] == null or stats['infra']['databases'].isEmpty()) and (stats['infra']['messaging'] == null or stats['infra']['messaging'].isEmpty()) and (stats['infra']['cloud'] == null or stats['infra']['cloud'].isEmpty())}"
+                             class="text-xs text-muted dark:text-muted-dark italic">No infrastructure detected</div>
+                    </div>
+                </div>
+
+                <!-- Auth -->
+                <div th:if="${stats['auth'] != null and !stats['auth'].isEmpty()}"
+                     class="bg-card dark:bg-card-dark rounded-lg border border-slate-200 dark:border-slate-700 p-4 animate-slide-up" style="animation-delay: 30ms">
+                    <h3 class="text-sm font-semibold text-muted dark:text-muted-dark uppercase tracking-wide mb-3">Auth / Guards</h3>
+                    <div class="space-y-2">
+                        <div th:each="auth : ${stats['auth']}" class="flex items-center justify-between">
+                            <span class="text-sm capitalize" th:text="${auth.key}">type</span>
+                            <span class="text-xs font-mono bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 px-2 py-0.5 rounded-full"
+                                  th:text="${auth.value}">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Architecture -->
+                <div th:if="${stats['architecture'] != null and !stats['architecture'].isEmpty()}"
+                     class="bg-card dark:bg-card-dark rounded-lg border border-slate-200 dark:border-slate-700 p-4 animate-slide-up" style="animation-delay: 60ms">
+                    <h3 class="text-sm font-semibold text-muted dark:text-muted-dark uppercase tracking-wide mb-3">Architecture</h3>
+                    <div class="space-y-2">
+                        <div th:each="arch : ${stats['architecture']}" class="flex items-center justify-between">
+                            <span class="text-sm capitalize" th:text="${#strings.replace(arch.key, '_', ' ')}">type</span>
+                            <span class="text-xs font-mono bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-full" th:text="${arch.value}">0</span>
+                        </div>
+                    </div>
                 </div>
             </div>
 

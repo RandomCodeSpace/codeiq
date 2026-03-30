@@ -55,6 +55,15 @@ public class MicronautDetector extends AbstractRegexDetector {
         String text = ctx.content();
         if (text == null || text.isEmpty()) return DetectorResult.empty();
 
+        // First, require a Micronaut-specific indicator to avoid false positives on
+        // Spring Boot or other frameworks that share common annotations like
+        // @Controller, @Singleton, @Inject, @Scheduled, @EventListener, etc.
+        boolean hasMicronautIndicator = text.contains("io.micronaut")
+                || text.contains("@Client");
+        if (!hasMicronautIndicator) {
+            return DetectorResult.empty();
+        }
+
         if (!text.contains("@Controller") && !text.contains("@Get") && !text.contains("@Post")
                 && !text.contains("@Put") && !text.contains("@Delete")
                 && !text.contains("@Singleton") && !text.contains("@Prototype") && !text.contains("@Infrastructure")

@@ -77,6 +77,66 @@ class LayerClassifierTest {
         assertEquals("shared", classifier.classifyOne(node));
     }
 
+    @Test
+    void entityIsBackend() {
+        var node = new CodeNode("en1", NodeKind.ENTITY, "Owner");
+        assertEquals("backend", classifier.classifyOne(node));
+    }
+
+    @Test
+    void migrationIsBackend() {
+        var node = new CodeNode("mg1", NodeKind.MIGRATION, "V1__init");
+        assertEquals("backend", classifier.classifyOne(node));
+    }
+
+    @Test
+    void serviceIsBackend() {
+        var node = new CodeNode("s1", NodeKind.SERVICE, "OwnerService");
+        assertEquals("backend", classifier.classifyOne(node));
+    }
+
+    @Test
+    void topicIsBackend() {
+        var node = new CodeNode("tp1", NodeKind.TOPIC, "order-events");
+        assertEquals("backend", classifier.classifyOne(node));
+    }
+
+    @Test
+    void queueIsBackend() {
+        var node = new CodeNode("q1", NodeKind.QUEUE, "task-queue");
+        assertEquals("backend", classifier.classifyOne(node));
+    }
+
+    @Test
+    void eventIsBackend() {
+        var node = new CodeNode("ev1", NodeKind.EVENT, "OrderPlaced");
+        assertEquals("backend", classifier.classifyOne(node));
+    }
+
+    @Test
+    void messageQueueIsBackend() {
+        var node = new CodeNode("mq1", NodeKind.MESSAGE_QUEUE, "rabbitmq");
+        assertEquals("backend", classifier.classifyOne(node));
+    }
+
+    @Test
+    void rmiInterfaceIsBackend() {
+        var node = new CodeNode("rmi1", NodeKind.RMI_INTERFACE, "RemoteService");
+        assertEquals("backend", classifier.classifyOne(node));
+    }
+
+    @Test
+    void websocketEndpointIsBackend() {
+        var node = new CodeNode("ws1", NodeKind.WEBSOCKET_ENDPOINT, "/ws/chat");
+        assertEquals("backend", classifier.classifyOne(node));
+    }
+
+    @Test
+    void protocolMessageIsShared() {
+        var node = new CodeNode("pm1", NodeKind.PROTOCOL_MESSAGE, "UserRequest");
+        assertEquals("shared", classifier.classifyOne(node));
+    }
+
     // ---- Language rules ----
 
     @Test

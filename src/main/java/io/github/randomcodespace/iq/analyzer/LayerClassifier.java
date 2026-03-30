@@ -24,7 +24,11 @@ public class LayerClassifier {
 
     private static final Set<NodeKind> BACKEND_NODE_KINDS = Set.of(
             NodeKind.GUARD, NodeKind.MIDDLEWARE, NodeKind.ENDPOINT,
-            NodeKind.REPOSITORY, NodeKind.DATABASE_CONNECTION, NodeKind.QUERY
+            NodeKind.REPOSITORY, NodeKind.DATABASE_CONNECTION, NodeKind.QUERY,
+            NodeKind.ENTITY, NodeKind.MIGRATION, NodeKind.SERVICE,
+            NodeKind.TOPIC, NodeKind.QUEUE, NodeKind.EVENT,
+            NodeKind.MESSAGE_QUEUE, NodeKind.RMI_INTERFACE,
+            NodeKind.WEBSOCKET_ENDPOINT
     );
 
     private static final Set<NodeKind> INFRA_NODE_KINDS = Set.of(
@@ -36,7 +40,8 @@ public class LayerClassifier {
     );
 
     private static final Set<NodeKind> SHARED_NODE_KINDS = Set.of(
-            NodeKind.CONFIG_FILE, NodeKind.CONFIG_KEY, NodeKind.CONFIG_DEFINITION
+            NodeKind.CONFIG_FILE, NodeKind.CONFIG_KEY, NodeKind.CONFIG_DEFINITION,
+            NodeKind.PROTOCOL_MESSAGE
     );
 
     private static final Pattern FRONTEND_PATH_RE = Pattern.compile(

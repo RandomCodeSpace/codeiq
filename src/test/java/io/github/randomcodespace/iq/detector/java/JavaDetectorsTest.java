@@ -627,6 +627,8 @@ class JavaDetectorsTest {
     @Nested
     class MicronautTests {
         private static final String SAMPLE = """
+                import io.micronaut.http.annotation.Controller;
+                import io.micronaut.http.annotation.Get;
                 @Controller("/api")
                 public class HelloController {
                     @Get("/hello")
@@ -657,6 +659,7 @@ class JavaDetectorsTest {
     @Nested
     class QuarkusTests {
         private static final String SAMPLE = """
+                import io.quarkus.runtime.annotations.ConfigProperty;
                 @ApplicationScoped
                 public class GreetingService {
                     @ConfigProperty(name = "greeting.message")

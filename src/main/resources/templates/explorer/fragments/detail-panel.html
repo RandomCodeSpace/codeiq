@@ -100,13 +100,17 @@
             <div th:if="${detail['outgoing_edges'] != null and !detail['outgoing_edges'].isEmpty()}" class="space-y-2">
                 <div th:each="edge : ${detail['outgoing_edges']}"
                      class="flex items-center gap-3 text-sm p-2 rounded hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                    <span class="text-xs font-mono px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 uppercase"
+                    <span class="text-xs font-mono px-2 py-0.5 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-300 uppercase whitespace-nowrap"
                           th:text="${edge['kind']}">CALLS</span>
                     <svg class="w-4 h-4 text-muted dark:text-muted-dark shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
-                    <a th:if="${edge['target'] != null}"
-                       th:href="@{/ui/node/{id}(id=${edge['target']})}"
-                       class="text-brand-600 dark:text-brand-400 hover:underline font-mono text-xs truncate"
-                       th:text="${edge['target']}">target</a>
+                    <div th:if="${edge['target'] != null}" class="flex items-center gap-2 min-w-0">
+                        <span th:if="${edge['target_kind'] != null}"
+                              class="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 capitalize whitespace-nowrap"
+                              th:text="${edge['target_kind']}">class</span>
+                        <a th:href="@{/ui/node/{id}(id=${edge['target']})}"
+                           class="text-brand-600 dark:text-brand-400 hover:underline text-sm truncate"
+                           th:text="${edge['target_label'] != null ? edge['target_label'] : edge['target']}">target</a>
+                    </div>
                     <span th:if="${edge['target'] == null}" class="text-muted dark:text-muted-dark text-xs italic">unknown target</span>
                 </div>
             </div>
@@ -129,12 +133,21 @@
             <div th:if="${detail['incoming_nodes'] != null and !detail['incoming_nodes'].isEmpty()}" class="space-y-2">
                 <div th:each="node : ${detail['incoming_nodes']}"
                      class="flex items-center gap-3 text-sm p-2 rounded hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
-                    <span class="text-xs font-mono px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 capitalize"
+                    <span class="text-xs font-mono px-2 py-0.5 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 capitalize whitespace-nowrap"
                           th:text="${node['kind']}">class</span>
                     <svg class="w-4 h-4 text-muted dark:text-muted-dark shrink-0" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
-                    <a th:href="@{/ui/node/{id}(id=${node['id']})}"
-                       class="text-brand-600 dark:text-brand-400 hover:underline truncate"
-                       th:text="${node['label']}">label</a>
+                    <div class="flex items-center gap-2 min-w-0">
+                        <a th:href="@{/ui/node/{id}(id=${node['id']})}"
+                           class="text-brand-600 dark:text-brand-400 hover:underline text-sm truncate"
+                           th:text="${node['label']}">label</a>
+                        <span th:if="${node['layer'] != null}"
+                              class="text-[10px] px-1.5 py-0.5 rounded uppercase whitespace-nowrap"
+                              th:classappend="${node['layer'] == 'backend' ? 'bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300' :
+                                               node['layer'] == 'frontend' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300' :
+                                               node['layer'] == 'infra' ? 'bg-orange-100 dark:bg-orange-900/30 text-orange-700 dark:text-orange-300' :
+                                               'bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400'}"
+                              th:text="${node['layer']}">layer</span>
+                    </div>
                 </div>
             </div>
         </div>

@@ -49,6 +49,16 @@ public class QuarkusDetector extends AbstractRegexDetector {
         String text = ctx.content();
         if (text == null || text.isEmpty()) return DetectorResult.empty();
 
+        // First, require a Quarkus-specific indicator to avoid false positives on
+        // Spring Boot or other frameworks that share common annotations like
+        // @Transactional, @Scheduled, @Singleton, @ApplicationScoped, etc.
+        boolean hasQuarkusIndicator = text.contains("io.quarkus")
+                || text.contains("io.smallrye")
+                || text.contains("@QuarkusTest");
+        if (!hasQuarkusIndicator) {
+            return DetectorResult.empty();
+        }
+
         if (!text.contains("@QuarkusTest") && !text.contains("@ConfigProperty")
                 && !text.contains("@Singleton") && !text.contains("@ApplicationScoped")
                 && !text.contains("@RequestScoped") && !text.contains("@Scheduled")

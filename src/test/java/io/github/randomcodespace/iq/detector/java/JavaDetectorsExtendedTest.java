@@ -489,6 +489,7 @@ class JavaDetectorsExtendedTest {
         @Test
         void detectsMultipleEndpointTypes() {
             String code = """
+                    import io.micronaut.http.annotation.Controller;
                     @Controller("/api")
                     public class ApiController {
                         @Get("/items")
@@ -508,6 +509,7 @@ class JavaDetectorsExtendedTest {
         @Test
         void detectsMicronautBeans() {
             String code = """
+                    import io.micronaut.context.annotation.Factory;
                     @Factory
                     public class AppFactory {
                         @Bean
@@ -525,6 +527,7 @@ class JavaDetectorsExtendedTest {
         @Test
         void detectsScheduledAndEvents() {
             String code = """
+                    import io.micronaut.scheduling.annotation.Scheduled;
                     @Singleton
                     public class TaskService {
                         @Scheduled(fixedDelay = "5s")
@@ -819,6 +822,7 @@ class JavaDetectorsExtendedTest {
         @Test
         void detectsReactiveEndpoints() {
             String code = """
+                    import io.quarkus.hibernate.reactive.panache.PanacheEntity;
                     @Path("/api/items")
                     @ApplicationScoped
                     public class ItemResource {
@@ -836,6 +840,7 @@ class JavaDetectorsExtendedTest {
         @Test
         void detectsQuarkusEvents() {
             String code = """
+                    import io.quarkus.runtime.StartupEvent;
                     @ApplicationScoped
                     public class EventService {
                         @Incoming("orders")

@@ -10,12 +10,17 @@ import org.neo4j.graphdb.Transaction;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Service;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 
 /**
  * Facade service over the Neo4j graph backend.
@@ -27,6 +32,8 @@ import java.util.Optional;
 @Service
 @ConditionalOnBean(GraphRepository.class)
 public class GraphStore implements FlowDataSource {
+
+    private static final Logger log = LoggerFactory.getLogger(GraphStore.class);
 
     private final GraphRepository repository;
     private final GraphDatabaseService graphDb;
@@ -54,6 +61,97 @@ public class GraphStore implements FlowDataSource {
         repository.deleteById(id);
     }
 
+    /**
+     * Bulk save nodes and edges using Cypher MERGE (bypasses SDN to avoid
+     * duplicate key issues with relationship hydration).
+     * Nodes are saved first, then edges, to ensure referential integrity.
+     */
+    public void bulkSave(List<CodeNode> nodes) {
+        if (nodes.isEmpty()) return;
+
+        // Clear existing data
+        try (Transaction tx = graphDb.beginTx()) {
+            tx.execute("MATCH (n) DETACH DELETE n");
+            tx.commit();
+        }
+
+        // Save nodes in batches of 500
+        int batchSize = 500;
+        for (int i = 0; i < nodes.size(); i += batchSize) {
+            List<CodeNode> batch = nodes.subList(i, Math.min(i + batchSize, nodes.size()));
+            try (Transaction tx = graphDb.beginTx()) {
+                for (CodeNode node : batch) {
+                    Map<String, Object> props = new HashMap<>();
+                    props.put("id", node.getId());
+                    props.put("kind", node.getKind().getValue());
+                    props.put("label", node.getLabel());
+                    if (node.getFqn() != null) props.put("fqn", node.getFqn());
+                    if (node.getModule() != null) props.put("module", node.getModule());
+                    if (node.getFilePath() != null) props.put("filePath", node.getFilePath());
+                    if (node.getLineStart() != null) props.put("lineStart", node.getLineStart());
+                    if (node.getLineEnd() != null) props.put("lineEnd", node.getLineEnd());
+                    if (node.getLayer() != null) props.put("layer", node.getLayer());
+                    if (node.getAnnotations() != null && !node.getAnnotations().isEmpty()) {
+                        props.put("annotations", String.join(",", node.getAnnotations()));
+                    }
+                    // Serialize properties map as individual prefixed keys
+                    if (node.getProperties() != null) {
+                        for (var entry : node.getProperties().entrySet()) {
+                            if (entry.getValue() != null) {
+                                props.put("prop_" + entry.getKey(), entry.getValue().toString());
+                            }
+                        }
+                    }
+                    tx.execute("CREATE (n:CodeNode) SET n = $props", Map.of("props", props));
+                }
+                tx.commit();
+            }
+        }
+
+        // Build set of all saved node IDs for edge validation
+        Set<String> savedNodeIds = new HashSet<>(nodes.size());
+        for (CodeNode node : nodes) {
+            savedNodeIds.add(node.getId());
+        }
+
+        // Save edges (only where both source and target exist in the graph)
+        List<CodeEdge> allEdges = nodes.stream()
+                .flatMap(n -> n.getEdges().stream())
+                .toList();
+        int created = 0;
+        int skipped = 0;
+        for (int i = 0; i < allEdges.size(); i += batchSize) {
+            List<CodeEdge> batch = allEdges.subList(i, Math.min(i + batchSize, allEdges.size()));
+            try (Transaction tx = graphDb.beginTx()) {
+                for (CodeEdge edge : batch) {
+                    String sourceId = edge.getSourceId();
+                    String targetId = edge.getTarget() != null ? edge.getTarget().getId() : null;
+                    if (targetId == null || sourceId == null) {
+                        skipped++;
+                        continue;
+                    }
+                    if (!savedNodeIds.contains(sourceId) || !savedNodeIds.contains(targetId)) {
+                        skipped++;
+                        continue;
+                    }
+                    Map<String, Object> params = new HashMap<>();
+                    params.put("sourceId", sourceId);
+                    params.put("targetId", targetId);
+                    params.put("edgeId", edge.getId());
+                    params.put("kind", edge.getKind().getValue());
+                    tx.execute("""
+                            MATCH (s:CodeNode {id: $sourceId}), (t:CodeNode {id: $targetId})
+                            CREATE (s)-[:RELATES_TO {id: $edgeId, kind: $kind, sourceId: $sourceId}]->(t)
+                            """, params);
+                    created++;
+                }
+                tx.commit();
+            }
+        }
+        log.info("Edges: {} created, {} skipped (missing source/target node), {} total",
+                created, skipped, allEdges.size());
+    }
+
     // --- Read operations (embedded API, no relationship hydration) ---
 
     public Optional<CodeNode> findById(String id) {
@@ -62,7 +160,10 @@ public class GraphStore implements FlowDataSource {
                     "MATCH (n:CodeNode {id: $id}) RETURN n", Map.of("id", id));
             if (result.hasNext()) {
                 var neo4jNode = (org.neo4j.graphdb.Node) result.next().get("n");
-                return Optional.of(nodeFromNeo4j(neo4jNode));
+                CodeNode node = nodeFromNeo4j(neo4jNode);
+                // Hydrate outgoing edges for this single node
+                hydrateEdgesForNode(tx, node);
+                return Optional.of(node);
             }
             return Optional.empty();
         }
@@ -329,7 +430,7 @@ public class GraphStore implements FlowDataSource {
         try (Transaction tx = graphDb.beginTx()) {
             var result = tx.execute(
                     "MATCH (s:CodeNode)-[r:RELATES_TO]->(t:CodeNode) "
-                            + "RETURN r.id AS id, r.kind AS kind, r.sourceId AS sourceId, t.id AS targetId "
+                            + "RETURN r.id AS id, r.kind AS kind, s.id AS sourceId, t.id AS targetId "
                             + "SKIP $offset LIMIT $limit",
                     Map.of("offset", offset, "limit", limit));
             while (result.hasNext()) {
@@ -350,7 +451,7 @@ public class GraphStore implements FlowDataSource {
         try (Transaction tx = graphDb.beginTx()) {
             var result = tx.execute(
                     "MATCH (s:CodeNode)-[r:RELATES_TO]->(t:CodeNode) WHERE r.kind = $kind "
-                            + "RETURN r.id AS id, r.kind AS kind, r.sourceId AS sourceId, t.id AS targetId "
+                            + "RETURN r.id AS id, r.kind AS kind, s.id AS sourceId, t.id AS targetId "
                             + "SKIP $offset LIMIT $limit",
                     Map.of("kind", kind, "offset", offset, "limit", limit));
             while (result.hasNext()) {
@@ -521,7 +622,7 @@ public class GraphStore implements FlowDataSource {
         try (Transaction tx = graphDb.beginTx()) {
             var result = tx.execute(
                     "MATCH (s:CodeNode)-[r:RELATES_TO]->(t:CodeNode) "
-                            + "RETURN r.id AS id, r.kind AS kind, r.sourceId AS sourceId, t.id AS targetId");
+                            + "RETURN r.id AS id, r.kind AS kind, s.id AS sourceId, t.id AS targetId");
             while (result.hasNext()) {
                 var row = result.next();
                 String sourceId = (String) row.get("sourceId");
@@ -545,6 +646,33 @@ public class GraphStore implements FlowDataSource {
     }
 
     /**
+     * Hydrate edges for a single node within an existing transaction.
+     * Used by findById() to populate outgoing edges for node detail views.
+     */
+    private void hydrateEdgesForNode(Transaction tx, CodeNode node) {
+        var result = tx.execute(
+                "MATCH (s:CodeNode {id: $nodeId})-[r:RELATES_TO]->(t:CodeNode) "
+                        + "RETURN r.id AS id, r.kind AS kind, t.id AS targetId, t",
+                Map.of("nodeId", node.getId()));
+        while (result.hasNext()) {
+            var row = result.next();
+            String edgeId = (String) row.get("id");
+            String kindStr = (String) row.get("kind");
+            String targetId = (String) row.get("targetId");
+            EdgeKind edgeKind;
+            try {
+                edgeKind = EdgeKind.fromValue(kindStr);
+            } catch (IllegalArgumentException e) {
+                continue;
+            }
+            // Build a lightweight target node (id only for reference)
+            var targetNeo4j = (org.neo4j.graphdb.Node) row.get("t");
+            CodeNode target = nodeFromNeo4j(targetNeo4j);
+            node.getEdges().add(new CodeEdge(edgeId, edgeKind, node.getId(), target));
+        }
+    }
+
+    /**
      * Convert a Neo4j embedded Node to a CodeNode without loading relationships.
      * This is the key to avoiding OOM — we read only scalar properties.
      */
@@ -564,6 +692,20 @@ public class GraphStore implements FlowDataSource {
         if (lineStart instanceof Number n) node.setLineStart(n.intValue());
         Object lineEnd = neo4jNode.getProperty("lineEnd", null);
         if (lineEnd instanceof Number n) node.setLineEnd(n.intValue());
+
+        // Restore annotations
+        String annotations = (String) neo4jNode.getProperty("annotations", null);
+        if (annotations != null && !annotations.isBlank()) {
+            node.setAnnotations(new ArrayList<>(List.of(annotations.split(","))));
+        }
+
+        // Restore properties from prop_* prefixed keys
+        for (String key : neo4jNode.getPropertyKeys()) {
+            if (key.startsWith("prop_")) {
+                String propName = key.substring(5);
+                node.getProperties().put(propName, neo4jNode.getProperty(key));
+            }
+        }
 
         return node;
     }

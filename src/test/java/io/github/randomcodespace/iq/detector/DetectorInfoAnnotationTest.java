@@ -4,6 +4,7 @@ import io.github.randomcodespace.iq.model.NodeKind;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.context.ActiveProfiles;
 
 import java.util.Arrays;
 import java.util.List;
@@ -17,6 +18,7 @@ import static org.junit.jupiter.api.Assertions.*;
  * and that annotation metadata is consistent with the detector's runtime values.
  */
 @SpringBootTest
+@ActiveProfiles("test")
 class DetectorInfoAnnotationTest {
 
     @Autowired

@@ -333,14 +333,26 @@ public class Analyzer {
             }
         }
 
-        // 6. Compute node breakdown
+        // 6. Attach edges to their source nodes for downstream consumers
+        Map<String, CodeNode> nodeById = new HashMap<>(allNodes.size());
+        for (CodeNode node : allNodes) {
+            nodeById.put(node.getId(), node);
+        }
+        for (var edge : builder.getEdges()) {
+            CodeNode source = nodeById.get(edge.getSourceId());
+            if (source != null) {
+                source.getEdges().add(edge);
+            }
+        }
+
+        // 7. Compute node breakdown
         Map<String, Integer> nodeBreakdown = new HashMap<>();
         for (CodeNode node : allNodes) {
             String kindValue = node.getKind().getValue();
             nodeBreakdown.merge(kindValue, 1, Integer::sum);
         }
 
-        // 7. Compute edge breakdown
+        // 8. Compute edge breakdown
         Map<String, Integer> edgeBreakdown = new HashMap<>();
         for (var edge : builder.getEdges()) {
             String kindValue = edge.getKind().getValue();
@@ -383,7 +395,8 @@ public class Analyzer {
                 nodeBreakdown,
                 edgeBreakdown,
                 frameworkBreakdown,
-                elapsed
+                elapsed,
+                allNodes
         );
     }
 
