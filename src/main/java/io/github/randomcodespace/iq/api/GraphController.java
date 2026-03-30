@@ -43,7 +43,8 @@ public class GraphController {
     private final StatsService statsService;
     private final TopologyService topologyService;
 
-    public GraphController(QueryService queryService, Analyzer analyzer,
+    public GraphController(@org.springframework.beans.factory.annotation.Autowired(required = false) QueryService queryService,
+                           Analyzer analyzer,
                            CodeIqConfig config, StatsService statsService,
                            TopologyService topologyService) {
         this.queryService = queryService;
@@ -55,7 +56,15 @@ public class GraphController {
 
     @GetMapping("/stats")
     public Map<String, Object> getStats() {
-        return queryService.getStats();
+        // Use H2 cache for stats — more memory-efficient than loading entire Neo4j graph
+        var data = loadFromH2();
+        if (data != null) {
+            return statsService.computeStats(data.nodes(), data.edges());
+        }
+        if (queryService != null) {
+            return queryService.getStats();
+        }
+        return Map.of("error", "No analysis data available. Run analyze first.");
     }
 
     @GetMapping("/stats/detailed")
@@ -93,7 +102,28 @@ public class GraphController {
 
     @GetMapping("/kinds")
     public Map<String, Object> listKinds() {
-        return queryService.listKinds();
+        var data = loadFromH2();
+        if (data != null) {
+            Map<String, Long> kindCounts = data.nodes().stream()
+                    .collect(java.util.stream.Collectors.groupingBy(
+                            n -> n.getKind().getValue(),
+                            java.util.stream.Collectors.counting()));
+            List<Map<String, Object>> kinds = kindCounts.entrySet().stream()
+                    .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
+                    .map(e -> {
+                        Map<String, Object> m = new LinkedHashMap<>();
+                        m.put("kind", e.getKey());
+                        m.put("count", e.getValue());
+                        return m;
+                    })
+                    .toList();
+            Map<String, Object> result = new LinkedHashMap<>();
+            result.put("kinds", kinds);
+            result.put("total", data.nodes().size());
+            return result;
+        }
+        if (queryService != null) return queryService.listKinds();
+        return Map.of("error", "No data available");
     }
 
     @GetMapping("/kinds/{kind}")
@@ -101,7 +131,23 @@ public class GraphController {
             @PathVariable String kind,
             @RequestParam(defaultValue = "50") int limit,
             @RequestParam(defaultValue = "0") int offset) {
-        return queryService.nodesByKind(kind, limit, offset);
+        var data = loadFromH2();
+        if (data != null) {
+            List<CodeNode> filtered = data.nodes().stream()
+                    .filter(n -> n.getKind().getValue().equals(kind))
+                    .toList();
+            int start = Math.min(offset, filtered.size());
+            int end = Math.min(start + limit, filtered.size());
+            Map<String, Object> result = new LinkedHashMap<>();
+            result.put("kind", kind);
+            result.put("total", filtered.size());
+            result.put("offset", offset);
+            result.put("limit", limit);
+            result.put("nodes", filtered.subList(start, end).stream().map(this::nodeToMap).toList());
+            return result;
+        }
+        if (queryService != null) return queryService.nodesByKind(kind, limit, offset);
+        return Map.of("error", "No data available");
     }
 
     @GetMapping("/nodes")
@@ -109,7 +155,25 @@ public class GraphController {
             @RequestParam(required = false) String kind,
             @RequestParam(defaultValue = "100") int limit,
             @RequestParam(defaultValue = "0") int offset) {
-        return queryService.listNodes(kind, limit, offset);
+        var data = loadFromH2();
+        if (data != null) {
+            List<CodeNode> filtered = data.nodes();
+            if (kind != null && !kind.isBlank()) {
+                filtered = filtered.stream()
+                        .filter(n -> n.getKind().getValue().equals(kind))
+                        .toList();
+            }
+            int start = Math.min(offset, filtered.size());
+            int end = Math.min(start + limit, filtered.size());
+            Map<String, Object> result = new LinkedHashMap<>();
+            result.put("nodes", filtered.subList(start, end).stream().map(this::nodeToMap).toList());
+            result.put("count", end - start);
+            result.put("offset", offset);
+            result.put("limit", limit);
+            return result;
+        }
+        if (queryService != null) return queryService.listNodes(kind, limit, offset);
+        return Map.of("error", "No data available");
     }
 
     @GetMapping("/nodes/find")
@@ -130,6 +194,16 @@ public class GraphController {
 
     @GetMapping("/nodes/{nodeId}/detail")
     public Map<String, Object> nodeDetail(@PathVariable String nodeId) {
+        // Try H2 first
+        var data = loadFromH2();
+        if (data != null) {
+            return data.nodes().stream()
+                    .filter(n -> nodeId.equals(n.getId()))
+                    .findFirst()
+                    .map(this::nodeToMap)
+                    .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Node not found: " + nodeId));
+        }
+        if (queryService == null) throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Node not found: " + nodeId);
         Map<String, Object> result = queryService.nodeDetailWithEdges(nodeId);
         if (result == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND, "Node not found: " + nodeId);
@@ -141,6 +215,7 @@ public class GraphController {
     public Map<String, Object> neighbors(
             @PathVariable String nodeId,
             @RequestParam(defaultValue = "both") String direction) {
+        requireQueryService();
         return queryService.getNeighbors(nodeId, direction);
     }
 
@@ -149,6 +224,23 @@ public class GraphController {
             @RequestParam(required = false) String kind,
             @RequestParam(defaultValue = "100") int limit,
             @RequestParam(defaultValue = "0") int offset) {
+        var data = loadFromH2();
+        if (data != null) {
+            List<CodeEdge> filtered = data.edges();
+            if (kind != null && !kind.isBlank()) {
+                filtered = filtered.stream()
+                        .filter(e -> e.getKind().getValue().equals(kind))
+                        .toList();
+            }
+            int start = Math.min(offset, filtered.size());
+            int end = Math.min(start + limit, filtered.size());
+            Map<String, Object> result = new LinkedHashMap<>();
+            result.put("edges", filtered.subList(start, end).stream().map(this::edgeToMap).toList());
+            result.put("count", end - start);
+            result.put("total", filtered.size());
+            return result;
+        }
+        requireQueryService();
         return queryService.listEdges(kind, limit, offset);
     }
 
@@ -157,11 +249,13 @@ public class GraphController {
             @PathVariable String center,
             @RequestParam(defaultValue = "2") int radius) {
         int cappedRadius = Math.min(radius, config.getMaxRadius());
+        requireQueryService();
         return queryService.egoGraph(center, cappedRadius);
     }
 
     @GetMapping("/query/cycles")
     public Map<String, Object> findCycles(@RequestParam(defaultValue = "100") int limit) {
+        requireQueryService();
         return queryService.findCycles(limit);
     }
 
@@ -169,6 +263,7 @@ public class GraphController {
     public Map<String, Object> shortestPath(
             @RequestParam String source,
             @RequestParam String target) {
+        requireQueryService();
         Map<String, Object> result = queryService.shortestPath(source, target);
         if (result == null) {
             throw new ResponseStatusException(HttpStatus.NOT_FOUND,
@@ -179,31 +274,37 @@ public class GraphController {
 
     @GetMapping("/query/consumers/{targetId}")
     public Map<String, Object> consumersOf(@PathVariable String targetId) {
+        requireQueryService();
         return queryService.consumersOf(targetId);
     }
 
     @GetMapping("/query/producers/{targetId}")
     public Map<String, Object> producersOf(@PathVariable String targetId) {
+        requireQueryService();
         return queryService.producersOf(targetId);
     }
 
     @GetMapping("/query/callers/{targetId}")
     public Map<String, Object> callersOf(@PathVariable String targetId) {
+        requireQueryService();
         return queryService.callersOf(targetId);
     }
 
     @GetMapping("/query/dependencies/{moduleId}")
     public Map<String, Object> dependenciesOf(@PathVariable String moduleId) {
+        requireQueryService();
         return queryService.dependenciesOf(moduleId);
     }
 
     @GetMapping("/query/dependents/{moduleId}")
     public Map<String, Object> dependentsOf(@PathVariable String moduleId) {
+        requireQueryService();
         return queryService.dependentsOf(moduleId);
     }
 
     @GetMapping("/triage/component")
     public Map<String, Object> findComponent(@RequestParam String file) {
+        requireQueryService();
         return queryService.findComponentByFile(file);
     }
 
@@ -212,6 +313,7 @@ public class GraphController {
             @PathVariable String nodeId,
             @RequestParam(defaultValue = "3") int depth) {
         int cappedDepth = Math.min(depth, config.getMaxDepth());
+        requireQueryService();
         return queryService.traceImpact(nodeId, cappedDepth);
     }
 
@@ -219,7 +321,31 @@ public class GraphController {
     public List<Map<String, Object>> searchGraph(
             @RequestParam String q,
             @RequestParam(defaultValue = "50") int limit) {
-        return queryService.searchGraph(q, limit);
+        // Search from H2
+        var data = loadFromH2();
+        if (data != null) {
+            return topologyService.findNode(q, data.nodes());
+        }
+        if (queryService != null) return queryService.searchGraph(q, limit);
+        return List.of();
+    }
+
+    private void requireQueryService() {
+        if (queryService == null) {
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
+                    "Neo4j graph not available. This endpoint requires 'enrich' to be run first.");
+        }
+    }
+
+    private Map<String, Object> edgeToMap(CodeEdge edge) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("id", edge.getId());
+        m.put("kind", edge.getKind().getValue());
+        m.put("source", edge.getSourceId());
+        if (edge.getTarget() != null) {
+            m.put("target", edge.getTarget().getId());
+        }
+        return m;
     }
 
     @GetMapping("/file")
@@ -275,5 +401,48 @@ public class GraphController {
         response.put("edge_count", result.edgeCount());
         response.put("elapsed_ms", result.elapsed().toMillis());
         return response;
+    }
+
+    // --- H2 cache helpers ---
+
+    private record H2Data(List<CodeNode> nodes, List<CodeEdge> edges) {}
+
+    /**
+     * Load nodes and edges from the H2 analysis cache, or null if not available.
+     */
+    private H2Data loadFromH2() {
+        Path root = Path.of(config.getRootPath()).toAbsolutePath().normalize();
+        Path cachePath = root.resolve(config.getCacheDir()).resolve("analysis-cache.db");
+        Path h2File = root.resolve(config.getCacheDir()).resolve("analysis-cache.mv.db");
+
+        if (!Files.exists(h2File)) {
+            return null;
+        }
+
+        try (AnalysisCache cache = new AnalysisCache(cachePath)) {
+            List<CodeNode> nodes = cache.loadAllNodes();
+            List<CodeEdge> edges = cache.loadAllEdges();
+            return new H2Data(nodes, edges);
+        }
+    }
+
+    private Map<String, Object> nodeToMap(CodeNode node) {
+        Map<String, Object> m = new LinkedHashMap<>();
+        m.put("id", node.getId());
+        m.put("kind", node.getKind().getValue());
+        m.put("label", node.getLabel());
+        if (node.getFqn() != null) m.put("fqn", node.getFqn());
+        if (node.getModule() != null) m.put("module", node.getModule());
+        if (node.getFilePath() != null) m.put("file_path", node.getFilePath());
+        if (node.getLineStart() != null) m.put("line_start", node.getLineStart());
+        if (node.getLineEnd() != null) m.put("line_end", node.getLineEnd());
+        if (node.getLayer() != null) m.put("layer", node.getLayer());
+        if (node.getAnnotations() != null && !node.getAnnotations().isEmpty()) {
+            m.put("annotations", node.getAnnotations());
+        }
+        if (node.getProperties() != null && !node.getProperties().isEmpty()) {
+            m.put("properties", node.getProperties());
+        }
+        return m;
     }
 }

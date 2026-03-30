@@ -295,6 +295,14 @@ public class Analyzer {
         List<CodeNode> allNodes = builder.getNodes();
         layerClassifier.classify(allNodes);
 
+        // 5b. Tag nodes with service name if configured (multi-repo mode)
+        String serviceName = config.getServiceName();
+        if (serviceName != null && !serviceName.isBlank()) {
+            for (CodeNode node : allNodes) {
+                node.getProperties().put("service", serviceName);
+            }
+        }
+
         // 6. Compute node breakdown
         Map<String, Integer> nodeBreakdown = new HashMap<>();
         for (CodeNode node : allNodes) {
@@ -537,6 +545,13 @@ public class Analyzer {
                         if (!incremental) {
                             batchNodes.addAll(result.nodes());
                             batchEdges.addAll(result.edges());
+                        }
+                        // Tag nodes with service name if configured (multi-repo mode)
+                        String svcName = config.getServiceName();
+                        if (svcName != null && !svcName.isBlank()) {
+                            for (CodeNode node : result.nodes()) {
+                                node.getProperties().put("service", svcName);
+                            }
                         }
                         // Track breakdowns
                         for (CodeNode node : result.nodes()) {

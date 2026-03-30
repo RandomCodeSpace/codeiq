@@ -32,6 +32,7 @@ import java.util.Map;
  */
 @Component
 @Profile("serving")
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(name = "codeiq.neo4j.enabled", havingValue = "true", matchIfMissing = true)
 public class McpTools {
 
     private final QueryService queryService;

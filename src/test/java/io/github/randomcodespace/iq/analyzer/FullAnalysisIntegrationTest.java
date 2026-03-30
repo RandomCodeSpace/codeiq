@@ -135,8 +135,10 @@ class FullAnalysisIntegrationTest {
     /**
      * Build all detectors manually — no Spring context needed.
      */
+    @SuppressWarnings("unchecked")
     private static List<Detector> allDetectors() {
-        return List.of(
+        // Use explicit Detector[] to avoid List.of() varargs inference issue with 90+ subtypes
+        Detector[] detectors = {
                 // Auth
                 new CertificateAuthDetector(),
                 new LdapAuthDetector(),
@@ -251,7 +253,8 @@ class FullAnalysisIntegrationTest {
                 new SequelizeORMDetector(),
                 new TypeORMEntityDetector(),
                 new TypeScriptStructuresDetector()
-        );
+        };
+        return List.of(detectors);
     }
 
     private static List<Linker> allLinkers() {

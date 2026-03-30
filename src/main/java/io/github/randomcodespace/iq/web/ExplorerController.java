@@ -21,6 +21,7 @@ import java.util.Map;
 @Controller
 @Profile("serving")
 @RequestMapping("/ui")
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(name = "codeiq.neo4j.enabled", havingValue = "true", matchIfMissing = true)
 public class ExplorerController {
 
     private final QueryService queryService;

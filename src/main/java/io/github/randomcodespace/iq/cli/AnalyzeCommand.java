@@ -41,6 +41,12 @@ public class AnalyzeCommand implements Callable<Integer> {
             description = "Max parallel threads (default: auto-detect from CPU)")
     private Integer parallelism;
 
+    @Option(names = {"--graph"}, description = "Path to shared graph directory (for multi-repo)")
+    private Path graphDir;
+
+    @Option(names = {"--service-name"}, description = "Service name tag for nodes (for multi-repo)")
+    private String serviceName;
+
     private final Analyzer analyzer;
     private final CodeIqConfig config;
 
@@ -52,6 +58,19 @@ public class AnalyzeCommand implements Callable<Integer> {
     @Override
     public Integer call() {
         Path root = path.toAbsolutePath().normalize();
+
+        // If --graph is set, override the cache directory to the shared location
+        if (graphDir != null) {
+            Path sharedDir = graphDir.toAbsolutePath().normalize();
+            config.setCacheDir(sharedDir.toString());
+            CliOutput.info("  Graph dir: " + sharedDir + " (shared multi-repo)");
+        }
+
+        // If --service-name is set, tag all nodes with this service identifier
+        if (serviceName != null && !serviceName.isBlank()) {
+            config.setServiceName(serviceName);
+            CliOutput.info("  Service name: " + serviceName);
+        }
 
         // Load project-level config overrides from .osscodeiq.yml if present
         ProjectConfigLoader.loadIfPresent(root, config);

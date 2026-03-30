@@ -25,6 +25,9 @@ public class CodeIqConfig {
     /** Batch size for file processing during indexing (files per H2 flush). */
     private int batchSize = 500;
 
+    /** Service name tag for multi-repo graph mode. */
+    private String serviceName;
+
     // --- Getters and Setters ---
 
     public String getRootPath() {
@@ -65,5 +68,13 @@ public class CodeIqConfig {
 
     public void setBatchSize(int batchSize) {
         this.batchSize = Math.max(1, batchSize);
+    }
+
+    public String getServiceName() {
+        return serviceName;
+    }
+
+    public void setServiceName(String serviceName) {
+        this.serviceName = serviceName;
     }
 }

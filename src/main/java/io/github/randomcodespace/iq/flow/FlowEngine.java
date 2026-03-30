@@ -18,6 +18,7 @@ import java.util.function.Function;
  */
 @Service
 @ConditionalOnBean(GraphStore.class)
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(name = "codeiq.neo4j.enabled", havingValue = "true", matchIfMissing = true)
 public class FlowEngine {
 
     /**

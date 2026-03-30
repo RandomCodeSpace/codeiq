@@ -59,6 +59,13 @@ public class CodeIqApplication implements CommandLineRunner, ExitCodeGenerator {
 
         if (isServe) {
             app.setAdditionalProfiles("serving");
+
+            // Extract --port flag for server port
+            String portStr = extractFlag(args, "--port");
+            if (portStr == null) portStr = extractFlag(args, "-p");
+            if (portStr != null) {
+                System.setProperty("server.port", portStr);
+            }
         } else if (isIndex) {
             app.setAdditionalProfiles("indexing");
             // Index command: no web server, no Neo4j
@@ -74,5 +81,56 @@ public class CodeIqApplication implements CommandLineRunner, ExitCodeGenerator {
         }
 
         System.exit(SpringApplication.exit(app.run(args)));
+    }
+
+    /**
+     * Extract the value of a named flag from the args array.
+     * Supports both "--flag value" and "--flag=value" forms.
+     */
+    private static String extractFlag(String[] args, String flagName) {
+        for (int i = 0; i < args.length; i++) {
+            if (args[i].equals(flagName) && i + 1 < args.length) {
+                return args[i + 1];
+            }
+            if (args[i].startsWith(flagName + "=")) {
+                return args[i].substring(flagName.length() + 1);
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Extract the first positional argument after the command name.
+     * Skips flags (--name value pairs) to find positional args.
+     */
+    private static String extractPositionalArg(String[] args, String command) {
+        boolean foundCommand = false;
+        boolean skipNext = false;
+        for (String arg : args) {
+            if (skipNext) {
+                skipNext = false;
+                continue;
+            }
+            if (!foundCommand && arg.equalsIgnoreCase(command)) {
+                foundCommand = true;
+                continue;
+            }
+            if (foundCommand) {
+                // Skip --flag value pairs
+                if (arg.startsWith("--") && !arg.contains("=")) {
+                    skipNext = true;
+                    continue;
+                }
+                if (arg.startsWith("-") && arg.length() == 2) {
+                    skipNext = true; // short flag like -p 8080
+                    continue;
+                }
+                if (arg.startsWith("-")) {
+                    continue; // --flag=value or -flag
+                }
+                return arg;
+            }
+        }
+        return null;
     }
 }

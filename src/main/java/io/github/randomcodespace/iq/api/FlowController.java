@@ -23,6 +23,7 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/flow")
 @Profile("serving")
+@org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(name = "codeiq.neo4j.enabled", havingValue = "true", matchIfMissing = true)
 public class FlowController {
 
     private final FlowEngine flowEngine;

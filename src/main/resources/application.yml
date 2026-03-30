@@ -3,6 +3,7 @@ spring:
     name: code-iq
   main:
     banner-mode: off
+    allow-bean-definition-overriding: true
   threads:
     virtual:
       enabled: true
@@ -53,4 +54,8 @@ spring:
     activate:
       on-profile: serving
   cache:
-    type: hazelcast
+    type: simple
+
+codeiq:
+  neo4j:
+    enabled: false

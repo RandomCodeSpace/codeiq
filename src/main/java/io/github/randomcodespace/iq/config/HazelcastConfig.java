@@ -21,7 +21,7 @@ import org.springframework.context.annotation.Profile;
  * Both modes support the same cache maps: graph-stats, kinds-list, kind-nodes,
  * node-detail, search-results, impact-trace.
  */
-@Configuration
+@Configuration("hazelcastConfigurer")
 @Profile({"serving", "k8s"})
 public class HazelcastConfig {
 
