@@ -19,11 +19,14 @@ class GraphStoreExtendedTest {
     @Mock
     private GraphRepository repository;
 
+    @Mock
+    private org.neo4j.graphdb.GraphDatabaseService graphDb;
+
     private GraphStore store;
 
     @BeforeEach
     void setUp() {
-        store = new GraphStore(repository);
+        store = new GraphStore(repository, graphDb);
     }
 
     @Test

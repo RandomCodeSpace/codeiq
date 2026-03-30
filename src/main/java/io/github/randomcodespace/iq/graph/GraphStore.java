@@ -3,9 +3,13 @@ package io.github.randomcodespace.iq.graph;
 import io.github.randomcodespace.iq.flow.FlowDataSource;
 import io.github.randomcodespace.iq.model.CodeNode;
 import io.github.randomcodespace.iq.model.NodeKind;
+import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.graphdb.Transaction;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Service;
 
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -20,9 +24,11 @@ import java.util.Optional;
 public class GraphStore implements FlowDataSource {
 
     private final GraphRepository repository;
+    private final GraphDatabaseService graphDb;
 
-    public GraphStore(GraphRepository repository) {
+    public GraphStore(GraphRepository repository, GraphDatabaseService graphDb) {
         this.repository = repository;
+        this.graphDb = graphDb;
     }
 
     public CodeNode save(CodeNode node) {
@@ -139,28 +145,101 @@ public class GraphStore implements FlowDataSource {
         return repository.countByKind(kind);
     }
 
+    // --- Aggregation queries via embedded Neo4j API (bypasses SDN entity mapping) ---
+
     public long countEdges() {
-        return repository.countEdges();
+        try (Transaction tx = graphDb.beginTx()) {
+            var result = tx.execute("MATCH ()-[r:RELATES_TO]->() RETURN count(r) AS cnt");
+            if (result.hasNext()) {
+                return ((Number) result.next().get("cnt")).longValue();
+            }
+            return 0;
+        }
     }
 
     public List<Map<String, Object>> countNodesByKind() {
-        return repository.countNodesByKind();
+        List<Map<String, Object>> rows = new ArrayList<>();
+        try (Transaction tx = graphDb.beginTx()) {
+            var result = tx.execute("MATCH (n:CodeNode) RETURN n.kind AS kind, count(n) AS cnt");
+            while (result.hasNext()) {
+                var row = result.next();
+                Map<String, Object> m = new LinkedHashMap<>();
+                m.put("kind", row.get("kind"));
+                m.put("cnt", ((Number) row.get("cnt")).longValue());
+                rows.add(m);
+            }
+        }
+        return rows;
     }
 
     public List<Map<String, Object>> countNodesByLayer() {
-        return repository.countNodesByLayer();
+        List<Map<String, Object>> rows = new ArrayList<>();
+        try (Transaction tx = graphDb.beginTx()) {
+            var result = tx.execute(
+                    "MATCH (n:CodeNode) WHERE n.layer IS NOT NULL RETURN n.layer AS layer, count(n) AS cnt");
+            while (result.hasNext()) {
+                var row = result.next();
+                Map<String, Object> m = new LinkedHashMap<>();
+                m.put("layer", row.get("layer"));
+                m.put("cnt", ((Number) row.get("cnt")).longValue());
+                rows.add(m);
+            }
+        }
+        return rows;
     }
 
     public List<Map<String, Object>> findEdgesPaginated(int offset, int limit) {
-        return repository.findEdgesPaginated(offset, limit);
+        List<Map<String, Object>> rows = new ArrayList<>();
+        try (Transaction tx = graphDb.beginTx()) {
+            var result = tx.execute(
+                    "MATCH (s:CodeNode)-[r:RELATES_TO]->(t:CodeNode) "
+                            + "RETURN r.id AS id, r.kind AS kind, r.sourceId AS sourceId, t.id AS targetId "
+                            + "SKIP $offset LIMIT $limit",
+                    Map.of("offset", offset, "limit", limit));
+            while (result.hasNext()) {
+                var row = result.next();
+                Map<String, Object> m = new LinkedHashMap<>();
+                m.put("id", row.get("id"));
+                m.put("kind", row.get("kind"));
+                m.put("sourceId", row.get("sourceId"));
+                m.put("targetId", row.get("targetId"));
+                rows.add(m);
+            }
+        }
+        return rows;
     }
 
     public List<Map<String, Object>> findEdgesByKindPaginated(String kind, int offset, int limit) {
-        return repository.findEdgesByKindPaginated(kind, offset, limit);
+        List<Map<String, Object>> rows = new ArrayList<>();
+        try (Transaction tx = graphDb.beginTx()) {
+            var result = tx.execute(
+                    "MATCH (s:CodeNode)-[r:RELATES_TO]->(t:CodeNode) WHERE r.kind = $kind "
+                            + "RETURN r.id AS id, r.kind AS kind, r.sourceId AS sourceId, t.id AS targetId "
+                            + "SKIP $offset LIMIT $limit",
+                    Map.of("kind", kind, "offset", offset, "limit", limit));
+            while (result.hasNext()) {
+                var row = result.next();
+                Map<String, Object> m = new LinkedHashMap<>();
+                m.put("id", row.get("id"));
+                m.put("kind", row.get("kind"));
+                m.put("sourceId", row.get("sourceId"));
+                m.put("targetId", row.get("targetId"));
+                rows.add(m);
+            }
+        }
+        return rows;
     }
 
     public long countEdgesByKind(String kind) {
-        return repository.countEdgesByKind(kind);
+        try (Transaction tx = graphDb.beginTx()) {
+            var result = tx.execute(
+                    "MATCH ()-[r:RELATES_TO]->() WHERE r.kind = $kind RETURN count(r) AS cnt",
+                    Map.of("kind", kind));
+            if (result.hasNext()) {
+                return ((Number) result.next().get("cnt")).longValue();
+            }
+            return 0;
+        }
     }
 
     public List<CodeNode> findNodesWithoutIncoming(List<String> kinds, int offset, int limit) {

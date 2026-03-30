@@ -6,7 +6,6 @@ import org.springframework.data.neo4j.repository.query.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
-import java.util.Map;
 
 /**
  * Spring Data Neo4j repository for CodeNode entities.
@@ -77,23 +76,9 @@ public interface GraphRepository extends Neo4jRepository<CodeNode, String> {
     @Query("MATCH (n:CodeNode) WHERE n.kind = $kind RETURN count(n)")
     long countByKind(String kind);
 
-    @Query("MATCH (n:CodeNode)-[r:RELATES_TO]->(m:CodeNode) RETURN count(r)")
-    long countEdges();
-
-    @Query("MATCH (n:CodeNode) RETURN n.kind AS kind, count(n) AS cnt")
-    List<Map<String, Object>> countNodesByKind();
-
-    @Query("MATCH (n:CodeNode) WHERE n.layer IS NOT NULL RETURN n.layer AS layer, count(n) AS cnt")
-    List<Map<String, Object>> countNodesByLayer();
-
-    @Query("MATCH (s:CodeNode)-[r:RELATES_TO]->(t:CodeNode) RETURN r.id AS id, r.kind AS kind, r.sourceId AS sourceId, t.id AS targetId SKIP $offset LIMIT $limit")
-    List<Map<String, Object>> findEdgesPaginated(int offset, int limit);
-
-    @Query("MATCH (s:CodeNode)-[r:RELATES_TO]->(t:CodeNode) WHERE r.kind = $kind RETURN r.id AS id, r.kind AS kind, r.sourceId AS sourceId, t.id AS targetId SKIP $offset LIMIT $limit")
-    List<Map<String, Object>> findEdgesByKindPaginated(String kind, int offset, int limit);
-
-    @Query("MATCH (s:CodeNode)-[r:RELATES_TO]->(t:CodeNode) WHERE r.kind = $kind RETURN count(r)")
-    long countEdgesByKind(String kind);
+    // Note: multi-column aggregation queries (countNodesByKind, countNodesByLayer,
+    // findEdgesPaginated, findEdgesByKindPaginated) are in GraphStore using the
+    // embedded Neo4j API directly, since SDN cannot map multi-column results.
 
     @Query("MATCH (n:CodeNode) WHERE n.kind IN $kinds AND NOT EXISTS { MATCH (m)-[:RELATES_TO]->(n) } RETURN n SKIP $offset LIMIT $limit")
     List<CodeNode> findNodesWithoutIncoming(List<String> kinds, int offset, int limit);
