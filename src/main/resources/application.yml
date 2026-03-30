@@ -1,0 +1,61 @@
+spring:
+  application:
+    name: code-iq
+  main:
+    banner-mode: off
+    allow-bean-definition-overriding: true
+  threads:
+    virtual:
+      enabled: true
+  # Neo4j runs in embedded mode — no Bolt URI needed.
+  # See Neo4jConfig.java and codeiq.graph.path below.
+
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,info,metrics
+
+codeiq:
+  root-path: "."
+  cache-dir: ".code-intelligence"
+  graph:
+    path: ".osscodeiq/graph.db"
+  max-depth: 10
+  max-radius: 10
+  batch-size: 500
+
+spring.ai.mcp.server:
+  name: code-iq
+  version: 0.1.0
+  protocol: STATELESS
+
+---
+spring:
+  config:
+    activate:
+      on-profile: indexing
+  main:
+    lazy-initialization: true
+  autoconfigure:
+    exclude:
+      - org.springframework.ai.mcp.server.autoconfigure.McpServerAutoConfiguration
+
+codeiq:
+  neo4j:
+    enabled: false
+
+---
+spring:
+  config:
+    activate:
+      on-profile: serving
+  cache:
+    type: simple
+
+codeiq:
+  neo4j:
+    enabled: false

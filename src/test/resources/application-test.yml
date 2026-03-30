@@ -1,0 +1,12 @@
+spring:
+  profiles:
+    active: indexing
+  cache:
+    type: none
+
+codeiq:
+  neo4j:
+    enabled: false
+  root-path: "."
+  max-depth: 10
+  max-radius: 10

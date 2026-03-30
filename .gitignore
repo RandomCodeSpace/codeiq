@@ -1,29 +1,13 @@
-# Python
-__pycache__/
-*.py[cod]
-*$py.class
-*.so
-*.egg-info/
-*.egg
-.eggs/
-dist/
-build/
-sdist/
-wheels/
-*.whl
-
-# Virtual environments
-.venv/
-venv/
-env/
-ENV/
-
-# Testing
-.pytest_cache/
-.coverage
-htmlcov/
-.tox/
-.nox/
+# Java build
+target/
+*.class
+*.jar
+!src/main/resources/static/js/vendor/*.js
+.classpath
+.project
+.settings/
+.factorypath
+*.iml
 
 # IDE
 .idea/
@@ -31,8 +15,6 @@ htmlcov/
 *.swp
 *.swo
 *~
-.project
-.settings/
 
 # OS
 .DS_Store
@@ -41,7 +23,7 @@ Thumbs.db
 # Project
 .osscodeiq/
 .superpowers/
-docs/superpowers/
+.code-intelligence/
 .code_intelligence_cache*/
 *.db
 *.db-wal
@@ -56,7 +38,10 @@ docs/superpowers/
 # Logs
 *.log
 
+# Frontend
+src/main/frontend/node_modules/
+src/main/frontend/node/
+
 # Distribution
 *.tar.gz
 *.zip
-pytest-of-dev/
