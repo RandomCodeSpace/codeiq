@@ -23,6 +23,7 @@ public class CodeNode {
     @Id
     private String id;
 
+    @ConvertWith(converter = NodeKindConverter.class)
     private NodeKind kind;
 
     private String label;

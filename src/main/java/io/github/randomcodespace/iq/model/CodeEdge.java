@@ -23,6 +23,7 @@ public class CodeEdge {
 
     private String id;
 
+    @ConvertWith(converter = EdgeKindConverter.class)
     private EdgeKind kind;
 
     private String sourceId;
