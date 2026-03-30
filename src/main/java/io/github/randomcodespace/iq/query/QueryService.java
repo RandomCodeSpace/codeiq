@@ -34,6 +34,7 @@ public class QueryService {
     public Map<String, Object> getStats() {
         long nodeCount = graphStore.count();
         long edgeCount = graphStore.countEdges();
+        long fileCount = graphStore.countDistinctFiles();
 
         Map<String, Long> nodesByKind = new LinkedHashMap<>();
         for (Map<String, Object> row : graphStore.countNodesByKind()) {
@@ -45,12 +46,68 @@ public class QueryService {
             nodesByLayer.put((String) row.get("layer"), ((Number) row.get("cnt")).longValue());
         }
 
+        // Language breakdown from file extensions
+        Map<String, Long> languages = new LinkedHashMap<>();
+        for (Map<String, Object> row : graphStore.countByFileExtension()) {
+            String ext = (String) row.get("ext");
+            long cnt = ((Number) row.get("cnt")).longValue();
+            String lang = extToLanguage(ext);
+            languages.merge(lang, cnt, Long::sum);
+        }
+
+        // Return in ComputedStatsResponse format for frontend compatibility
+        Map<String, Object> graph = new LinkedHashMap<>();
+        graph.put("nodes", nodeCount);
+        graph.put("edges", edgeCount);
+        graph.put("files", fileCount);
+
         Map<String, Object> result = new LinkedHashMap<>();
+        result.put("graph", graph);
+        result.put("languages", languages);
+        result.put("frameworks", Map.of());
+        result.put("infra", Map.of("databases", Map.of(), "messaging", Map.of(), "cloud", Map.of()));
+        result.put("connections", Map.of("rest", Map.of("total", 0, "by_method", Map.of()),
+                "grpc", 0, "websocket", 0, "producers", 0, "consumers", 0));
+        result.put("auth", Map.of());
+        result.put("architecture", Map.of());
+        // Also include raw counts for backward compat
         result.put("node_count", nodeCount);
         result.put("edge_count", edgeCount);
         result.put("nodes_by_kind", nodesByKind);
         result.put("nodes_by_layer", nodesByLayer);
         return result;
+    }
+
+    private static String extToLanguage(String ext) {
+        if (ext == null) return "unknown";
+        return switch (ext.toLowerCase()) {
+            case "java" -> "java";
+            case "kt", "kts" -> "kotlin";
+            case "py" -> "python";
+            case "js", "mjs", "cjs" -> "javascript";
+            case "ts", "tsx" -> "typescript";
+            case "go" -> "go";
+            case "rs" -> "rust";
+            case "cs" -> "csharp";
+            case "scala" -> "scala";
+            case "cpp", "cc", "cxx", "h", "hpp" -> "cpp";
+            case "c" -> "c";
+            case "rb" -> "ruby";
+            case "proto" -> "protobuf";
+            case "yml", "yaml" -> "yaml";
+            case "json" -> "json";
+            case "xml" -> "xml";
+            case "tf" -> "terraform";
+            case "sql" -> "sql";
+            case "md" -> "markdown";
+            case "html", "htm" -> "html";
+            case "css", "scss", "sass" -> "css";
+            case "vue" -> "vue";
+            case "svelte" -> "svelte";
+            case "jsx" -> "jsx";
+            case "sh", "bash" -> "shell";
+            default -> ext;
+        };
     }
 
     @Cacheable("kinds-list")

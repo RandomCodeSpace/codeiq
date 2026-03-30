@@ -258,6 +258,41 @@ public class GraphStore implements FlowDataSource {
         }
     }
 
+    public long countDistinctFiles() {
+        try (Transaction tx = graphDb.beginTx()) {
+            var result = tx.execute(
+                    "MATCH (n:CodeNode) WHERE n.filePath IS NOT NULL "
+                            + "RETURN count(DISTINCT n.filePath) AS cnt");
+            if (result.hasNext()) {
+                return ((Number) result.next().get("cnt")).longValue();
+            }
+            return 0;
+        }
+    }
+
+    /**
+     * Count nodes grouped by file extension (language proxy).
+     * Extracts extension from filePath using string manipulation in Cypher.
+     */
+    public List<Map<String, Object>> countByFileExtension() {
+        List<Map<String, Object>> rows = new ArrayList<>();
+        try (Transaction tx = graphDb.beginTx()) {
+            var result = tx.execute(
+                    "MATCH (n:CodeNode) WHERE n.filePath IS NOT NULL AND n.filePath CONTAINS '.' "
+                            + "WITH reverse(split(n.filePath, '.')[-1]) AS ext, n "
+                            + "WITH split(n.filePath, '.')[-1] AS ext "
+                            + "RETURN ext, count(*) AS cnt ORDER BY cnt DESC");
+            while (result.hasNext()) {
+                var row = result.next();
+                Map<String, Object> m = new LinkedHashMap<>();
+                m.put("ext", row.get("ext"));
+                m.put("cnt", ((Number) row.get("cnt")).longValue());
+                rows.add(m);
+            }
+        }
+        return rows;
+    }
+
     public List<Map<String, Object>> countNodesByKind() {
         List<Map<String, Object>> rows = new ArrayList<>();
         try (Transaction tx = graphDb.beginTx()) {

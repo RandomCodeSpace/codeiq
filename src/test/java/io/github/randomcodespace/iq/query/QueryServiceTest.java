@@ -61,14 +61,26 @@ class QueryServiceTest {
     void getStatsShouldReturnNodeAndEdgeCounts() {
         when(graphStore.count()).thenReturn(2L);
         when(graphStore.countEdges()).thenReturn(1L);
+        when(graphStore.countDistinctFiles()).thenReturn(5L);
         when(graphStore.countNodesByKind()).thenReturn(List.of(
                 Map.of("kind", "endpoint", "cnt", 1L),
                 Map.of("kind", "class", "cnt", 1L)));
         when(graphStore.countNodesByLayer()).thenReturn(List.of(
                 Map.of("layer", "backend", "cnt", 2L)));
+        when(graphStore.countByFileExtension()).thenReturn(List.of(
+                Map.of("ext", "java", "cnt", 3L),
+                Map.of("ext", "py", "cnt", 2L)));
 
         Map<String, Object> stats = service.getStats();
 
+        // ComputedStatsResponse format
+        @SuppressWarnings("unchecked")
+        Map<String, Object> graph = (Map<String, Object>) stats.get("graph");
+        assertEquals(2L, graph.get("nodes"));
+        assertEquals(1L, graph.get("edges"));
+        assertEquals(5L, graph.get("files"));
+        assertNotNull(stats.get("languages"));
+        // Backward compat
         assertEquals(2L, stats.get("node_count"));
         assertEquals(1L, stats.get("edge_count"));
         assertNotNull(stats.get("nodes_by_kind"));
