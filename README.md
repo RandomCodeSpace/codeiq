@@ -7,57 +7,84 @@
 
 <p align="center">
   <a href="https://central.sonatype.com/artifact/io.github.randomcodespace.iq/code-iq"><img src="https://img.shields.io/maven-central/v/io.github.randomcodespace.iq/code-iq?style=flat-square&logo=apachemaven&label=Maven%20Central" alt="Maven Central"></a>
-  <a href="https://github.com/RandomCodeSpace/code-iq/actions/workflows/ci.yml"><img src="https://img.shields.io/github/actions/workflow/status/RandomCodeSpace/code-iq/ci.yml?branch=java&style=flat-square&logo=github&label=CI" alt="CI"></a>
+  <a href="https://github.com/RandomCodeSpace/code-iq/actions/workflows/ci-java.yml"><img src="https://img.shields.io/github/actions/workflow/status/RandomCodeSpace/code-iq/ci-java.yml?branch=main&style=flat-square&logo=github&label=CI" alt="CI"></a>
   <a href="https://www.oracle.com/java/technologies/downloads/"><img src="https://img.shields.io/badge/Java-25-orange?style=flat-square&logo=openjdk&logoColor=white" alt="Java 25"></a>
-  <a href="https://github.com/RandomCodeSpace/code-iq/blob/java/LICENSE"><img src="https://img.shields.io/github/license/RandomCodeSpace/code-iq?style=flat-square&label=License" alt="MIT License"></a>
+  <a href="https://github.com/RandomCodeSpace/code-iq/blob/main/LICENSE"><img src="https://img.shields.io/github/license/RandomCodeSpace/code-iq?style=flat-square&label=License" alt="MIT License"></a>
   <a href="https://sonarcloud.io/summary/overall?id=RandomCodeSpace_code-iq"><img src="https://sonarcloud.io/api/project_badges/measure?project=RandomCodeSpace_code-iq&metric=security_rating" alt="Security"></a>
   <a href="https://sonarcloud.io/summary/overall?id=RandomCodeSpace_code-iq"><img src="https://sonarcloud.io/api/project_badges/measure?project=RandomCodeSpace_code-iq&metric=reliability_rating" alt="Reliability"></a>
-  <a href="https://github.com/RandomCodeSpace/code-iq"><img src="https://img.shields.io/badge/detectors-106-brightgreen?style=flat-square&logo=codefactor&logoColor=white" alt="106 Detectors"></a>
+  <a href="https://github.com/RandomCodeSpace/code-iq"><img src="https://img.shields.io/badge/detectors-97-brightgreen?style=flat-square&logo=codefactor&logoColor=white" alt="97 Detectors"></a>
   <a href="https://github.com/RandomCodeSpace/code-iq"><img src="https://img.shields.io/badge/languages-35%2B-blue?style=flat-square&logo=stackblitz&logoColor=white" alt="35+ Languages"></a>
 </p>
 
 ---
 
-**OSSCodeIQ** scans codebases to build a deterministic knowledge graph of code relationships -- classes, methods, endpoints, entities, dependencies, infrastructure resources, auth patterns, and more. 106 detectors across 35+ languages, Neo4j Embedded graph database, Hazelcast distributed cache, Spring AI MCP server, REST API, web UI, and zero AI dependency.
+**OSSCodeIQ** scans codebases to build a deterministic knowledge graph of code relationships -- classes, methods, endpoints, entities, dependencies, infrastructure resources, auth patterns, service topology, and more. 97 detectors across 35+ languages, Neo4j Embedded graph database, Hazelcast distributed cache, Spring AI MCP server (31 tools), REST API (32+ endpoints), React web UI, and zero AI dependency.
 
 ## Quick Start
 
 ```bash
-# From Maven Central
-mvn dependency:resolve -DgroupId=io.github.randomcodespace.iq -DartifactId=code-iq
-
-# Or build from source
+# Build from source
 git clone https://github.com/RandomCodeSpace/code-iq.git
-cd code-iq && git checkout java
+cd code-iq
 mvn clean package -DskipTests
 
 # Analyze a codebase
-java -jar target/code-iq-*.jar analyze /path/to/repo
+java -jar target/code-iq-*-cli.jar analyze /path/to/repo
+
+# Memory-efficient indexing (for large repos / CI)
+java -jar target/code-iq-*-cli.jar index /path/to/repo
 
 # View rich statistics
-java -jar target/code-iq-*.jar stats /path/to/repo
+java -jar target/code-iq-*-cli.jar stats /path/to/repo
 
-# Start server (REST + MCP + UI)
-java -jar target/code-iq-*.jar serve /path/to/repo
-# Open http://localhost:8080 -- Explorer UI with drill-down cards, flow diagrams, MCP console
+# Start server (REST + MCP + React UI)
+java -jar target/code-iq-*-cli.jar serve /path/to/repo
+# Open http://localhost:8080
 ```
 
 ## Features
 
-- **106 detectors** across 35+ languages -- Java, Python, TypeScript, Go, C#, Rust, Kotlin, Scala, C++, and more
+- **97 detectors** across 35+ languages -- Java, Python, TypeScript, Go, C#, Rust, Kotlin, Scala, C++, and more
 - **JavaParser AST** for deep Java analysis (Spring, JPA, Kafka, gRPC, JAX-RS, etc.)
-- **ANTLR grammars** for 6 languages (TypeScript/JavaScript, Python, Go, C#, Rust, C++)
+- **ANTLR grammars** for 10 languages (TypeScript, JavaScript, Python, Go, C#, Rust, Kotlin, Scala, C++)
 - **Neo4j Embedded** graph database -- full Cypher query support, no external server needed
-- **Hazelcast distributed cache** -- K8s-ready, multi-node incremental analysis
-- **Spring AI MCP server** -- 21 tools via streamable HTTP for AI-powered triage
-- **REST API** -- 23+ endpoints for programmatic access
-- **Web UI** -- Thymeleaf + HTMX progressive drill-down explorer with search
-- **CLI with 12 commands** -- analyze, stats, graph, query, find, cypher, flow, serve, bundle, cache, plugins, version
+- **H2 analysis cache** -- batched streaming for memory-efficient indexing on CI runners
+- **Hazelcast distributed cache** -- K8s-ready, multi-pod query caching with near-cache
+- **Spring AI MCP server** -- 31 tools via streamable HTTP for AI-powered triage
+- **REST API** -- 32+ endpoints for programmatic access
+- **React UI** -- Dashboard, Topology (Cytoscape.js), Explorer, Flow, MCP Console (Monaco Editor), API Docs
+- **Service Topology** -- AppDynamics-style service map with blast radius, circular deps, bottleneck detection
+- **CLI with 14 commands** -- analyze, index, enrich, serve, stats, graph, query, find, flow, bundle, cache, plugins, topology, version
 - **Virtual threads** (Java 25) -- adaptive parallelism across all available cores
-- **Flow diagrams** -- interactive Cytoscape.js architecture diagrams (CI, Deploy, Runtime, Auth views)
+- **Config-driven pipeline** -- `.osscodeiq.yml` to control languages, detectors, parsers, excludes
+- **Multi-repo support** -- `--graph` + `--service-name` for shared graph across repositories
+- **Flow diagrams** -- interactive Cytoscape.js architecture diagrams (Overview, CI, Deploy, Runtime, Auth views)
 - **Bundle & distribute** -- package graph DB + source + interactive HTML into a ZIP
 - **100% deterministic** -- same input, same output, every time
-- **Incremental analysis** -- SQLite-backed file hash cache, only re-analyzes changed files
+- **Incremental analysis** -- H2-backed file hash cache, only re-analyzes changed files
+- **1,227 tests** passing
+
+## Three-Command Architecture
+
+For memory-constrained environments (K8s CI runners, 4GB RAM):
+
+```bash
+# 1. Index: batched H2 streaming, low memory (~1-2GB for 20K files)
+java -jar code-iq-*-cli.jar index /path/to/repo --batch-size 500
+
+# 2. Enrich: load H2 into Neo4j, run linkers + classifier + topology
+java -jar code-iq-*-cli.jar enrich /path/to/repo
+
+# 3. Serve: REST API + MCP + React UI
+java -jar code-iq-*-cli.jar serve /path/to/repo
+```
+
+For quick analysis (sufficient memory available):
+
+```bash
+# Single-command: in-memory analysis + Neo4j
+java -jar code-iq-*-cli.jar analyze /path/to/repo
+```
 
 ## Frameworks Detected
 
@@ -95,23 +122,25 @@ Spring Security, Django Auth, FastAPI Auth, NestJS Guards, Passport/JWT, K8s RBA
 
 | Command | Description |
 |---------|-------------|
-| `analyze [path]` | Scan codebase and build knowledge graph |
-| `stats [path]` | Show rich categorized statistics from analyzed graph |
+| `analyze [path]` | Scan codebase and build knowledge graph (in-memory, legacy) |
+| `index [path]` | Memory-efficient batched indexing to H2 (for CI/large repos) |
+| `enrich [path]` | Load H2 into Neo4j, run linkers + classifier + topology |
+| `serve [path]` | Start React UI + REST API + MCP server |
+| `stats [path]` | Show rich categorized statistics (graph, languages, frameworks, infra, auth) |
 | `graph [path]` | Export graph in various formats (JSON, YAML, Mermaid, DOT) |
 | `query [path]` | Query graph relationships (consumers, producers, callers, etc.) |
 | `find [what] [path]` | Preset queries (endpoints, guards, entities, topics, etc.) |
-| `cypher [query]` | Execute raw Cypher queries against Neo4j |
+| `topology [path]` | Service topology queries (blast radius, circular deps, bottlenecks) |
 | `flow [path]` | Generate architecture flow diagrams |
-| `serve [path]` | Start web UI + REST API + MCP server |
 | `bundle [path]` | Package graph + source into distributable ZIP |
 | `cache [action]` | Manage analysis cache (status, clear, rebuild) |
-| `plugins [action]` | List and inspect detectors |
+| `plugins [action]` | List/inspect detectors, suggest config, generate docs |
 | `version` | Show version info |
 
 ## Architecture
 
 ```
-code-iq analyze /path/to/repo
+code-iq index /path/to/repo
         |
         v
 +------------------+
@@ -120,17 +149,29 @@ code-iq analyze /path/to/repo
          |
          v
 +------------------+
-| Parsing Layer    |  JavaParser AST (Java) + ANTLR (TS/Py/Go/C#/Rust/C++) + regex
+| Parsing Layer    |  JavaParser AST (Java) + ANTLR (10 grammars) + regex fallback
 +--------+---------+
          |
          v
 +------------------+
-| 106 Detectors    |  Spring-managed beans, virtual thread parallelism
+| 97 Detectors     |  Spring-managed beans, virtual thread parallelism
 +--------+---------+
          |
          v
 +------------------+
-| Layer Classifier |  frontend / backend / infra / shared / unknown
+| Graph Builder    |  Buffered flush: nodes first, then edges (determinism)
++--------+---------+
+         |
+         v
++------------------+
+| H2 Cache         |  Batched streaming (500 files/batch), incremental support
++--------+---------+
+
+code-iq enrich /path/to/repo
+         |
+         v
++------------------+
+| Neo4j Bulk Load  |  H2 -> Neo4j Embedded, full Cypher support
 +--------+---------+
          |
          v
@@ -141,81 +182,154 @@ code-iq analyze /path/to/repo
          |
          v
 +------------------+
-| Graph Builder    |  Buffered flush: nodes first, then edges (determinism)
+| Layer Classifier |  frontend / backend / infra / shared / unknown
 +--------+---------+
          |
          v
 +------------------+
-| Neo4j Embedded   |  Full Cypher support, embedded in process, no server needed
+| Service Detector |  Auto-detect modules from build files (pom.xml, package.json, etc.)
 +------------------+
+
+code-iq serve /path/to/repo
          |
-         v
-+------------------+
-| Output           |  REST API + MCP + Web UI + CLI + Flow Diagrams
-+------------------+
+    +----+----+--------+
+    |         |        |
+    v         v        v
+ REST API   MCP     React UI
+ (32+ ep)  (31 tools) (6 pages)
 ```
 
 ## Server
 
-Start a unified server with Explorer UI, REST API, and MCP server on a single port:
+Start a unified server with React UI, REST API, and MCP server on a single port:
 
 ```bash
-java -jar target/code-iq-*.jar serve /path/to/repo --port 8080
+java -jar target/code-iq-*-cli.jar serve /path/to/repo --port 8080
 ```
 
-### Web UI (`/`)
-Thymeleaf + HTMX progressive drill-down explorer:
-- Browse by node kind (Endpoints, Entities, Classes, Guards, etc.)
-- Click to drill into individual nodes with full detail modals
-- Client-side search filtering
-- Architecture flow diagrams
+### React UI (`/`)
+Modern React 18 + TypeScript + Tailwind CSS interface:
+- **Dashboard** -- graph statistics, language/framework breakdown, top node kinds
+- **Topology** -- Cytoscape.js service dependency map with drill-down
+- **Explorer** -- browse by node kind, click to drill into details with edges
+- **Flow** -- interactive architecture diagrams (Overview, CI, Deploy, Runtime, Auth)
+- **Console** -- Monaco Editor for MCP tool invocation
+- **API Docs** -- embedded Swagger/OpenAPI documentation
+- Dark/light/system theme toggle
 
 ### REST API (`/api`)
-23+ endpoints for programmatic access:
-- `/api/stats` -- Graph statistics
-- `/api/stats/detailed` -- Rich categorized statistics
-- `/api/kinds` -- Node kinds with counts
-- `/api/kinds/{kind}` -- Paginated nodes by kind
-- `/api/nodes`, `/api/edges` -- Paginated queries with `?kind=&limit=&offset=`
-- `/api/nodes/{id}/detail` -- Full node detail with edges
-- `/api/nodes/{id}/neighbors` -- Neighbor traversal
-- `/api/ego/{center}` -- Ego subgraph
+32+ endpoints for programmatic access:
+- `/api/stats`, `/api/stats/detailed?category=` -- graph and categorized statistics
+- `/api/kinds`, `/api/kinds/{kind}` -- node kinds with counts, paginated nodes
+- `/api/nodes`, `/api/edges` -- paginated queries with `?kind=&limit=&offset=`
+- `/api/nodes/{id}/detail`, `/api/nodes/{id}/neighbors` -- node detail and traversal
+- `/api/ego/{center}` -- ego subgraph
 - `/api/query/cycles`, `/shortest-path`, `/consumers/{id}`, `/producers/{id}`, `/callers/{id}`, `/dependencies/{id}`, `/dependents/{id}`
-- `/api/triage/component`, `/impact/{id}` -- Agentic triage tools
-- `/api/search?q=` -- Free-text graph search
-- `/api/file?path=` -- Serve source files (path traversal protected)
-- `/api/flow/{view}` -- Flow diagrams
-- `POST /api/analyze` -- Trigger analysis
-- OpenAPI docs at `/swagger-ui.html`
+- `/api/topology`, `/api/topology/services/{name}`, `/api/topology/blast-radius/{id}`, `/api/topology/circular`, `/api/topology/bottlenecks`, `/api/topology/dead`
+- `/api/triage/component?file=`, `/api/triage/impact/{id}` -- agentic triage
+- `/api/search?q=` -- free-text graph search
+- `/api/file?path=` -- source files (path traversal protected)
+- `/api/flow/{view}` -- flow diagrams
+- `POST /api/analyze` -- trigger analysis
 
 ### MCP Server (`/mcp`)
-21 tools via Spring AI streamable HTTP for AI-powered code triage:
-- `get_stats`, `get_detailed_stats`, `query_nodes`, `query_edges`
-- `get_node_neighbors`, `get_ego_graph`
-- `find_cycles`, `find_shortest_path`
-- `find_consumers`, `find_producers`, `find_callers`
-- `find_dependencies`, `find_dependents`
-- `generate_flow`, `analyze_codebase`, `run_cypher`
-- `find_component_by_file`, `trace_impact`, `find_related_endpoints`
-- `search_graph`, `read_file`
+31 tools via Spring AI streamable HTTP for AI-powered code triage:
+
+**Core (21 tools):**
+`get_stats`, `get_detailed_stats`, `query_nodes`, `query_edges`, `get_node_neighbors`, `get_ego_graph`, `find_cycles`, `find_shortest_path`, `find_consumers`, `find_producers`, `find_callers`, `find_dependencies`, `find_dependents`, `generate_flow`, `analyze_codebase`, `run_cypher`, `find_component_by_file`, `trace_impact`, `find_related_endpoints`, `search_graph`, `read_file`
+
+**Topology (10 tools):**
+`get_topology`, `get_service_detail`, `get_service_dependencies`, `get_service_dependents`, `get_blast_radius`, `find_service_path`, `find_bottlenecks`, `find_circular_dependencies`, `find_dead_services`, `find_topology_node`
+
+## Service Topology
+
+AppDynamics-style service topology from static code analysis:
+
+```bash
+# View service topology
+java -jar code-iq-*-cli.jar topology /path/to/monorepo
+
+# Blast radius analysis
+java -jar code-iq-*-cli.jar topology /path/to/repo --blast-radius service-name
+
+# Multi-repo support
+java -jar code-iq-*-cli.jar index /repo1 --graph /shared --service-name frontend
+java -jar code-iq-*-cli.jar index /repo2 --graph /shared --service-name backend
+java -jar code-iq-*-cli.jar serve /shared
+```
+
+- Auto-detects service boundaries from build files (pom.xml, package.json, go.mod, build.gradle, Cargo.toml, *.csproj)
+- Runtime connections only: CALLS, PRODUCES, CONSUMES, QUERIES, CONNECTS_TO
+- Build dependencies excluded from topology (SBOM only)
+- Blast radius, circular dependency detection, bottleneck analysis, dead service detection
+
+## Config-Driven Pipeline
+
+Create `.osscodeiq.yml` in your repo root, or auto-generate with `code-iq plugins suggest`:
+
+```yaml
+pipeline:
+  parallelism: 4
+  batch-size: 500
+
+languages:
+  - java
+  - typescript
+  - yaml
+
+detectors:
+  categories:
+    - endpoints
+    - entities
+    - auth
+    - config
+
+exclude:
+  - "**/node_modules/**"
+  - "**/build/**"
+  - "**/*.min.js"
+```
+
+```bash
+# Auto-generate optimized config for your repo
+java -jar code-iq-*-cli.jar plugins suggest /path/to/repo
+
+# List all detectors by category
+java -jar code-iq-*-cli.jar plugins list
+
+# Generate detector reference docs
+java -jar code-iq-*-cli.jar plugins docs --format markdown
+```
 
 ## Graph Model
 
-### Node Types (31)
-`module` `package` `class` `method` `endpoint` `entity` `repository` `query` `migration` `topic` `queue` `event` `interface` `abstract_class` `enum` `annotation_type` `protocol_message` `config_file` `config_key` `config_definition` `database_connection` `infra_resource` `azure_resource` `azure_function` `message_queue` `websocket_endpoint` `rmi_interface` `component` `guard` `middleware` `hook`
+### Node Types (32)
+`module` `package` `class` `method` `endpoint` `entity` `repository` `query` `migration` `topic` `queue` `event` `interface` `abstract_class` `enum` `annotation_type` `protocol_message` `config_file` `config_key` `config_definition` `database_connection` `infra_resource` `azure_resource` `azure_function` `message_queue` `websocket_endpoint` `rmi_interface` `component` `guard` `middleware` `hook` `service`
 
-### Edge Types (26)
+### Edge Types (27)
 `depends_on` `imports` `extends` `implements` `calls` `injects` `exposes` `queries` `maps_to` `produces` `consumes` `publishes` `listens` `invokes_rmi` `exports_rmi` `reads_config` `migrates` `contains` `defines` `overrides` `connects_to` `triggers` `provisions` `sends_to` `receives_from` `protects` `renders`
 
-## Maven Coordinates
+## Benchmark Results
 
-```xml
-<dependency>
-    <groupId>io.github.randomcodespace.iq</groupId>
-    <artifactId>code-iq</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
-</dependency>
-```
+Benchmarked on 13 real-world projects. All results deterministic across 3 runs.
+
+| Project | Files | Nodes | Edges | Time |
+|---------|-------|-------|-------|------|
+| kubernetes | 20,240 | 193,391 | 349,707 | 9s |
+| kafka | 6,919 | 62,692 | 120,422 | 50s |
+| django | 3,467 | 51,402 | 99,086 | 54s |
+| spring-boot | 10,524 | 27,993 | 39,776 | 27s |
+| fastapi | 2,740 | 25,475 | 30,430 | 10s |
+| bitnami-charts | 3,699 | 46,363 | 78,263 | 4s |
+| nest | 2,037 | 5,757 | 11,904 | 1s |
+
+### Memory Profile
+
+| Mode | Project | Peak RAM |
+|------|---------|----------|
+| `analyze` (in-memory) | kubernetes 20K files | 2.9 GB |
+| `index` (batched H2) | kubernetes 20K files | 2.1 GB |
+| `index` (batched H2) | terraform 9K files | 1.0 GB |
 
 ## Docker
 
@@ -230,38 +344,51 @@ docker run -v /path/to/repo:/data code-iq analyze /data
 docker run -p 8080:8080 -v /path/to/repo:/data code-iq serve /data
 ```
 
-The Docker image uses Eclipse Temurin JDK 25, ZGC garbage collector, and Spring AOT cache for fast startup.
+The Docker image uses Eclipse Temurin 25, ZGC garbage collector, Spring AOT cache for fast startup, and runs as a non-root user.
 
-## Benchmark Results
+## Kubernetes
 
-Benchmarked against the Python implementation (OSSCodeIQ on PyPI). 3 runs per project, all deterministic.
+Helm chart included for K8s deployment with HPA auto-scaling and Hazelcast clustering:
 
-| Project | Files | Java Nodes | Java Edges | Java Time (analysis) | Python Time (wall) | Speedup |
-|---------|-------|-----------|------------|---------------------|--------------------|---------|
-| spring-boot | 10,524 | 27,987 | 39,776 | 47.8s avg | 56.8s | 1.2x |
-| kafka | 6,919 | 62,671 | 120,376 | 63.5s avg | 96.8s | 1.5x |
-| contoso-real-estate | 484 | 4,034 | 4,039 | 1.3s avg | 7.6s | 5.8x |
+```bash
+helm install code-iq helm/code-iq \
+  --set image.tag=latest \
+  --set persistence.graphPath=/data/graph.db
+```
 
-Java consistently finds more nodes (+2-8%) and edges (+20-39%) than the Python version due to deeper AST-based detection. Results are fully deterministic across all 3 runs per project.
+- Hazelcast auto-discovery via K8s service DNS
+- HPA scales pods based on query load
+- Readiness/liveness health probes
+- Near-cache per pod for hot query data
 
 ## Development
 
 ```bash
 # Prerequisites: Java 25+, Maven 3.9+
 git clone https://github.com/RandomCodeSpace/code-iq.git
-cd code-iq && git checkout java
+cd code-iq
 
 # Build
 mvn clean package
 
-# Run tests
+# Run tests (1,227 tests)
 mvn test
 
 # Analyze this repo
-java -jar target/code-iq-*.jar analyze .
+java -jar target/code-iq-*-cli.jar analyze .
 
 # Start dev server
-java -jar target/code-iq-*.jar serve .
+java -jar target/code-iq-*-cli.jar serve .
+```
+
+## Maven Coordinates
+
+```xml
+<dependency>
+    <groupId>io.github.randomcodespace.iq</groupId>
+    <artifactId>code-iq</artifactId>
+    <version>0.0.1-beta.0</version>
+</dependency>
 ```
 
 ## Tech Stack
@@ -271,13 +398,13 @@ java -jar target/code-iq-*.jar serve .
 | Language | Java 25 (virtual threads, pattern matching, records) |
 | Framework | Spring Boot 4.0.5 |
 | Graph DB | Neo4j Embedded 2026.02.3 (Community Edition) |
-| Cache | Hazelcast 5.6.0 (distributed, K8s auto-discovery) |
+| Analysis Cache | H2 (pure Java, virtual thread safe) |
+| Distributed Cache | Hazelcast 5.6.0 (K8s auto-discovery, near-cache) |
 | MCP | Spring AI 1.1.4 (streamable HTTP) |
 | Java AST | JavaParser 3.28.0 |
-| Multi-lang AST | ANTLR 4.13.2 (6 grammars) |
+| Multi-lang AST | ANTLR 4.13.2 (10 grammars) |
 | CLI | Picocli 4.7.7 |
-| Web UI | Thymeleaf + HTMX |
-| Incremental cache | SQLite (via sqlite-jdbc) |
+| Web UI | React 18 + TypeScript + Vite + Tailwind CSS |
 | Build | Maven + Spring Boot Plugin |
 | Docker | Eclipse Temurin 25, ZGC, Spring AOT |
 
