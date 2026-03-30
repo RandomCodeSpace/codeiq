@@ -36,7 +36,7 @@ public class GraphBuilder {
     private final int batchSize;
 
     public GraphBuilder() {
-        this(500);
+        this(1000);
     }
 
     public GraphBuilder(int batchSize) {
