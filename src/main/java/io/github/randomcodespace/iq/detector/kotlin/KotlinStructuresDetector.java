@@ -18,6 +18,10 @@ import java.util.regex.Pattern;
 import io.github.randomcodespace.iq.detector.DetectorInfo;
 import io.github.randomcodespace.iq.detector.ParserType;
 
+// Kotlin Compiler API (kotlin-compiler-embeddable) evaluated 2026-03-28 but regex/ANTLR
+// approach provides sufficient detection quality for Kotlin structures. The compiler JAR
+// adds 50-70MB for only 2 Kotlin detectors — not justified. Revisit if complex semantic
+// analysis (type resolution, coroutine flow tracking) is needed in the future.
 @DetectorInfo(
     name = "kotlin_structures",
     category = "structures",
