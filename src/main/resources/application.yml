@@ -56,7 +56,7 @@ spring:
   main:
     log-startup-info: false
   cache:
-    type: hazelcast
+    type: simple
 
 logging:
   level:
