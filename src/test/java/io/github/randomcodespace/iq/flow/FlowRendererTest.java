@@ -132,8 +132,9 @@ class FlowRendererTest {
     @Test
     void renderJsonContainsAllFields() {
         var node = new FlowNode("n1", "Test", "service", Map.of("count", 5));
+        var node2 = new FlowNode("n2", "Target", "service");
         var edge = new FlowEdge("n1", "n2", "calls");
-        var sg = new FlowSubgraph("sg1", "Group", List.of(node), "detail");
+        var sg = new FlowSubgraph("sg1", "Group", List.of(node, node2), "detail");
         var stats = new LinkedHashMap<String, Object>();
         stats.put("total", 42);
 

@@ -4,6 +4,8 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
  * Data models for flow diagrams -- the single source of truth for all renderers.
@@ -126,15 +128,23 @@ public final class FlowModels {
         }
 
         public Map<String, Object> toMap() {
+            var all = allNodes();
+            // Collect valid node IDs so edges can be filtered
+            Set<String> nodeIds = all.stream().map(FlowNode::id).collect(Collectors.toSet());
+
+            // Filter edges: only include edges where both source and target exist
+            var validEdges = edges.stream()
+                    .filter(e -> nodeIds.contains(e.source()) && nodeIds.contains(e.target()))
+                    .toList();
+
             var m = new LinkedHashMap<String, Object>();
             m.put("title", title);
             m.put("view", view);
             m.put("direction", direction);
             m.put("subgraphs", subgraphs.stream().map(FlowSubgraph::toMap).toList());
             m.put("loose_nodes", looseNodes.stream().map(FlowNode::toMap).toList());
-            // Flat node list for Cytoscape frontend (all subgraph nodes + loose nodes)
-            m.put("nodes", allNodes().stream().map(FlowNode::toMap).toList());
-            m.put("edges", edges.stream().map(FlowEdge::toMap).toList());
+            m.put("nodes", all.stream().map(FlowNode::toMap).toList());
+            m.put("edges", validEdges.stream().map(FlowEdge::toMap).toList());
             m.put("stats", stats);
             return m;
         }
