@@ -8,6 +8,7 @@ import io.github.randomcodespace.iq.model.CodeEdge;
 import io.github.randomcodespace.iq.model.CodeNode;
 import io.github.randomcodespace.iq.model.EdgeKind;
 import io.github.randomcodespace.iq.model.NodeKind;
+import org.antlr.v4.runtime.tree.ParseTree;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
@@ -50,9 +51,22 @@ public class NestJSControllerDetector extends AbstractAntlrDetector {
     }
 
     @Override
+    protected ParseTree parse(DetectorContext ctx) {
+        // Use the dedicated TypeScript ANTLR grammar for parsing;
+        // detection itself still uses regex for NestJS-specific decorator patterns,
+        // but the TS grammar is available for future AST-based enhancement.
+        if (ctx.content().length() > 500_000) {
+            return null;
+        }
+        return AntlrParserFactory.parse("typescript", ctx.content());
+    }
+
+    @Override
     public DetectorResult detect(DetectorContext ctx) {
-        // Skip ANTLR parsing — regex is the primary detection method for this detector
-        // ANTLR infrastructure is in place for future enhancement
+        // NestJS detection uses regex for decorator pattern matching.
+        // The ANTLR parse tree is triggered via parse() for cache warming
+        // (shared with other TS detectors on the same file).
+        parse(ctx);
         return detectWithRegex(ctx);
     }
 

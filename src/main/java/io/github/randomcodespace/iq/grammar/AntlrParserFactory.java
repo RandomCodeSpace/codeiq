@@ -16,6 +16,8 @@ import io.github.randomcodespace.iq.grammar.rust.RustLexer;
 import io.github.randomcodespace.iq.grammar.rust.RustParser;
 import io.github.randomcodespace.iq.grammar.scala.ScalaLexer;
 import io.github.randomcodespace.iq.grammar.scala.ScalaParser;
+import io.github.randomcodespace.iq.grammar.typescript.TypeScriptLexer;
+import io.github.randomcodespace.iq.grammar.typescript.TypeScriptParser;
 import org.antlr.v4.runtime.*;
 import org.antlr.v4.runtime.atn.PredictionMode;
 import org.antlr.v4.runtime.tree.ParseTree;
@@ -34,8 +36,9 @@ import java.util.function.Function;
  * for Python, {@code compilationUnit} for C#). The factory handles lexer/parser
  * creation with error suppression and SLL prediction mode for speed.</p>
  *
- * <p>TypeScript uses the JavaScript grammar (since TypeScript is a superset
- * of JavaScript for structural detection purposes).</p>
+ * <p>TypeScript has a dedicated grammar (from antlr/grammars-v4) that supports
+ * decorators, type annotations, interfaces, generics, enums, and other TS-specific
+ * syntax. JavaScript files continue to use the JavaScript grammar.</p>
  */
 public final class AntlrParserFactory {
 
@@ -91,7 +94,8 @@ public final class AntlrParserFactory {
 
         ParseTree tree = switch (language.toLowerCase()) {
             case "python" -> parsePython(content);
-            case "javascript", "typescript" -> parseJavaScript(content);
+            case "javascript" -> parseJavaScript(content);
+            case "typescript" -> parseTypeScript(content);
             case "go" -> parseGo(content);
             case "csharp" -> parseCSharp(content);
             case "rust" -> parseRust(content);
@@ -126,6 +130,12 @@ public final class AntlrParserFactory {
     private static ParseTree parseJavaScript(String content) {
         JavaScriptLexer lexer = createLexer(JavaScriptLexer::new, content);
         JavaScriptParser parser = createParser(JavaScriptParser::new, lexer);
+        return parser.program();
+    }
+
+    private static ParseTree parseTypeScript(String content) {
+        TypeScriptLexer lexer = createLexer(TypeScriptLexer::new, content);
+        TypeScriptParser parser = createParser(TypeScriptParser::new, lexer);
         return parser.program();
     }
 
