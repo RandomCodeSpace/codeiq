@@ -225,15 +225,22 @@ public class EnrichCommand implements Callable<Integer> {
                             log.warn("Skipping edge with unknown kind: {}", edgeKindValue);
                             continue;
                         }
+                        var edgeProps = new java.util.HashMap<String, Object>();
+                        edgeProps.put("sourceId", sourceId);
+                        edgeProps.put("targetId", targetId);
+                        edgeProps.put("edgeId", edge.getId() != null ? edge.getId() : "");
+                        edgeProps.put("edgeKind", edgeKindValue);
+                        edgeProps.put("edgeSourceId", sourceId);
+                        // Store edge properties as JSON if present
+                        if (edge.getProperties() != null && !edge.getProperties().isEmpty()) {
+                            try {
+                                edgeProps.put("edgeProperties", new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(edge.getProperties()));
+                            } catch (Exception ignored) {}
+                        }
                         var result = tx.execute(
                                 "MATCH (s:CodeNode {id: $sourceId}), (t:CodeNode {id: $targetId}) "
-                                        + "CREATE (s)-[r:" + sanitizeRelType(edgeKindValue)
-                                        + " {id: $edgeId}]->(t)",
-                                java.util.Map.of(
-                                        "sourceId", sourceId,
-                                        "targetId", targetId,
-                                        "edgeId", edge.getId() != null ? edge.getId() : ""
-                                ));
+                                        + "CREATE (s)-[r:RELATES_TO {id: $edgeId, kind: $edgeKind, sourceId: $edgeSourceId}]->(t)",
+                                edgeProps);
                         result.close();
                         edgesLoaded++;
                     }
