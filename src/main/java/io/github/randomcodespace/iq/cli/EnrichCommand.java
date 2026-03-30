@@ -23,8 +23,11 @@ import java.nio.file.Path;
 import java.text.NumberFormat;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
+import java.util.Map;
 import java.util.concurrent.Callable;
 
 /**
@@ -171,28 +174,32 @@ public class EnrichCommand implements Callable<Integer> {
                 tx.commit();
             }
 
-            // Bulk-load nodes in batches of 1000
-            int nodeBatchSize = 1000;
+            // Bulk-load nodes in batches of 5000 using UNWIND
+            int nodeBatchSize = 5000;
             int nodesLoaded = 0;
             for (int i = 0; i < enrichedNodes.size(); i += nodeBatchSize) {
                 int end = Math.min(i + nodeBatchSize, enrichedNodes.size());
+                var batch = new ArrayList<Map<String, Object>>(end - i);
+                for (int j = i; j < end; j++) {
+                    CodeNode node = enrichedNodes.get(j);
+                    var props = new HashMap<String, Object>();
+                    props.put("id", node.getId());
+                    props.put("kind", node.getKind().getValue());
+                    props.put("label", node.getLabel());
+                    if (node.getFqn() != null) props.put("fqn", node.getFqn());
+                    if (node.getModule() != null) props.put("module", node.getModule());
+                    if (node.getFilePath() != null) props.put("filePath", node.getFilePath());
+                    if (node.getLineStart() != null) props.put("lineStart", node.getLineStart());
+                    if (node.getLineEnd() != null) props.put("lineEnd", node.getLineEnd());
+                    if (node.getLayer() != null) props.put("layer", node.getLayer());
+                    batch.add(props);
+                }
                 try (Transaction tx = db.beginTx()) {
-                    for (int j = i; j < end; j++) {
-                        CodeNode node = enrichedNodes.get(j);
-                        var neo4jNode = tx.createNode(org.neo4j.graphdb.Label.label("CodeNode"));
-                        neo4jNode.setProperty("id", node.getId());
-                        neo4jNode.setProperty("kind", node.getKind().getValue());
-                        neo4jNode.setProperty("label", node.getLabel());
-                        if (node.getFqn() != null) neo4jNode.setProperty("fqn", node.getFqn());
-                        if (node.getModule() != null) neo4jNode.setProperty("module", node.getModule());
-                        if (node.getFilePath() != null) neo4jNode.setProperty("filePath", node.getFilePath());
-                        if (node.getLineStart() != null) neo4jNode.setProperty("lineStart", node.getLineStart());
-                        if (node.getLineEnd() != null) neo4jNode.setProperty("lineEnd", node.getLineEnd());
-                        if (node.getLayer() != null) neo4jNode.setProperty("layer", node.getLayer());
-                        nodesLoaded++;
-                    }
+                    tx.execute("UNWIND $nodes AS props CREATE (n:CodeNode) SET n = props",
+                            Map.of("nodes", batch));
                     tx.commit();
                 }
+                nodesLoaded += batch.size();
             }
             CliOutput.info("  Loaded " + nf.format(nodesLoaded) + " nodes into Neo4j");
 
@@ -211,46 +218,50 @@ public class EnrichCommand implements Callable<Integer> {
                 validEdges = combined;
             }
 
-            int edgeBatchSize = 1000;
-            int edgesLoaded = 0;
-            for (int i = 0; i < validEdges.size(); i += edgeBatchSize) {
-                int end = Math.min(i + edgeBatchSize, validEdges.size());
-                try (Transaction tx = db.beginTx()) {
-                    for (int j = i; j < end; j++) {
-                        CodeEdge edge = validEdges.get(j);
-                        String sourceId = edge.getSourceId();
-                        String targetId = edge.getTarget() != null ? edge.getTarget().getId() : null;
-                        if (sourceId == null || targetId == null) continue;
+            // Collect valid edge maps (pre-validate before batching)
+            var om = new com.fasterxml.jackson.databind.ObjectMapper();
+            var validEdgeMaps = new ArrayList<Map<String, Object>>(validEdges.size());
+            for (CodeEdge edge : validEdges) {
+                String sourceId = edge.getSourceId();
+                String targetId = edge.getTarget() != null ? edge.getTarget().getId() : null;
+                if (sourceId == null || targetId == null) continue;
 
-                        // Validate edge kind comes from EdgeKind enum
-                        String edgeKindValue = edge.getKind().getValue();
-                        try {
-                            EdgeKind.fromValue(edgeKindValue);
-                        } catch (IllegalArgumentException ex) {
-                            log.warn("Skipping edge with unknown kind: {}", edgeKindValue);
-                            continue;
-                        }
-                        var edgeProps = new java.util.HashMap<String, Object>();
-                        edgeProps.put("sourceId", sourceId);
-                        edgeProps.put("targetId", targetId);
-                        edgeProps.put("edgeId", edge.getId() != null ? edge.getId() : "");
-                        edgeProps.put("edgeKind", edgeKindValue);
-                        edgeProps.put("edgeSourceId", sourceId);
-                        // Store edge properties as JSON if present
-                        if (edge.getProperties() != null && !edge.getProperties().isEmpty()) {
-                            try {
-                                edgeProps.put("edgeProperties", new com.fasterxml.jackson.databind.ObjectMapper().writeValueAsString(edge.getProperties()));
-                            } catch (Exception ignored) {}
-                        }
-                        var result = tx.execute(
-                                "MATCH (s:CodeNode {id: $sourceId}), (t:CodeNode {id: $targetId}) "
-                                        + "CREATE (s)-[r:RELATES_TO {id: $edgeId, kind: $edgeKind, sourceId: $edgeSourceId}]->(t)",
-                                edgeProps);
-                        result.close();
-                        edgesLoaded++;
-                    }
+                // Validate edge kind comes from EdgeKind enum
+                String edgeKindValue = edge.getKind().getValue();
+                try {
+                    EdgeKind.fromValue(edgeKindValue);
+                } catch (IllegalArgumentException ex) {
+                    log.warn("Skipping edge with unknown kind: {}", edgeKindValue);
+                    continue;
+                }
+                var props = new HashMap<String, Object>();
+                props.put("sourceId", sourceId);
+                props.put("targetId", targetId);
+                props.put("edgeId", edge.getId() != null ? edge.getId() : "");
+                props.put("edgeKind", edgeKindValue);
+                props.put("edgeSourceId", sourceId);
+                if (edge.getProperties() != null && !edge.getProperties().isEmpty()) {
+                    try {
+                        props.put("edgeProperties", om.writeValueAsString(edge.getProperties()));
+                    } catch (Exception ignored) {}
+                }
+                validEdgeMaps.add(props);
+            }
+
+            int edgeBatchSize = 5000;
+            int edgesLoaded = 0;
+            for (int i = 0; i < validEdgeMaps.size(); i += edgeBatchSize) {
+                int end = Math.min(i + edgeBatchSize, validEdgeMaps.size());
+                var batch = validEdgeMaps.subList(i, end);
+                try (Transaction tx = db.beginTx()) {
+                    tx.execute(
+                            "UNWIND $edges AS edge "
+                                    + "MATCH (s:CodeNode {id: edge.sourceId}), (t:CodeNode {id: edge.targetId}) "
+                                    + "CREATE (s)-[r:RELATES_TO {id: edge.edgeId, kind: edge.edgeKind, sourceId: edge.edgeSourceId}]->(t)",
+                            Map.of("edges", new ArrayList<>(batch)));
                     tx.commit();
                 }
+                edgesLoaded += batch.size();
             }
             CliOutput.info("  Loaded " + nf.format(edgesLoaded) + " edges into Neo4j");
 
