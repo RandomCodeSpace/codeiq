@@ -47,7 +47,8 @@ public class AnalysisCache implements Closeable {
             );
 
             CREATE TABLE IF NOT EXISTS nodes (
-                id VARCHAR PRIMARY KEY,
+                row_id BIGINT AUTO_INCREMENT PRIMARY KEY,
+                id VARCHAR NOT NULL,
                 content_hash VARCHAR NOT NULL,
                 kind VARCHAR NOT NULL,
                 data VARCHAR NOT NULL,
@@ -180,7 +181,7 @@ public class AnalysisCache implements Closeable {
                 stmt.execute();
             }
 
-            // Insert nodes
+            // Insert nodes (no unique constraint on id — duplicates preserved for accurate cache replay)
             try (var stmt = conn.prepareStatement(
                     "INSERT INTO nodes (id, content_hash, kind, data) VALUES (?, ?, ?, ?)")) {
                 for (CodeNode node : nodes) {
@@ -321,7 +322,7 @@ public class AnalysisCache implements Closeable {
         Map<String, Object> stats = new LinkedHashMap<>();
         try {
             stats.put("cached_files", countTable("files"));
-            stats.put("cached_nodes", countTable("nodes"));
+            stats.put("cached_nodes", getNodeCount());
             stats.put("cached_edges", countTable("edges"));
             stats.put("total_runs", countTable("analysis_runs"));
             stats.put("db_path", dbPath.toString());
@@ -467,8 +468,10 @@ public class AnalysisCache implements Closeable {
      * Return the total number of cached nodes.
      */
     public long getNodeCount() {
-        try {
-            return countTable("nodes");
+        try (var stmt = conn.createStatement()) {
+            ResultSet rs = stmt.executeQuery("SELECT COUNT(DISTINCT id) FROM nodes");
+            rs.next();
+            return rs.getLong(1);
         } catch (SQLException e) {
             log.debug("Failed to count nodes", e);
             return 0;
@@ -510,7 +513,8 @@ public class AnalysisCache implements Closeable {
      */
     public List<CodeNode> loadAllNodes() {
         List<CodeNode> nodes = new ArrayList<>();
-        try (var stmt = conn.prepareStatement("SELECT data FROM nodes")) {
+        // Use MIN(data) with GROUP BY id to deduplicate nodes that appear in multiple files
+        try (var stmt = conn.prepareStatement("SELECT MIN(data) FROM nodes GROUP BY id")) {
             ResultSet rs = stmt.executeQuery();
             while (rs.next()) {
                 nodes.add(deserializeNode(rs.getString(1)));

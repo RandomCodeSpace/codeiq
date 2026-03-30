@@ -40,6 +40,11 @@ public class FlowCommand implements Callable<Integer> {
 
     private final FlowEngine flowEngine;
 
+    /** No-arg constructor for Picocli direct instantiation. */
+    public FlowCommand() {
+        this.flowEngine = null;
+    }
+
     @Autowired
     public FlowCommand(Optional<FlowEngine> flowEngine) {
         this.flowEngine = flowEngine.orElse(null);
@@ -53,7 +58,7 @@ public class FlowCommand implements Callable<Integer> {
     @Override
     public Integer call() {
         if (flowEngine == null) {
-            CliOutput.error("Flow diagrams require Neo4j. Run 'code-iq enrich' first, then 'code-iq serve'.");
+            CliOutput.error("Flow diagrams require the serve profile (Neo4j). Use 'code-iq serve' to start the server, or 'code-iq stats' for cache-based queries.");
             return 1;
         }
         try {

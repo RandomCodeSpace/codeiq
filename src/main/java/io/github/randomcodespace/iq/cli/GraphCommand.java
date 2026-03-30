@@ -52,6 +52,11 @@ public class GraphCommand implements Callable<Integer> {
 
     private final GraphStore graphStore;
 
+    /** No-arg constructor for Picocli direct instantiation. */
+    public GraphCommand() {
+        this.graphStore = null;
+    }
+
     @Autowired
     public GraphCommand(Optional<GraphStore> graphStore) {
         this.graphStore = graphStore.orElse(null);
@@ -65,7 +70,7 @@ public class GraphCommand implements Callable<Integer> {
     @Override
     public Integer call() {
         if (graphStore == null) {
-            CliOutput.error("Graph export requires Neo4j. Run 'code-iq enrich' first, then 'code-iq serve'.");
+            CliOutput.error("Graph export requires the serve profile (Neo4j). Use 'code-iq serve' to start the server, or 'code-iq stats' for cache-based queries.");
             return 1;
         }
         List<CodeNode> nodes;

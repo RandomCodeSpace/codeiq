@@ -50,6 +50,11 @@ public class QueryCommand implements Callable<Integer> {
 
     private final QueryService queryService;
 
+    /** No-arg constructor for Picocli direct instantiation. */
+    public QueryCommand() {
+        this.queryService = null;
+    }
+
     @Autowired
     public QueryCommand(Optional<QueryService> queryService) {
         this.queryService = queryService.orElse(null);
@@ -63,7 +68,7 @@ public class QueryCommand implements Callable<Integer> {
     @Override
     public Integer call() {
         if (queryService == null) {
-            CliOutput.error("Graph queries require Neo4j. Run 'code-iq enrich' first, then 'code-iq serve'.");
+            CliOutput.error("Graph queries require the serve profile (Neo4j). Use 'code-iq serve' to start the server, or 'code-iq stats' for cache-based queries.");
             return 1;
         }
         if (consumersOf != null) {
