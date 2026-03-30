@@ -48,6 +48,14 @@ public class BundleCommand implements Callable<Integer> {
     private final GraphStore graphStore;
     private final FlowEngine flowEngine;
 
+    /** No-arg constructor for Picocli direct instantiation. */
+    public BundleCommand() {
+        this.config = new CodeIqConfig();
+        this.analyzer = null;
+        this.graphStore = null;
+        this.flowEngine = null;
+    }
+
     @Autowired
     public BundleCommand(CodeIqConfig config, Analyzer analyzer,
                          Optional<GraphStore> graphStore, Optional<FlowEngine> flowEngine) {
@@ -74,12 +82,16 @@ public class BundleCommand implements Callable<Integer> {
         // Run analysis if no existing data
         AnalysisResult analysisResult = null;
         if (!Files.isDirectory(graphDir)) {
-            CliOutput.step("\uD83D\uDD0D", "No existing analysis found. Running analysis...");
-            try {
-                analysisResult = analyzer.run(root, null);
-            } catch (Exception e) {
-                CliOutput.error("Analysis failed: " + e.getMessage());
-                return 1;
+            if (analyzer == null) {
+                CliOutput.warn("No existing analysis found and analyzer is not available. Run 'code-iq analyze' or 'code-iq index' first.");
+            } else {
+                CliOutput.step("\uD83D\uDD0D", "No existing analysis found. Running analysis...");
+                try {
+                    analysisResult = analyzer.run(root, null);
+                } catch (Exception e) {
+                    CliOutput.error("Analysis failed: " + e.getMessage());
+                    return 1;
+                }
             }
         }
 
