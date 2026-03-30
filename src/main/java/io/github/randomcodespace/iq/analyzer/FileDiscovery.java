@@ -31,14 +31,34 @@ public class FileDiscovery {
 
     /** Default directories to exclude from scanning. */
     private static final Set<String> DEFAULT_EXCLUDES = Set.of(
-            "node_modules", "build", "target", "dist", ".git", "__pycache__",
-            "venv", ".venv", ".gradle", ".idea", ".vscode", ".code-intelligence",
-            ".tox", ".mypy_cache", ".pytest_cache", "vendor", "bower_components",
-            ".next", ".nuxt", "coverage", ".nyc_output", "bin", "obj"
+            // Build output
+            "node_modules", "build", "target", "dist", "out", "bin", "obj",
+            // VCS / IDE
+            ".git", ".svn", ".idea", ".vscode", ".eclipse", ".settings",
+            // Python
+            "__pycache__", "venv", ".venv", ".tox", ".mypy_cache", ".pytest_cache",
+            ".eggs", "*.egg-info",
+            // Java / Gradle
+            ".gradle", ".mvn",
+            // JS / Frontend
+            "bower_components", ".next", ".nuxt", "coverage", ".nyc_output",
+            ".parcel-cache", ".turbo", ".cache",
+            // Go / Rust
+            "vendor",
+            // Code-IQ own dirs
+            ".code-intelligence", ".osscodeiq"
     );
 
-    /** Default maximum file size in bytes (1 MB). */
-    private static final long DEFAULT_MAX_FILE_SIZE = 1_048_576L;
+    /** Files to always skip (lock files, generated). */
+    private static final Set<String> EXCLUDED_FILENAMES = Set.of(
+            "package-lock.json", "yarn.lock", "pnpm-lock.yaml",
+            "composer.lock", "Gemfile.lock", "Cargo.lock", "poetry.lock",
+            "go.sum", "flake.lock", "pubspec.lock", "Podfile.lock",
+            ".DS_Store", "Thumbs.db"
+    );
+
+    /** Default maximum file size in bytes (512 KB). */
+    private static final long DEFAULT_MAX_FILE_SIZE = 524_288L;
 
     private final CodeIqConfig config;
 
@@ -105,6 +125,7 @@ public class FileDiscovery {
 
                 if (!Files.isRegularFile(absPath)) continue;
                 if (isExcluded(relPath)) continue;
+                if (isExcludedFilename(relPath)) continue;
 
                 String language = DetectorUtils.deriveLanguage(trimmed);
                 if (language == null) continue;
@@ -152,6 +173,7 @@ public class FileDiscovery {
 
                     Path relPath = root.relativize(file);
                     if (isExcluded(relPath)) return FileVisitResult.CONTINUE;
+                    if (isExcludedFilename(relPath)) return FileVisitResult.CONTINUE;
 
                     String language = DetectorUtils.deriveLanguage(relPath.toString());
                     if (language == null) return FileVisitResult.CONTINUE;
@@ -184,5 +206,10 @@ public class FileDiscovery {
             }
         }
         return false;
+    }
+
+    private static boolean isExcludedFilename(Path relPath) {
+        String filename = relPath.getFileName().toString();
+        return EXCLUDED_FILENAMES.contains(filename);
     }
 }

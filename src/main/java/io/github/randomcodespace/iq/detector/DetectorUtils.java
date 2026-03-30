@@ -21,9 +21,16 @@ public final class DetectorUtils {
      * Extension-to-language mapping, matching the Python _EXTENSION_MAP.
      */
     private static final Map<String, String> EXTENSION_MAP = Map.ofEntries(
+            // JVM
             Map.entry(".java", "java"),
+            Map.entry(".kt", "kotlin"),
+            Map.entry(".kts", "kotlin"),
+            Map.entry(".scala", "scala"),
+            Map.entry(".groovy", "groovy"),
+            // Python
             Map.entry(".py", "python"),
             Map.entry(".pyi", "python"),
+            // TypeScript / JavaScript / frontend frameworks
             Map.entry(".ts", "typescript"),
             Map.entry(".tsx", "typescript"),
             Map.entry(".mts", "typescript"),
@@ -32,69 +39,57 @@ public final class DetectorUtils {
             Map.entry(".jsx", "javascript"),
             Map.entry(".mjs", "javascript"),
             Map.entry(".cjs", "javascript"),
-            Map.entry(".xml", "xml"),
-            Map.entry(".yaml", "yaml"),
-            Map.entry(".yml", "yaml"),
-            Map.entry(".json", "json"),
-            Map.entry(".jsonc", "json"),
-            Map.entry(".properties", "properties"),
-            Map.entry(".gradle", "gradle"),
-            Map.entry(".sql", "sql"),
-            Map.entry(".graphql", "graphql"),
-            Map.entry(".gql", "graphql"),
-            Map.entry(".proto", "proto"),
-            Map.entry(".md", "markdown"),
-            Map.entry(".markdown", "markdown"),
-            Map.entry(".bicep", "bicep"),
-            Map.entry(".tf", "terraform"),
-            Map.entry(".tfvars", "terraform"),
-            Map.entry(".hcl", "terraform"),
-            Map.entry(".cs", "csharp"),
+            Map.entry(".vue", "vue"),
+            Map.entry(".svelte", "svelte"),
+            // Systems languages
             Map.entry(".go", "go"),
+            Map.entry(".rs", "rust"),
             Map.entry(".cpp", "cpp"),
             Map.entry(".cc", "cpp"),
             Map.entry(".cxx", "cpp"),
             Map.entry(".hpp", "cpp"),
             Map.entry(".c", "c"),
             Map.entry(".h", "c"),
-            Map.entry(".sh", "bash"),
-            Map.entry(".bash", "bash"),
-            Map.entry(".zsh", "bash"),
-            Map.entry(".ps1", "powershell"),
-            Map.entry(".psm1", "powershell"),
-            Map.entry(".psd1", "powershell"),
-            Map.entry(".bat", "batch"),
-            Map.entry(".cmd", "batch"),
+            // .NET
+            Map.entry(".cs", "csharp"),
+            // Other languages with detectors
             Map.entry(".rb", "ruby"),
-            Map.entry(".rs", "rust"),
-            Map.entry(".kt", "kotlin"),
-            Map.entry(".kts", "kotlin"),
-            Map.entry(".scala", "scala"),
             Map.entry(".swift", "swift"),
+            Map.entry(".dart", "dart"),
             Map.entry(".r", "r"),
             Map.entry(".R", "r"),
             Map.entry(".pl", "perl"),
             Map.entry(".pm", "perl"),
             Map.entry(".lua", "lua"),
-            Map.entry(".dart", "dart"),
-            Map.entry(".dockerfile", "dockerfile"),
+            // Config / structured data
+            Map.entry(".xml", "xml"),
+            Map.entry(".yaml", "yaml"),
+            Map.entry(".yml", "yaml"),
+            Map.entry(".json", "json"),
+            Map.entry(".properties", "properties"),
             Map.entry(".toml", "toml"),
-            Map.entry(".ini", "ini"),
-            Map.entry(".cfg", "ini"),
-            Map.entry(".conf", "ini"),
-            Map.entry(".env", "dotenv"),
-            Map.entry(".csv", "csv"),
-            Map.entry(".vue", "vue"),
-            Map.entry(".svelte", "svelte"),
-            Map.entry(".html", "html"),
-            Map.entry(".htm", "html"),
-            Map.entry(".css", "css"),
-            Map.entry(".scss", "scss"),
-            Map.entry(".less", "less"),
-            Map.entry(".groovy", "groovy"),
-            Map.entry(".razor", "razor"),
-            Map.entry(".cshtml", "cshtml"),
-            Map.entry(".adoc", "asciidoc")
+            Map.entry(".proto", "proto"),
+            // IaC
+            Map.entry(".tf", "terraform"),
+            Map.entry(".tfvars", "terraform"),
+            Map.entry(".hcl", "terraform"),
+            Map.entry(".bicep", "bicep"),
+            Map.entry(".dockerfile", "dockerfile"),
+            // Shell
+            Map.entry(".sh", "bash"),
+            Map.entry(".bash", "bash"),
+            Map.entry(".ps1", "powershell"),
+            // Docs
+            Map.entry(".md", "markdown"),
+            Map.entry(".markdown", "markdown"),
+            // Schema
+            Map.entry(".sql", "sql"),
+            Map.entry(".graphql", "graphql"),
+            Map.entry(".gql", "graphql")
+            // Removed (no detector output, pure waste):
+            // .csv, .env, .ini, .cfg, .conf, .css, .scss, .less,
+            // .html, .htm, .bat, .cmd, .zsh, .jsonc, .gradle,
+            // .razor, .cshtml, .adoc, .psm1, .psd1
     );
 
     /**
@@ -108,22 +103,20 @@ public final class DetectorUtils {
             "Vagrantfile", "ruby",
             "Gemfile", "ruby",
             "Rakefile", "ruby",
-            "go.mod", "gomod",
-            "go.sum", "gosum"
+            "go.mod", "gomod"
     );
 
     /**
      * Languages that use structured module name derivation (parent directory as module).
      */
     private static final Set<String> STRUCTURED_LANGUAGES = Set.of(
-            "xml", "yaml", "json", "properties", "gradle", "sql",
+            "xml", "yaml", "json", "properties", "sql",
             "bicep", "terraform", "csharp", "go", "cpp", "c",
-            "bash", "powershell", "batch", "ruby", "rust", "kotlin",
+            "bash", "powershell", "ruby", "rust", "kotlin",
             "scala", "swift", "r", "perl", "lua", "dart",
-            "dockerfile", "toml", "ini", "dotenv", "csv",
+            "dockerfile", "toml",
             "vue", "svelte",
-            "html", "css", "scss", "less", "razor", "cshtml", "asciidoc",
-            "makefile", "gomod", "gosum", "groovy"
+            "makefile", "gomod", "groovy"
     );
 
     /**
