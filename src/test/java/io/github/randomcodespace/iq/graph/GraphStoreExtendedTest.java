@@ -7,10 +7,15 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.graphdb.Result;
+import org.neo4j.graphdb.Transaction;
 
 import java.util.List;
+import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
@@ -20,7 +25,7 @@ class GraphStoreExtendedTest {
     private GraphRepository repository;
 
     @Mock
-    private org.neo4j.graphdb.GraphDatabaseService graphDb;
+    private GraphDatabaseService graphDb;
 
     private GraphStore store;
 
@@ -28,6 +33,55 @@ class GraphStoreExtendedTest {
     void setUp() {
         store = new GraphStore(repository, graphDb);
     }
+
+    // --- Helper methods ---
+
+    /**
+     * Creates a mock Neo4j Node with the given id, kind, and label.
+     */
+    private org.neo4j.graphdb.Node mockNeo4jNode(String id, String kind, String label) {
+        var neo4jNode = mock(org.neo4j.graphdb.Node.class);
+        when(neo4jNode.getProperty("id", null)).thenReturn(id);
+        when(neo4jNode.getProperty("kind", null)).thenReturn(kind);
+        when(neo4jNode.getProperty("label", "")).thenReturn(label);
+        when(neo4jNode.getProperty("fqn", null)).thenReturn(null);
+        when(neo4jNode.getProperty("module", null)).thenReturn(null);
+        when(neo4jNode.getProperty("filePath", null)).thenReturn(null);
+        when(neo4jNode.getProperty("layer", null)).thenReturn(null);
+        when(neo4jNode.getProperty("lineStart", null)).thenReturn(null);
+        when(neo4jNode.getProperty("lineEnd", null)).thenReturn(null);
+        return neo4jNode;
+    }
+
+    /**
+     * Sets up graphDb to return a single-node result for the given column name.
+     * Returns the mock Transaction for further verification if needed.
+     */
+    private Transaction mockNodeResult(String id, String kind, String label, String column) {
+        var tx = mock(Transaction.class);
+        when(graphDb.beginTx()).thenReturn(tx);
+        var neo4jNode = mockNeo4jNode(id, kind, label);
+        var result = mock(Result.class);
+        when(result.hasNext()).thenReturn(true, false);
+        when(result.next()).thenReturn(Map.of(column, neo4jNode));
+        when(result.columns()).thenReturn(List.of(column));
+        when(tx.execute(anyString(), anyMap())).thenReturn(result);
+        return tx;
+    }
+
+    /**
+     * Sets up graphDb to return an empty result (no rows).
+     */
+    private void mockEmptyResult(String column) {
+        var tx = mock(Transaction.class);
+        when(graphDb.beginTx()).thenReturn(tx);
+        var result = mock(Result.class);
+        when(result.hasNext()).thenReturn(false);
+        when(result.columns()).thenReturn(List.of(column));
+        when(tx.execute(anyString(), anyMap())).thenReturn(result);
+    }
+
+    // --- Write operations (still use repository) ---
 
     @Test
     void shouldSaveAll() {
@@ -43,18 +97,25 @@ class GraphStoreExtendedTest {
     }
 
     @Test
+    void shouldDeleteById() {
+        store.deleteById("n1");
+        verify(repository).deleteById("n1");
+    }
+
+    // --- Read operations (use embedded Neo4j API) ---
+
+    @Test
     void shouldFindAll() {
-        var nodes = List.of(new CodeNode("n1", NodeKind.CLASS, "A"));
-        when(repository.findAll()).thenReturn(nodes);
+        mockNodeResult("n1", "class", "A", "n");
 
         var result = store.findAll();
         assertEquals(1, result.size());
+        assertEquals("A", result.getFirst().getLabel());
     }
 
     @Test
     void shouldFindByLayer() {
-        var node = new CodeNode("n1", NodeKind.CLASS, "A");
-        when(repository.findByLayer("backend")).thenReturn(List.of(node));
+        mockNodeResult("n1", "class", "A", "n");
 
         var results = store.findByLayer("backend");
         assertEquals(1, results.size());
@@ -62,8 +123,7 @@ class GraphStoreExtendedTest {
 
     @Test
     void shouldFindByModule() {
-        var node = new CodeNode("n1", NodeKind.MODULE, "core");
-        when(repository.findByModule("core")).thenReturn(List.of(node));
+        mockNodeResult("n1", "module", "core", "n");
 
         var results = store.findByModule("core");
         assertEquals(1, results.size());
@@ -71,8 +131,7 @@ class GraphStoreExtendedTest {
 
     @Test
     void shouldFindByFilePath() {
-        var node = new CodeNode("n1", NodeKind.CLASS, "A");
-        when(repository.findByFilePath("src/Main.java")).thenReturn(List.of(node));
+        mockNodeResult("n1", "class", "A", "n");
 
         var results = store.findByFilePath("src/Main.java");
         assertEquals(1, results.size());
@@ -80,26 +139,27 @@ class GraphStoreExtendedTest {
 
     @Test
     void shouldSearchWithLimit() {
-        var node = new CodeNode("n1", NodeKind.CLASS, "User");
-        when(repository.search("User", 10)).thenReturn(List.of(node));
+        mockNodeResult("n1", "class", "User", "n");
 
         var results = store.search("User", 10);
         assertEquals(1, results.size());
+        assertEquals("User", results.getFirst().getLabel());
     }
 
     @Test
     void shouldFindNeighbors() {
-        var neighbor = new CodeNode("n2", NodeKind.CLASS, "B");
-        when(repository.findNeighbors("n1")).thenReturn(List.of(neighbor));
+        // findNeighbors returns column 'm'
+        mockNodeResult("n2", "class", "B", "m");
 
         var results = store.findNeighbors("n1");
         assertEquals(1, results.size());
+        assertEquals("B", results.getFirst().getLabel());
     }
 
     @Test
     void shouldFindOutgoingNeighbors() {
-        var target = new CodeNode("n2", NodeKind.CLASS, "B");
-        when(repository.findOutgoingNeighbors("n1")).thenReturn(List.of(target));
+        // findOutgoingNeighbors returns column 'm'
+        mockNodeResult("n2", "class", "B", "m");
 
         var results = store.findOutgoingNeighbors("n1");
         assertEquals(1, results.size());
@@ -107,31 +167,44 @@ class GraphStoreExtendedTest {
 
     @Test
     void shouldFindIncomingNeighbors() {
-        var source = new CodeNode("n0", NodeKind.CLASS, "A");
-        when(repository.findIncomingNeighbors("n1")).thenReturn(List.of(source));
+        // findIncomingNeighbors returns column 'm'
+        mockNodeResult("n0", "class", "A", "m");
 
         var results = store.findIncomingNeighbors("n1");
         assertEquals(1, results.size());
     }
 
     @Test
-    void shouldDeleteById() {
-        store.deleteById("n1");
-        verify(repository).deleteById("n1");
-    }
-
-    @Test
     void shouldFindShortestPath() {
-        when(repository.findShortestPath("A", "C")).thenReturn(List.of("A", "B", "C"));
+        var tx = mock(Transaction.class);
+        when(graphDb.beginTx()).thenReturn(tx);
+        var result = mock(Result.class);
+        when(result.hasNext()).thenReturn(true, false);
+        when(result.next()).thenReturn(Map.of("ids", List.of("A", "B", "C")));
+        when(tx.execute(anyString(), anyMap())).thenReturn(result);
 
         var path = store.findShortestPath("A", "C");
         assertEquals(3, path.size());
+        assertEquals("A", path.get(0));
+        assertEquals("C", path.get(2));
+    }
+
+    @Test
+    void shouldReturnEmptyPathWhenNotFound() {
+        var tx = mock(Transaction.class);
+        when(graphDb.beginTx()).thenReturn(tx);
+        var result = mock(Result.class);
+        when(result.hasNext()).thenReturn(false);
+        when(tx.execute(anyString(), anyMap())).thenReturn(result);
+
+        var path = store.findShortestPath("A", "Z");
+        assertTrue(path.isEmpty());
     }
 
     @Test
     void shouldFindEgoGraph() {
-        var node = new CodeNode("n1", NodeKind.CLASS, "A");
-        when(repository.findEgoGraph("center", 2)).thenReturn(List.of(node));
+        // findEgoGraph returns column 'b' (DISTINCT b in Cypher)
+        mockNodeResult("n1", "class", "A", "b");
 
         var result = store.findEgoGraph("center", 2);
         assertEquals(1, result.size());
@@ -139,8 +212,8 @@ class GraphStoreExtendedTest {
 
     @Test
     void shouldTraceImpact() {
-        var node = new CodeNode("n2", NodeKind.CLASS, "B");
-        when(repository.traceImpact("n1", 3)).thenReturn(List.of(node));
+        // traceImpact returns column 'b' (DISTINCT b in Cypher)
+        mockNodeResult("n2", "class", "B", "b");
 
         var result = store.traceImpact("n1", 3);
         assertEquals(1, result.size());
@@ -148,25 +221,44 @@ class GraphStoreExtendedTest {
 
     @Test
     void shouldFindCycles() {
-        when(repository.findCycles(10)).thenReturn(List.of(List.of("A", "B", "A")));
+        var tx = mock(Transaction.class);
+        when(graphDb.beginTx()).thenReturn(tx);
+        var result = mock(Result.class);
+        when(result.hasNext()).thenReturn(true, false);
+        when(result.next()).thenReturn(Map.of("ids", List.of("A", "B", "A")));
+        when(tx.execute(anyString(), anyMap())).thenReturn(result);
 
         var cycles = store.findCycles(10);
         assertEquals(1, cycles.size());
+        assertEquals(3, cycles.getFirst().size());
+    }
+
+    @Test
+    void shouldReturnEmptyCyclesWhenNoneFound() {
+        var tx = mock(Transaction.class);
+        when(graphDb.beginTx()).thenReturn(tx);
+        var result = mock(Result.class);
+        when(result.hasNext()).thenReturn(false);
+        when(tx.execute(anyString(), anyMap())).thenReturn(result);
+
+        var cycles = store.findCycles(10);
+        assertTrue(cycles.isEmpty());
     }
 
     @Test
     void shouldFindConsumers() {
-        var node = new CodeNode("c1", NodeKind.CLASS, "Consumer");
-        when(repository.findConsumers("topic")).thenReturn(List.of(node));
+        // findConsumers returns column 'm'
+        mockNodeResult("c1", "class", "Consumer", "m");
 
         var results = store.findConsumers("topic");
         assertEquals(1, results.size());
+        assertEquals("Consumer", results.getFirst().getLabel());
     }
 
     @Test
     void shouldFindProducers() {
-        var node = new CodeNode("p1", NodeKind.CLASS, "Producer");
-        when(repository.findProducers("topic")).thenReturn(List.of(node));
+        // findProducers returns column 'm'
+        mockNodeResult("p1", "class", "Producer", "m");
 
         var results = store.findProducers("topic");
         assertEquals(1, results.size());
@@ -174,8 +266,8 @@ class GraphStoreExtendedTest {
 
     @Test
     void shouldFindCallers() {
-        var node = new CodeNode("caller1", NodeKind.METHOD, "doWork");
-        when(repository.findCallers("target")).thenReturn(List.of(node));
+        // findCallers returns column 'm'
+        mockNodeResult("caller1", "method", "doWork", "m");
 
         var results = store.findCallers("target");
         assertEquals(1, results.size());
@@ -183,8 +275,8 @@ class GraphStoreExtendedTest {
 
     @Test
     void shouldFindDependencies() {
-        var dep = new CodeNode("dep1", NodeKind.MODULE, "lib");
-        when(repository.findDependencies("mod")).thenReturn(List.of(dep));
+        // findDependencies returns column 'm'
+        mockNodeResult("dep1", "module", "lib", "m");
 
         var results = store.findDependencies("mod");
         assertEquals(1, results.size());
@@ -192,8 +284,8 @@ class GraphStoreExtendedTest {
 
     @Test
     void shouldFindDependents() {
-        var dep = new CodeNode("dep1", NodeKind.MODULE, "app");
-        when(repository.findDependents("lib")).thenReturn(List.of(dep));
+        // findDependents returns column 'm'
+        mockNodeResult("dep1", "module", "app", "m");
 
         var results = store.findDependents("lib");
         assertEquals(1, results.size());
@@ -201,8 +293,7 @@ class GraphStoreExtendedTest {
 
     @Test
     void shouldFindByKindPaginated() {
-        var node = new CodeNode("n1", NodeKind.CLASS, "A");
-        when(repository.findByKindPaginated("class", 0, 10)).thenReturn(List.of(node));
+        mockNodeResult("n1", "class", "A", "n");
 
         var results = store.findByKindPaginated("class", 0, 10);
         assertEquals(1, results.size());
@@ -210,8 +301,7 @@ class GraphStoreExtendedTest {
 
     @Test
     void shouldFindAllPaginated() {
-        var node = new CodeNode("n1", NodeKind.CLASS, "A");
-        when(repository.findAllPaginated(0, 10)).thenReturn(List.of(node));
+        mockNodeResult("n1", "class", "A", "n");
 
         var results = store.findAllPaginated(0, 10);
         assertEquals(1, results.size());
@@ -219,7 +309,12 @@ class GraphStoreExtendedTest {
 
     @Test
     void shouldCountByKind() {
-        when(repository.countByKind("class")).thenReturn(15L);
+        var tx = mock(Transaction.class);
+        when(graphDb.beginTx()).thenReturn(tx);
+        var result = mock(Result.class);
+        when(result.hasNext()).thenReturn(true, false);
+        when(result.next()).thenReturn(Map.of("cnt", 15L));
+        when(tx.execute(anyString(), anyMap())).thenReturn(result);
 
         assertEquals(15L, store.countByKind("class"));
     }
