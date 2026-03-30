@@ -13,6 +13,7 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * High-level query service wrapping GraphStore with caching.
@@ -24,90 +25,65 @@ public class QueryService {
 
     private final GraphStore graphStore;
     private final CodeIqConfig config;
+    private final StatsService statsService;
 
-    public QueryService(GraphStore graphStore, CodeIqConfig config) {
+    public QueryService(GraphStore graphStore, CodeIqConfig config, StatsService statsService) {
         this.graphStore = graphStore;
         this.config = config;
+        this.statsService = statsService;
     }
 
     @Cacheable("graph-stats")
     public Map<String, Object> getStats() {
-        long nodeCount = graphStore.count();
-        long edgeCount = graphStore.countEdges();
-        long fileCount = graphStore.countDistinctFiles();
+        // Load full graph data and compute rich categorized stats
+        List<CodeNode> nodes = graphStore.findAll();
+        List<CodeEdge> edges = nodes.stream()
+                .flatMap(n -> n.getEdges().stream())
+                .toList();
 
+        Map<String, Object> result = statsService.computeStats(nodes, edges);
+
+        // Also include raw counts and breakdowns for backward compat
         Map<String, Long> nodesByKind = new LinkedHashMap<>();
         for (Map<String, Object> row : graphStore.countNodesByKind()) {
             nodesByKind.put((String) row.get("kind"), ((Number) row.get("cnt")).longValue());
         }
-
         Map<String, Long> nodesByLayer = new LinkedHashMap<>();
         for (Map<String, Object> row : graphStore.countNodesByLayer()) {
             nodesByLayer.put((String) row.get("layer"), ((Number) row.get("cnt")).longValue());
         }
 
-        // Language breakdown from file extensions
-        Map<String, Long> languages = new LinkedHashMap<>();
-        for (Map<String, Object> row : graphStore.countByFileExtension()) {
-            String ext = (String) row.get("ext");
-            long cnt = ((Number) row.get("cnt")).longValue();
-            String lang = extToLanguage(ext);
-            languages.merge(lang, cnt, Long::sum);
-        }
-
-        // Return in ComputedStatsResponse format for frontend compatibility
-        Map<String, Object> graph = new LinkedHashMap<>();
-        graph.put("nodes", nodeCount);
-        graph.put("edges", edgeCount);
-        graph.put("files", fileCount);
-
-        Map<String, Object> result = new LinkedHashMap<>();
-        result.put("graph", graph);
-        result.put("languages", languages);
-        result.put("frameworks", Map.of());
-        result.put("infra", Map.of("databases", Map.of(), "messaging", Map.of(), "cloud", Map.of()));
-        result.put("connections", Map.of("rest", Map.of("total", 0, "by_method", Map.of()),
-                "grpc", 0, "websocket", 0, "producers", 0, "consumers", 0));
-        result.put("auth", Map.of());
-        result.put("architecture", Map.of());
-        // Also include raw counts for backward compat
-        result.put("node_count", nodeCount);
-        result.put("edge_count", edgeCount);
+        result.put("node_count", nodes.size());
+        result.put("edge_count", edges.size());
         result.put("nodes_by_kind", nodesByKind);
         result.put("nodes_by_layer", nodesByLayer);
         return result;
     }
 
-    private static String extToLanguage(String ext) {
-        if (ext == null) return "unknown";
-        return switch (ext.toLowerCase()) {
-            case "java" -> "java";
-            case "kt", "kts" -> "kotlin";
-            case "py" -> "python";
-            case "js", "mjs", "cjs" -> "javascript";
-            case "ts", "tsx" -> "typescript";
-            case "go" -> "go";
-            case "rs" -> "rust";
-            case "cs" -> "csharp";
-            case "scala" -> "scala";
-            case "cpp", "cc", "cxx", "h", "hpp" -> "cpp";
-            case "c" -> "c";
-            case "rb" -> "ruby";
-            case "proto" -> "protobuf";
-            case "yml", "yaml" -> "yaml";
-            case "json" -> "json";
-            case "xml" -> "xml";
-            case "tf" -> "terraform";
-            case "sql" -> "sql";
-            case "md" -> "markdown";
-            case "html", "htm" -> "html";
-            case "css", "scss", "sass" -> "css";
-            case "vue" -> "vue";
-            case "svelte" -> "svelte";
-            case "jsx" -> "jsx";
-            case "sh", "bash" -> "shell";
-            default -> ext;
-        };
+    /**
+     * Get detailed stats for a specific category, or all categories.
+     * Categories: all, graph, languages, frameworks, infra, connections, auth, architecture
+     */
+    @Cacheable(value = "detailed-stats", key = "#category")
+    public Map<String, Object> getDetailedStats(String category) {
+        List<CodeNode> nodes = graphStore.findAll();
+        List<CodeEdge> edges = nodes.stream()
+                .flatMap(n -> n.getEdges().stream())
+                .toList();
+
+        if (category == null || "all".equalsIgnoreCase(category)) {
+            return statsService.computeStats(nodes, edges);
+        }
+        Map<String, Object> catResult = statsService.computeCategory(nodes, edges, category);
+        if (catResult == null) {
+            Map<String, Object> error = new LinkedHashMap<>();
+            error.put("error", "Unknown category: " + category
+                    + ". Valid: all, graph, languages, frameworks, infra, connections, auth, architecture");
+            return error;
+        }
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put(category.toLowerCase(), catResult);
+        return result;
     }
 
     @Cacheable("kinds-list")
@@ -350,6 +326,44 @@ public class QueryService {
         int cappedLimit = Math.min(limit, 200);
         List<CodeNode> results = graphStore.search(query, cappedLimit);
         return results.stream().map(this::nodeToMap).toList();
+    }
+
+    /**
+     * Find API endpoints related to an identifier (file, class, entity).
+     * Searches for matching nodes, then traverses the graph to find connected endpoints.
+     */
+    public Map<String, Object> findRelatedEndpoints(String identifier) {
+        // Find nodes matching the identifier
+        List<CodeNode> matches = graphStore.search(identifier, 50);
+
+        // Collect endpoints: any match that IS an endpoint, plus neighbors of matches that are endpoints
+        Set<String> seenIds = new java.util.LinkedHashSet<>();
+        List<Map<String, Object>> endpoints = new ArrayList<>();
+
+        for (CodeNode match : matches) {
+            if (match.getKind() == NodeKind.ENDPOINT || match.getKind() == NodeKind.WEBSOCKET_ENDPOINT) {
+                if (seenIds.add(match.getId())) {
+                    endpoints.add(nodeToMap(match));
+                }
+            }
+            // Check neighbors for connected endpoints
+            List<CodeNode> neighbors = graphStore.findNeighbors(match.getId());
+            for (CodeNode neighbor : neighbors) {
+                if ((neighbor.getKind() == NodeKind.ENDPOINT || neighbor.getKind() == NodeKind.WEBSOCKET_ENDPOINT)
+                        && seenIds.add(neighbor.getId())) {
+                    Map<String, Object> epMap = nodeToMap(neighbor);
+                    epMap.put("connected_via", match.getId());
+                    endpoints.add(epMap);
+                }
+            }
+        }
+
+        Map<String, Object> result = new LinkedHashMap<>();
+        result.put("identifier", identifier);
+        result.put("endpoints", endpoints);
+        result.put("count", endpoints.size());
+        result.put("searched_nodes", matches.size());
+        return result;
     }
 
     // --- Topology ---

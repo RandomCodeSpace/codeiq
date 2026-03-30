@@ -28,6 +28,7 @@ class QueryServiceTest {
     private GraphStore graphStore;
 
     private CodeIqConfig config;
+    private StatsService statsService;
     private QueryService service;
 
     @BeforeEach
@@ -35,7 +36,8 @@ class QueryServiceTest {
         config = new CodeIqConfig();
         config.setMaxDepth(10);
         config.setMaxRadius(10);
-        service = new QueryService(graphStore, config);
+        statsService = new StatsService();
+        service = new QueryService(graphStore, config, statsService);
     }
 
     private CodeNode makeNode(String id, NodeKind kind, String label) {
@@ -59,30 +61,43 @@ class QueryServiceTest {
 
     @Test
     void getStatsShouldReturnNodeAndEdgeCounts() {
-        when(graphStore.count()).thenReturn(2L);
-        when(graphStore.countEdges()).thenReturn(1L);
-        when(graphStore.countDistinctFiles()).thenReturn(5L);
+        var endpoint = makeNodeWithEdge("ep:1", NodeKind.ENDPOINT, "GET /users",
+                "svc:1", EdgeKind.CALLS);
+        endpoint.getProperties().put("http_method", "GET");
+        endpoint.setFilePath("src/Main.java");
+        var cls = makeNode("cls:1", NodeKind.CLASS, "UserService");
+        cls.setFilePath("src/UserService.java");
+        cls.setEdges(new ArrayList<>());
+        when(graphStore.findAll()).thenReturn(List.of(endpoint, cls));
         when(graphStore.countNodesByKind()).thenReturn(List.of(
                 Map.of("kind", "endpoint", "cnt", 1L),
                 Map.of("kind", "class", "cnt", 1L)));
         when(graphStore.countNodesByLayer()).thenReturn(List.of(
                 Map.of("layer", "backend", "cnt", 2L)));
-        when(graphStore.countByFileExtension()).thenReturn(List.of(
-                Map.of("ext", "java", "cnt", 3L),
-                Map.of("ext", "py", "cnt", 2L)));
 
         Map<String, Object> stats = service.getStats();
 
-        // ComputedStatsResponse format
+        // ComputedStatsResponse format — graph section from StatsService
         @SuppressWarnings("unchecked")
         Map<String, Object> graph = (Map<String, Object>) stats.get("graph");
-        assertEquals(2L, graph.get("nodes"));
-        assertEquals(1L, graph.get("edges"));
-        assertEquals(5L, graph.get("files"));
+        assertEquals(2, graph.get("nodes"));
+        assertEquals(1, graph.get("edges"));
+        assertEquals(2L, graph.get("files"));
         assertNotNull(stats.get("languages"));
+        assertNotNull(stats.get("frameworks"));
+        assertNotNull(stats.get("infra"));
+        assertNotNull(stats.get("connections"));
+        assertNotNull(stats.get("auth"));
+        assertNotNull(stats.get("architecture"));
+        // REST endpoint detection
+        @SuppressWarnings("unchecked")
+        Map<String, Object> connections = (Map<String, Object>) stats.get("connections");
+        @SuppressWarnings("unchecked")
+        Map<String, Object> rest = (Map<String, Object>) connections.get("rest");
+        assertEquals(1L, rest.get("total"));
         // Backward compat
-        assertEquals(2L, stats.get("node_count"));
-        assertEquals(1L, stats.get("edge_count"));
+        assertEquals(2, stats.get("node_count"));
+        assertEquals(1, stats.get("edge_count"));
         assertNotNull(stats.get("nodes_by_kind"));
         assertNotNull(stats.get("nodes_by_layer"));
     }

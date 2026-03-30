@@ -94,7 +94,7 @@ public class McpTools {
     public String getDetailedStats(
             @ToolParam(description = "Category filter (default: all)", required = false) String category) {
         try {
-            return toJson(queryService.getStats());
+            return toJson(queryService.getDetailedStats(category != null ? category : "all"));
         } catch (Exception e) {
             return toJson(Map.of("error", e.getMessage()));
         }
@@ -335,13 +335,7 @@ public class McpTools {
     public String findRelatedEndpoints(
             @ToolParam(description = "File, class, or entity identifier") String identifier) {
         try {
-            // Search for the identifier, then find endpoints connected to the results
-            List<Map<String, Object>> results = queryService.searchGraph(identifier, 50);
-            Map<String, Object> response = new LinkedHashMap<>();
-            response.put("identifier", identifier);
-            response.put("related_nodes", results);
-            response.put("count", results.size());
-            return toJson(response);
+            return toJson(queryService.findRelatedEndpoints(identifier));
         } catch (Exception e) {
             return toJson(Map.of("error", e.getMessage()));
         }
@@ -368,7 +362,7 @@ public class McpTools {
             Path resolved = root.resolve(filePath).normalize();
             // Path traversal protection
             if (!resolved.startsWith(root)) {
-                return "Error: Path traversal detected";
+                return toJson(Map.of("error", "Path traversal detected"));
             }
             String content = java.nio.file.Files.readString(resolved, java.nio.charset.StandardCharsets.UTF_8);
             if (startLine != null || endLine != null) {
@@ -387,7 +381,7 @@ public class McpTools {
             }
             return content;
         } catch (Exception e) {
-            return "Error: " + e.getMessage();
+            return toJson(Map.of("error", "Failed to read file: " + e.getMessage()));
         }
     }
 
@@ -523,7 +517,9 @@ public class McpTools {
         if (val instanceof org.neo4j.graphdb.Node node) {
             Map<String, Object> map = new LinkedHashMap<>();
             map.put("_id", node.getElementId());
-            map.put("_labels", node.getLabels().spliterator().estimateSize());
+            List<String> labels = new ArrayList<>();
+            node.getLabels().forEach(l -> labels.add(l.name()));
+            map.put("_labels", labels);
             for (String key : node.getPropertyKeys()) {
                 map.put(key, node.getProperty(key));
             }

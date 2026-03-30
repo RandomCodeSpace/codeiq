@@ -450,10 +450,12 @@ class McpToolsTest {
 
     @Test
     void findRelatedEndpointsShouldSearchAndReturn() throws IOException {
-        List<Map<String, Object>> searchResults = List.of(
-                Map.of("id", "n1", "kind", "endpoint")
-        );
-        when(queryService.searchGraph("UserService", 50)).thenReturn(searchResults);
+        Map<String, Object> endpointResult = new java.util.LinkedHashMap<>();
+        endpointResult.put("identifier", "UserService");
+        endpointResult.put("endpoints", List.of(Map.of("id", "ep1", "kind", "endpoint")));
+        endpointResult.put("count", 1);
+        endpointResult.put("searched_nodes", 3);
+        when(queryService.findRelatedEndpoints("UserService")).thenReturn(endpointResult);
 
         String result = mcpTools.findRelatedEndpoints("UserService");
         Map<String, Object> parsed = parseJson(result);
@@ -496,21 +498,24 @@ class McpToolsTest {
     }
 
     @Test
-    void readFileShouldRejectPathTraversal(@TempDir Path tempDir) {
+    void readFileShouldRejectPathTraversal(@TempDir Path tempDir) throws IOException {
         config.setRootPath(tempDir.toString());
 
         String result = mcpTools.readFile("../../etc/passwd", null, null);
+        Map<String, Object> parsed = parseJson(result);
 
-        assertEquals("Error: Path traversal detected", result);
+        assertEquals("Path traversal detected", parsed.get("error"));
     }
 
     @Test
-    void readFileShouldHandleMissingFile(@TempDir Path tempDir) {
+    void readFileShouldHandleMissingFile(@TempDir Path tempDir) throws IOException {
         config.setRootPath(tempDir.toString());
 
         String result = mcpTools.readFile("nonexistent.txt", null, null);
+        Map<String, Object> parsed = parseJson(result);
 
-        assertTrue(result.startsWith("Error:"));
+        assertNotNull(parsed.get("error"));
+        assertTrue(parsed.get("error").toString().contains("Failed to read file"));
     }
 
     @Test

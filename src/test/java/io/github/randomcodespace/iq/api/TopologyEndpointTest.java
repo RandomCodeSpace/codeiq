@@ -184,7 +184,7 @@ class TopologyEndpointTest {
     @Test
     void queryServiceGetTopologyDelegatesToGraphStore() {
         CodeIqConfig cfg = new CodeIqConfig();
-        QueryService service = new QueryService(graphStore, cfg);
+        QueryService service = new QueryService(graphStore, cfg, new io.github.randomcodespace.iq.query.StatsService());
         when(graphStore.getTopology()).thenReturn(buildTopologyResponse());
 
         Map<String, Object> result = service.getTopology();
@@ -199,7 +199,7 @@ class TopologyEndpointTest {
     @Test
     void queryServiceGetTopologyReturnsServicesInfraConnections() {
         CodeIqConfig cfg = new CodeIqConfig();
-        QueryService service = new QueryService(graphStore, cfg);
+        QueryService service = new QueryService(graphStore, cfg, new io.github.randomcodespace.iq.query.StatsService());
         Map<String, Object> topology = buildTopologyResponse();
         when(graphStore.getTopology()).thenReturn(topology);
 

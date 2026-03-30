@@ -56,11 +56,7 @@ public class GraphController {
     public Map<String, Object> getDetailedStats(
             @RequestParam(defaultValue = "all") String category) {
         requireQueryService();
-        if ("all".equalsIgnoreCase(category) || "graph".equalsIgnoreCase(category)) {
-            return queryService.getStats();
-        }
-        throw new ResponseStatusException(HttpStatus.NOT_IMPLEMENTED,
-                "Detailed stats by category not yet supported via Neo4j. Use /api/stats instead.");
+        return queryService.getDetailedStats(category);
     }
 
     @GetMapping("/kinds")
