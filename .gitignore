@@ -20,14 +20,14 @@ target/
 .DS_Store
 Thumbs.db
 
-# Project
+# Project runtime data
 .osscodeiq/
-.superpowers/
 .code-intelligence/
 .code_intelligence_cache*/
 *.db
 *.db-wal
 *.db-shm
+*.mv.db
 
 # Environment & secrets
 .env
@@ -41,7 +41,34 @@ Thumbs.db
 # Frontend
 src/main/frontend/node_modules/
 src/main/frontend/node/
+src/main/frontend/dist/
+src/main/frontend/tsconfig.tsbuildinfo
 
 # Distribution
 *.tar.gz
 *.zip
+
+# Python (legacy — removed from project)
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+*.egg
+.coverage
+.pytest_cache/
+pytest-of-*/
+htmlcov/
+dist/
+build/
+*.whl
+pyproject.toml
+uv.lock
+.venv/
+venv/
+
+# Superpowers plugin
+.superpowers/
+
+# Neo4j embedded data
+neo4j-data/
+graph.db/
