@@ -28,13 +28,13 @@ class TypeORMEntityDetectorTest {
         DetectorContext ctx = DetectorTestUtils.contextFor("src/user.entity.ts", "typescript", code);
         DetectorResult result = detector.detect(ctx);
 
-        assertEquals(1, result.nodes().size());
-        assertEquals(NodeKind.ENTITY, result.nodes().get(0).getKind());
-        assertEquals("User", result.nodes().get(0).getLabel());
-        assertEquals("users", result.nodes().get(0).getProperties().get("table_name"));
-        assertEquals("typeorm", result.nodes().get(0).getProperties().get("framework"));
-        // Relationship edge
-        assertEquals(1, result.edges().size());
+        assertEquals(2, result.nodes().size()); // entity + database:unknown
+        var entityNode = result.nodes().stream().filter(n -> n.getKind() == NodeKind.ENTITY).findFirst().orElseThrow();
+        assertEquals("User", entityNode.getLabel());
+        assertEquals("users", entityNode.getProperties().get("table_name"));
+        assertEquals("typeorm", entityNode.getProperties().get("framework"));
+        // Relationship edge + CONNECTS_TO edge
+        assertEquals(2, result.edges().size());
     }
 
     @Test

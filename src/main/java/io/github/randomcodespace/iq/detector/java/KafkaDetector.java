@@ -73,6 +73,7 @@ public class KafkaDetector extends AbstractRegexDetector {
 
         String classNodeId = ctx.filePath() + ":" + className;
         Set<String> seenTopics = new LinkedHashSet<>();
+        io.github.randomcodespace.iq.analyzer.InfrastructureRegistry registry = ctx.registry();
 
         // @KafkaListener consumers
         for (int i = 0; i < lines.length; i++) {
@@ -82,7 +83,7 @@ public class KafkaDetector extends AbstractRegexDetector {
                     Matcher fallback = Pattern.compile("\"([^\"]+)\"").matcher(lines[i]);
                     if (fallback.find()) {
                         String topic = fallback.group(1);
-                        String topicId = ensureTopicNode(topic, seenTopics, nodes);
+                        String topicId = ensureTopicNode(topic, seenTopics, nodes, registry);
                         Map<String, Object> props = new LinkedHashMap<>();
                         props.put("topic", topic);
                         addEdge(classNodeId, topicId, EdgeKind.CONSUMES,
@@ -92,7 +93,7 @@ public class KafkaDetector extends AbstractRegexDetector {
                 continue;
             }
             String topic = m.group(1);
-            String topicId = ensureTopicNode(topic, seenTopics, nodes);
+            String topicId = ensureTopicNode(topic, seenTopics, nodes, registry);
             Map<String, Object> props = new LinkedHashMap<>();
             props.put("topic", topic);
             Matcher gm = GROUP_ID_RE.matcher(lines[i]);
@@ -106,7 +107,7 @@ public class KafkaDetector extends AbstractRegexDetector {
             Matcher m = KAFKA_SEND_RE.matcher(lines[i]);
             if (!m.find()) continue;
             String topic = m.group(1);
-            String topicId = ensureTopicNode(topic, seenTopics, nodes);
+            String topicId = ensureTopicNode(topic, seenTopics, nodes, registry);
             addEdge(classNodeId, topicId, EdgeKind.PRODUCES,
                     className + " produces to " + topic,
                     Map.of("topic", topic), edges, nodes);
@@ -115,8 +116,14 @@ public class KafkaDetector extends AbstractRegexDetector {
         return DetectorResult.of(nodes, edges);
     }
 
-    private String ensureTopicNode(String topic, Set<String> seen, List<CodeNode> nodes) {
+    private String ensureTopicNode(String topic, Set<String> seen, List<CodeNode> nodes,
+            io.github.randomcodespace.iq.analyzer.InfrastructureRegistry registry) {
+        // Use canonical registry id if this topic is registered
         String topicId = "kafka:topic:" + topic;
+        if (registry != null) {
+            io.github.randomcodespace.iq.analyzer.InfraEndpoint registered = registry.getTopics().get(topic);
+            if (registered != null) topicId = "infra:" + registered.id();
+        }
         if (!seen.contains(topic)) {
             seen.add(topic);
             CodeNode node = new CodeNode();

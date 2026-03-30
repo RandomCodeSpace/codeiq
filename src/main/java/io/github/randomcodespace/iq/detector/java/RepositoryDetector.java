@@ -22,8 +22,8 @@ import io.github.randomcodespace.iq.detector.DetectorInfo;
     category = "entities",
     description = "Detects Spring Data repositories and custom query methods",
     languages = {"java"},
-    nodeKinds = {NodeKind.ENTITY, NodeKind.REPOSITORY},
-    edgeKinds = {EdgeKind.QUERIES},
+    nodeKinds = {NodeKind.ENTITY, NodeKind.REPOSITORY, NodeKind.DATABASE_CONNECTION},
+    edgeKinds = {EdgeKind.QUERIES, EdgeKind.CONNECTS_TO},
     properties = {"custom_queries", "method"}
 )
 @Component
@@ -155,7 +155,50 @@ public class RepositoryDetector extends AbstractRegexDetector {
             edge.setTarget(targetRef);
             edges.add(edge);
         }
+        addDbEdge(repoId, ctx.registry(), nodes, edges);
 
         return DetectorResult.of(nodes, edges);
+    }
+
+    // ==================== InfrastructureRegistry helpers ====================
+
+    private static String ensureDbNode(
+            io.github.randomcodespace.iq.analyzer.InfrastructureRegistry registry,
+            List<CodeNode> nodes) {
+        String dbNodeId;
+        if (registry != null && !registry.getDatabases().isEmpty()) {
+            io.github.randomcodespace.iq.analyzer.InfraEndpoint db =
+                    registry.getDatabases().values().iterator().next();
+            dbNodeId = "infra:" + db.id();
+            if (nodes.stream().noneMatch(n -> dbNodeId.equals(n.getId()))) {
+                CodeNode dbNode = new CodeNode(dbNodeId, NodeKind.DATABASE_CONNECTION,
+                        db.name() + " (" + db.type() + ")");
+                dbNode.getProperties().put("type", db.type());
+                if (db.connectionUrl() != null) dbNode.getProperties().put("url", db.connectionUrl());
+                nodes.add(dbNode);
+            }
+        } else {
+            dbNodeId = "database:unknown";
+            if (nodes.stream().noneMatch(n -> dbNodeId.equals(n.getId()))) {
+                nodes.add(new CodeNode(dbNodeId, NodeKind.DATABASE_CONNECTION, "Database"));
+            }
+        }
+        return dbNodeId;
+    }
+
+    private static void addDbEdge(String sourceId,
+            io.github.randomcodespace.iq.analyzer.InfrastructureRegistry registry,
+            List<CodeNode> nodes, List<CodeEdge> edges) {
+        String dbNodeId = ensureDbNode(registry, nodes);
+        CodeNode targetRef = nodes.stream()
+                .filter(n -> dbNodeId.equals(n.getId()))
+                .findFirst()
+                .orElseGet(() -> new CodeNode(dbNodeId, NodeKind.DATABASE_CONNECTION, "Database"));
+        CodeEdge edge = new CodeEdge();
+        edge.setId(sourceId + "->connects_to->" + dbNodeId);
+        edge.setKind(EdgeKind.CONNECTS_TO);
+        edge.setSourceId(sourceId);
+        edge.setTarget(targetRef);
+        edges.add(edge);
     }
 }

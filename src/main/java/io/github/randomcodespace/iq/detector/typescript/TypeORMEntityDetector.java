@@ -24,8 +24,8 @@ import io.github.randomcodespace.iq.detector.ParserType;
     description = "Detects TypeORM entity definitions and column mappings",
     parser = ParserType.REGEX,
     languages = {"typescript"},
-    nodeKinds = {NodeKind.ENTITY},
-    edgeKinds = {EdgeKind.MAPS_TO},
+    nodeKinds = {NodeKind.ENTITY, NodeKind.DATABASE_CONNECTION},
+    edgeKinds = {EdgeKind.MAPS_TO, EdgeKind.CONNECTS_TO},
     properties = {"columns", "framework", "table_name"}
 )
 @Component
@@ -128,8 +128,51 @@ public class TypeORMEntityDetector extends AbstractAntlrDetector {
                 edge.setSourceId(nodeId);
                 edges.add(edge);
             }
+            addDbEdge(nodeId, ctx.registry(), nodes, edges);
         }
 
         return DetectorResult.of(nodes, edges);
+    }
+
+    // ==================== InfrastructureRegistry helpers ====================
+
+    private static String ensureDbNode(
+            io.github.randomcodespace.iq.analyzer.InfrastructureRegistry registry,
+            List<CodeNode> nodes) {
+        String dbNodeId;
+        if (registry != null && !registry.getDatabases().isEmpty()) {
+            io.github.randomcodespace.iq.analyzer.InfraEndpoint db =
+                    registry.getDatabases().values().iterator().next();
+            dbNodeId = "infra:" + db.id();
+            if (nodes.stream().noneMatch(n -> dbNodeId.equals(n.getId()))) {
+                CodeNode dbNode = new CodeNode(dbNodeId, NodeKind.DATABASE_CONNECTION,
+                        db.name() + " (" + db.type() + ")");
+                dbNode.getProperties().put("type", db.type());
+                if (db.connectionUrl() != null) dbNode.getProperties().put("url", db.connectionUrl());
+                nodes.add(dbNode);
+            }
+        } else {
+            dbNodeId = "database:unknown";
+            if (nodes.stream().noneMatch(n -> dbNodeId.equals(n.getId()))) {
+                nodes.add(new CodeNode(dbNodeId, NodeKind.DATABASE_CONNECTION, "Database"));
+            }
+        }
+        return dbNodeId;
+    }
+
+    private static void addDbEdge(String sourceId,
+            io.github.randomcodespace.iq.analyzer.InfrastructureRegistry registry,
+            List<CodeNode> nodes, List<CodeEdge> edges) {
+        String dbNodeId = ensureDbNode(registry, nodes);
+        CodeNode targetRef = nodes.stream()
+                .filter(n -> dbNodeId.equals(n.getId()))
+                .findFirst()
+                .orElseGet(() -> new CodeNode(dbNodeId, NodeKind.DATABASE_CONNECTION, "Database"));
+        CodeEdge edge = new CodeEdge();
+        edge.setId(sourceId + "->connects_to->" + dbNodeId);
+        edge.setKind(EdgeKind.CONNECTS_TO);
+        edge.setSourceId(sourceId);
+        edge.setTarget(targetRef);
+        edges.add(edge);
     }
 }

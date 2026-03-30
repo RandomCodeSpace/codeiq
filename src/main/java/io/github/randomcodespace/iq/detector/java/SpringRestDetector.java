@@ -29,7 +29,7 @@ import io.github.randomcodespace.iq.detector.ParserType;
     parser = ParserType.JAVAPARSER,
     languages = {"java"},
     nodeKinds = {NodeKind.ENDPOINT},
-    edgeKinds = {EdgeKind.EXPOSES},
+    edgeKinds = {EdgeKind.EXPOSES, EdgeKind.CALLS},
     properties = {"consumes", "http_method", "method", "path", "produces"}
 )
 @Component
@@ -54,6 +54,12 @@ public class SpringRestDetector extends AbstractJavaParserDetector {
             "DeleteMapping", "DELETE",
             "PatchMapping", "PATCH"
     );
+
+    // ---- HTTP client patterns (for CALLS edge emission) ----
+    private static final Pattern REST_TEMPLATE_RE = Pattern.compile("RestTemplate");
+    private static final Pattern WEB_CLIENT_RE    = Pattern.compile("WebClient");
+    private static final Pattern FEIGN_CLIENT_RE  = Pattern.compile(
+            "@FeignClient\\s*\\(\\s*(?:name\\s*=\\s*)?[\"']([^\"']+)[\"']");
 
     @Override
     public String getName() {
@@ -173,6 +179,9 @@ public class SpringRestDetector extends AbstractJavaParserDetector {
                 }
             }
         });
+
+        // HTTP client calls → CALLS edge
+        addHttpClientEdges(ctx, nodes, edges);
 
         return DetectorResult.of(nodes, edges);
     }
@@ -346,6 +355,9 @@ public class SpringRestDetector extends AbstractJavaParserDetector {
             edges.add(edge);
         }
 
+        // HTTP client calls → CALLS edge
+        addHttpClientEdges(ctx, nodes, edges);
+
         return DetectorResult.of(nodes, edges);
     }
 
@@ -353,5 +365,67 @@ public class SpringRestDetector extends AbstractJavaParserDetector {
         if (attrStr == null) return null;
         Matcher m = pattern.matcher(attrStr);
         return m.find() ? m.group(1) : null;
+    }
+
+    // ==================== HTTP client / InfrastructureRegistry helpers ====================
+
+    private static void addHttpClientEdges(DetectorContext ctx,
+            List<CodeNode> nodes, List<CodeEdge> edges) {
+        String text = ctx.content();
+        boolean hasRestTemplate = REST_TEMPLATE_RE.matcher(text).find();
+        boolean hasWebClient    = WEB_CLIENT_RE.matcher(text).find();
+        Matcher feignMatcher    = FEIGN_CLIENT_RE.matcher(text);
+        boolean hasFeignClient  = feignMatcher.find();
+        if (!hasRestTemplate && !hasWebClient && !hasFeignClient) return;
+
+        io.github.randomcodespace.iq.analyzer.InfrastructureRegistry registry = ctx.registry();
+        String clientType = hasRestTemplate ? "RestTemplate"
+                          : hasWebClient    ? "WebClient"
+                          : "FeignClient";
+
+        // Try to match FeignClient name against registry external APIs
+        String targetId;
+        String targetLabel;
+        if (hasFeignClient && registry != null) {
+            String feignName = feignMatcher.group(1);
+            io.github.randomcodespace.iq.analyzer.InfraEndpoint matched =
+                    registry.getExternalApis().values().stream()
+                            .filter(e -> feignName.equalsIgnoreCase(e.name()))
+                            .findFirst().orElse(null);
+            if (matched != null) {
+                targetId = "infra:" + matched.id();
+                targetLabel = matched.name();
+            } else {
+                targetId = "external:" + feignName;
+                targetLabel = feignName;
+            }
+        } else if (registry != null && !registry.getExternalApis().isEmpty()) {
+            io.github.randomcodespace.iq.analyzer.InfraEndpoint api =
+                    registry.getExternalApis().values().iterator().next();
+            targetId = "infra:" + api.id();
+            targetLabel = api.name();
+        } else {
+            targetId = "external:unknown";
+            targetLabel = "External API";
+        }
+
+        if (nodes.stream().noneMatch(n -> targetId.equals(n.getId()))) {
+            CodeNode apiNode = new CodeNode(targetId, NodeKind.ENDPOINT, targetLabel);
+            apiNode.getProperties().put("type", "external_api");
+            nodes.add(apiNode);
+        }
+
+        String sourceId = ctx.filePath();
+        CodeNode targetRef = nodes.stream()
+                .filter(n -> targetId.equals(n.getId()))
+                .findFirst()
+                .orElseGet(() -> new CodeNode(targetId, NodeKind.ENDPOINT, targetLabel));
+        CodeEdge edge = new CodeEdge();
+        edge.setId(sourceId + "->calls->" + targetId);
+        edge.setKind(EdgeKind.CALLS);
+        edge.setSourceId(sourceId);
+        edge.setTarget(targetRef);
+        edge.getProperties().put("client_type", clientType);
+        edges.add(edge);
     }
 }

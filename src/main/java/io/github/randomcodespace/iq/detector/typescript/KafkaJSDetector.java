@@ -74,6 +74,7 @@ public class KafkaJSDetector extends AbstractAntlrDetector {
 
         Set<String> seenTopics = new HashSet<>();
         String fileNodeId = "kafka_js:" + fp;
+        io.github.randomcodespace.iq.analyzer.InfrastructureRegistry registry = ctx.registry();
 
         String[] lines = text.split("\n", -1);
         for (int i = 0; i < lines.length; i++) {
@@ -111,7 +112,7 @@ public class KafkaJSDetector extends AbstractAntlrDetector {
             Matcher m = PRODUCER_SEND_RE.matcher(line);
             if (m.find()) {
                 String topic = m.group(1);
-                String topicId = ensureTopic(nodes, seenTopics, fp, moduleName, topic, lineno);
+                String topicId = ensureTopic(nodes, seenTopics, fp, moduleName, topic, lineno, registry);
                 CodeEdge edge = new CodeEdge();
                 edge.setId(fileNodeId + "->produces->" + topicId);
                 edge.setKind(EdgeKind.PRODUCES);
@@ -140,7 +141,7 @@ public class KafkaJSDetector extends AbstractAntlrDetector {
             m = SUBSCRIBE_RE.matcher(line);
             if (m.find()) {
                 String topic = m.group(1);
-                String topicId = ensureTopic(nodes, seenTopics, fp, moduleName, topic, lineno);
+                String topicId = ensureTopic(nodes, seenTopics, fp, moduleName, topic, lineno, registry);
                 CodeEdge edge = new CodeEdge();
                 edge.setId(fileNodeId + "->consumes->" + topicId);
                 edge.setKind(EdgeKind.CONSUMES);
@@ -167,8 +168,14 @@ public class KafkaJSDetector extends AbstractAntlrDetector {
     }
 
     private String ensureTopic(List<CodeNode> nodes, Set<String> seenTopics,
-                               String fp, String moduleName, String topic, int lineno) {
+                               String fp, String moduleName, String topic, int lineno,
+                               io.github.randomcodespace.iq.analyzer.InfrastructureRegistry registry) {
+        // Use canonical registry id if topic is registered
         String topicId = "kafka_js:" + fp + ":topic:" + topic;
+        if (registry != null) {
+            io.github.randomcodespace.iq.analyzer.InfraEndpoint registered = registry.getTopics().get(topic);
+            if (registered != null) topicId = "infra:" + registered.id();
+        }
         if (!seenTopics.contains(topic)) {
             seenTopics.add(topic);
             CodeNode node = new CodeNode();

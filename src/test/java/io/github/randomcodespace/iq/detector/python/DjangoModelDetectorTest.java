@@ -23,10 +23,11 @@ class DjangoModelDetectorTest {
         DetectorContext ctx = DetectorTestUtils.contextFor("models.py", "python", code);
         DetectorResult result = detector.detect(ctx);
 
-        assertEquals(1, result.nodes().size());
-        assertEquals(NodeKind.ENTITY, result.nodes().get(0).getKind());
-        assertEquals("User", result.nodes().get(0).getLabel());
-        assertEquals("django", result.nodes().get(0).getProperties().get("framework"));
+        assertEquals(2, result.nodes().size()); // entity + database:unknown
+        var entityNode = result.nodes().stream().filter(n -> n.getKind() == NodeKind.ENTITY).findFirst().orElseThrow();
+        assertEquals("User", entityNode.getLabel());
+        assertEquals("django", entityNode.getProperties().get("framework"));
+        assertTrue(result.edges().stream().anyMatch(e -> e.getKind() == EdgeKind.CONNECTS_TO));
     }
 
     @Test
@@ -39,9 +40,10 @@ class DjangoModelDetectorTest {
         DetectorContext ctx = DetectorTestUtils.contextFor("models.py", "python", code);
         DetectorResult result = detector.detect(ctx);
 
-        assertEquals(1, result.nodes().size());
-        assertEquals(1, result.edges().size());
-        assertEquals(EdgeKind.DEPENDS_ON, result.edges().get(0).getKind());
+        assertEquals(2, result.nodes().size()); // entity + database:unknown
+        assertEquals(2, result.edges().size()); // DEPENDS_ON + CONNECTS_TO
+        assertTrue(result.edges().stream().anyMatch(e -> e.getKind() == EdgeKind.DEPENDS_ON));
+        assertTrue(result.edges().stream().anyMatch(e -> e.getKind() == EdgeKind.CONNECTS_TO));
     }
 
     @Test
@@ -57,8 +59,8 @@ class DjangoModelDetectorTest {
         DetectorContext ctx = DetectorTestUtils.contextFor("models.py", "python", code);
         DetectorResult result = detector.detect(ctx);
 
-        // 1 manager + 1 model = 2 nodes
-        assertEquals(2, result.nodes().size());
+        // 1 manager + 1 model + 1 database:unknown = 3 nodes
+        assertEquals(3, result.nodes().size());
         assertTrue(result.nodes().stream().anyMatch(n -> n.getKind() == NodeKind.REPOSITORY));
         // manager assignment edge
         assertTrue(result.edges().stream().anyMatch(e -> e.getKind() == EdgeKind.QUERIES));

@@ -26,11 +26,17 @@ import io.github.randomcodespace.iq.detector.ParserType;
     parser = ParserType.REGEX,
     languages = {"typescript"},
     nodeKinds = {NodeKind.CLASS, NodeKind.ENDPOINT},
-    edgeKinds = {EdgeKind.EXPOSES},
+    edgeKinds = {EdgeKind.EXPOSES, EdgeKind.CALLS},
     properties = {"framework", "http_method", "protocol"}
 )
 @Component
 public class NestJSControllerDetector extends AbstractAntlrDetector {
+
+    // ---- HTTP client patterns (for CALLS edge emission) ----
+    private static final Pattern HTTP_CLIENT_RE = Pattern.compile(
+            "(?:httpService|HttpService|axios)\\s*\\.(?:get|post|put|delete|patch)\\s*\\(");
+    private static final Pattern FETCH_RE = Pattern.compile(
+            "\\bfetch\\s*\\(\\s*['\"`]");
 
     private static final Pattern CONTROLLER_PATTERN = Pattern.compile(
             "@Controller\\(\\s*['\"`]?([^'\"`\\)\\s]*)['\"`]?\\s*\\)(?:\\s*@\\w+\\([^)]*\\))*\\s*\\n\\s*(?:export\\s+)?class\\s+(\\w+)"
@@ -159,6 +165,52 @@ public class NestJSControllerDetector extends AbstractAntlrDetector {
             }
         }
 
+        // HTTP client calls → CALLS edge
+        addHttpClientEdges(ctx, nodes, edges);
+
         return DetectorResult.of(nodes, edges);
+    }
+
+    // ==================== HTTP client / InfrastructureRegistry helpers ====================
+
+    private static void addHttpClientEdges(DetectorContext ctx,
+            List<CodeNode> nodes, List<CodeEdge> edges) {
+        String text = ctx.content();
+        boolean hasHttpClient = HTTP_CLIENT_RE.matcher(text).find();
+        boolean hasFetch = FETCH_RE.matcher(text).find();
+        if (!hasHttpClient && !hasFetch) return;
+
+        io.github.randomcodespace.iq.analyzer.InfrastructureRegistry registry = ctx.registry();
+        String targetId;
+        String targetLabel;
+        if (registry != null && !registry.getExternalApis().isEmpty()) {
+            io.github.randomcodespace.iq.analyzer.InfraEndpoint api =
+                    registry.getExternalApis().values().iterator().next();
+            targetId = "infra:" + api.id();
+            targetLabel = api.name();
+        } else {
+            targetId = "external:unknown";
+            targetLabel = "External API";
+        }
+
+        if (nodes.stream().noneMatch(n -> targetId.equals(n.getId()))) {
+            CodeNode apiNode = new CodeNode(targetId, NodeKind.ENDPOINT, targetLabel);
+            apiNode.getProperties().put("type", "external_api");
+            nodes.add(apiNode);
+        }
+
+        String clientType = hasHttpClient ? "HttpService/axios" : "fetch";
+        String sourceId = ctx.filePath();
+        CodeNode targetRef = nodes.stream()
+                .filter(n -> targetId.equals(n.getId()))
+                .findFirst()
+                .orElseGet(() -> new CodeNode(targetId, NodeKind.ENDPOINT, targetLabel));
+        CodeEdge edge = new CodeEdge();
+        edge.setId(sourceId + "->calls->" + targetId);
+        edge.setKind(EdgeKind.CALLS);
+        edge.setSourceId(sourceId);
+        edge.setTarget(targetRef);
+        edge.getProperties().put("client_type", clientType);
+        edges.add(edge);
     }
 }

@@ -130,8 +130,9 @@ class JavaDetectorsTest {
         @Test
         void detectsEntity() {
             var r = new JpaEntityDetector().detect(ctx("java", SAMPLE));
-            assertEquals(1, r.nodes().size());
-            assertTrue(r.nodes().get(0).getLabel().contains("users"));
+            assertEquals(2, r.nodes().size()); // entity + database:unknown
+            assertTrue(r.nodes().stream().anyMatch(n -> n.getLabel().contains("users")));
+            assertTrue(r.edges().stream().anyMatch(e -> e.getKind() == io.github.randomcodespace.iq.model.EdgeKind.CONNECTS_TO));
         }
 
         @Test
@@ -159,8 +160,9 @@ class JavaDetectorsTest {
         @Test
         void detectsRepository() {
             var r = new RepositoryDetector().detect(ctx("java", SAMPLE));
-            assertEquals(1, r.nodes().size());
-            assertEquals("UserRepository", r.nodes().get(0).getLabel());
+            assertEquals(2, r.nodes().size()); // repository + database:unknown
+            assertTrue(r.nodes().stream().anyMatch(n -> "UserRepository".equals(n.getLabel())));
+            assertTrue(r.edges().stream().anyMatch(e -> e.getKind() == io.github.randomcodespace.iq.model.EdgeKind.CONNECTS_TO));
         }
 
         @Test
