@@ -106,7 +106,23 @@ class GraphStoreExtendedTest {
 
     @Test
     void shouldFindAll() {
-        mockNodeResult("n1", "class", "A", "n");
+        // findAll() opens two transactions: queryNodes + hydrateEdges
+        var tx1 = mock(Transaction.class);
+        var tx2 = mock(Transaction.class);
+        when(graphDb.beginTx()).thenReturn(tx1, tx2);
+
+        // First tx: queryNodes returns one node
+        var neo4jNode = mockNeo4jNode("n1", "class", "A");
+        var nodeResult = mock(Result.class);
+        when(nodeResult.hasNext()).thenReturn(true, false);
+        when(nodeResult.next()).thenReturn(Map.of("n", neo4jNode));
+        when(nodeResult.columns()).thenReturn(List.of("n"));
+        when(tx1.execute(anyString(), anyMap())).thenReturn(nodeResult);
+
+        // Second tx: hydrateEdges returns no edges
+        var edgeResult = mock(Result.class);
+        when(edgeResult.hasNext()).thenReturn(false);
+        when(tx2.execute(anyString())).thenReturn(edgeResult);
 
         var result = store.findAll();
         assertEquals(1, result.size());

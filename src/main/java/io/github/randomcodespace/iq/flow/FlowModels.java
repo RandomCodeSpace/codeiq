@@ -132,6 +132,8 @@ public final class FlowModels {
             m.put("direction", direction);
             m.put("subgraphs", subgraphs.stream().map(FlowSubgraph::toMap).toList());
             m.put("loose_nodes", looseNodes.stream().map(FlowNode::toMap).toList());
+            // Flat node list for Cytoscape frontend (all subgraph nodes + loose nodes)
+            m.put("nodes", allNodes().stream().map(FlowNode::toMap).toList());
             m.put("edges", edges.stream().map(FlowEdge::toMap).toList());
             m.put("stats", stats);
             return m;

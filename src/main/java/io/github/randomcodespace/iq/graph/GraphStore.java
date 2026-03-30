@@ -1,15 +1,17 @@
 package io.github.randomcodespace.iq.graph;
 
 import io.github.randomcodespace.iq.flow.FlowDataSource;
+import io.github.randomcodespace.iq.model.CodeEdge;
 import io.github.randomcodespace.iq.model.CodeNode;
+import io.github.randomcodespace.iq.model.EdgeKind;
 import io.github.randomcodespace.iq.model.NodeKind;
 import org.neo4j.graphdb.GraphDatabaseService;
-import org.neo4j.graphdb.Label;
 import org.neo4j.graphdb.Transaction;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Service;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -66,8 +68,17 @@ public class GraphStore implements FlowDataSource {
         }
     }
 
+    /**
+     * Load all nodes WITH their edges attached. Used by FlowDataSource and
+     * TopologyService which need the full graph with relationships.
+     * <p>
+     * Unlike other read methods, this hydrates edges because flow/topology
+     * views iterate node.getEdges() to build diagrams.
+     */
     public List<CodeNode> findAll() {
-        return queryNodes("MATCH (n:CodeNode) RETURN n", Map.of());
+        List<CodeNode> nodes = queryNodes("MATCH (n:CodeNode) RETURN n", Map.of());
+        hydrateEdges(nodes);
+        return nodes;
     }
 
     public List<CodeNode> findByKind(NodeKind kind) {
@@ -370,6 +381,46 @@ public class GraphStore implements FlowDataSource {
             }
         }
         return nodes;
+    }
+
+    /**
+     * Hydrate edges on a list of nodes by querying all RELATES_TO relationships.
+     * Only used by findAll() for flow/topology views that need edge data.
+     */
+    private void hydrateEdges(List<CodeNode> nodes) {
+        if (nodes.isEmpty()) return;
+
+        // Build id→node lookup
+        Map<String, CodeNode> nodeById = new HashMap<>(nodes.size());
+        for (CodeNode node : nodes) {
+            nodeById.put(node.getId(), node);
+        }
+
+        // Query all edges and attach to source nodes
+        try (Transaction tx = graphDb.beginTx()) {
+            var result = tx.execute(
+                    "MATCH (s:CodeNode)-[r:RELATES_TO]->(t:CodeNode) "
+                            + "RETURN r.id AS id, r.kind AS kind, r.sourceId AS sourceId, t.id AS targetId");
+            while (result.hasNext()) {
+                var row = result.next();
+                String sourceId = (String) row.get("sourceId");
+                String targetId = (String) row.get("targetId");
+                String edgeId = (String) row.get("id");
+                String kindStr = (String) row.get("kind");
+
+                CodeNode source = nodeById.get(sourceId);
+                CodeNode target = nodeById.get(targetId);
+                if (source != null && target != null) {
+                    EdgeKind edgeKind;
+                    try {
+                        edgeKind = EdgeKind.fromValue(kindStr);
+                    } catch (IllegalArgumentException e) {
+                        continue;
+                    }
+                    source.getEdges().add(new CodeEdge(edgeId, edgeKind, sourceId, target));
+                }
+            }
+        }
     }
 
     /**
