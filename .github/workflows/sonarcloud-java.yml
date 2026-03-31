@@ -25,6 +25,6 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: >
           mvn sonar:sonar -B
-          -Dsonar.projectKey=RandomCodeSpace_code-iq-java
+          -Dsonar.projectKey=RandomCodeSpace_code-iq
           -Dsonar.organization=randomcodespace
           -Dsonar.host.url=https://sonarcloud.io
