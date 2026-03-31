@@ -175,7 +175,8 @@ public class EnrichCommand implements Callable<Integer> {
             }
 
             // Bulk-load nodes in batches using UNWIND
-            int nodeBatchSize = 2000;
+            // Smaller batches to avoid Neo4j memory pool limit (nodes carry prop_* properties)
+            int nodeBatchSize = 500;
             int nodesLoaded = 0;
             int totalNodes = enrichedNodes.size();
             for (int i = 0; i < totalNodes; i += nodeBatchSize) {
@@ -263,7 +264,7 @@ public class EnrichCommand implements Callable<Integer> {
                 validEdgeMaps.add(props);
             }
 
-            int edgeBatchSize = 2000;
+            int edgeBatchSize = 500;
             int edgesLoaded = 0;
             int totalEdges = validEdgeMaps.size();
             CliOutput.info("  Loading " + nf.format(totalEdges) + " edges...");
