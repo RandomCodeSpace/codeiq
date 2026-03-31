@@ -80,8 +80,6 @@ class QueryServiceTest {
         aggregateStats.put("architecture", Map.of("classes", 1L));
 
         when(graphStore.computeAggregateStats()).thenReturn(aggregateStats);
-        when(graphStore.count()).thenReturn(2L);
-        when(graphStore.countEdges()).thenReturn(1L);
         when(graphStore.countNodesByKind()).thenReturn(List.of(
                 Map.of("kind", "endpoint", "cnt", 1L),
                 Map.of("kind", "class", "cnt", 1L)));

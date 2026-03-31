@@ -46,8 +46,16 @@ public class QueryService {
             nodesByLayer.put((String) row.get("layer"), ((Number) row.get("cnt")).longValue());
         }
 
-        result.put("node_count", graphStore.count());
-        result.put("edge_count", graphStore.countEdges());
+        // Read from already-computed graph sub-map instead of re-querying
+        @SuppressWarnings("unchecked")
+        Map<String, Object> graphStats = (Map<String, Object>) result.get("graph");
+        if (graphStats != null) {
+            result.put("node_count", graphStats.get("nodes"));
+            result.put("edge_count", graphStats.get("edges"));
+        } else {
+            result.put("node_count", graphStore.count());
+            result.put("edge_count", graphStore.countEdges());
+        }
         result.put("nodes_by_kind", nodesByKind);
         result.put("nodes_by_layer", nodesByLayer);
         return result;

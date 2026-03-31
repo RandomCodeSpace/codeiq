@@ -402,7 +402,7 @@ public class GraphStore implements FlowDataSource {
     public long countDistinctFiles() {
         try (Transaction tx = graphDb.beginTx()) {
             var result = tx.execute(
-                    "MATCH (n:CodeNode) WHERE n.filePath IS NOT NULL "
+                    "MATCH (n:CodeNode) WHERE n.filePath IS NOT NULL AND n.filePath <> '' "
                             + "RETURN count(DISTINCT n.filePath) AS cnt");
             if (result.hasNext()) {
                 return ((Number) result.next().get("cnt")).longValue();
@@ -699,7 +699,7 @@ public class GraphStore implements FlowDataSource {
                             + "RETURN toLower(n.prop_language) AS lang, count(n) AS cnt");
             while (result.hasNext()) {
                 var row = result.next();
-                String lang = ((String) row.get("lang")).trim();
+                String lang = String.valueOf(row.get("lang")).trim();
                 if (!lang.isBlank()) {
                     langCounts.merge(lang, ((Number) row.get("cnt")).longValue(), Long::sum);
                 }
@@ -725,7 +725,7 @@ public class GraphStore implements FlowDataSource {
                             + "RETURN n.prop_framework AS fw, count(n) AS cnt");
             while (result.hasNext()) {
                 var row = result.next();
-                String fw = ((String) row.get("fw")).trim();
+                String fw = String.valueOf(row.get("fw")).trim();
                 if (!fw.isBlank()) {
                     fwCounts.merge(fw, ((Number) row.get("cnt")).longValue(), Long::sum);
                 }
@@ -759,7 +759,7 @@ public class GraphStore implements FlowDataSource {
                             + "RETURN coalesce(n.prop_protocol, n.label, 'unknown') AS protocol, count(n) AS cnt");
             while (result.hasNext()) {
                 var row = result.next();
-                messaging.merge((String) row.get("protocol"), ((Number) row.get("cnt")).longValue(), Long::sum);
+                messaging.merge(String.valueOf(row.get("protocol")), ((Number) row.get("cnt")).longValue(), Long::sum);
             }
         }
         infra.put("messaging", sortByValueDesc(messaging));
@@ -771,7 +771,7 @@ public class GraphStore implements FlowDataSource {
                             + "RETURN coalesce(n.prop_resource_type, n.label, 'unknown') AS resType, count(n) AS cnt");
             while (result.hasNext()) {
                 var row = result.next();
-                cloud.merge((String) row.get("resType"), ((Number) row.get("cnt")).longValue(), Long::sum);
+                cloud.merge(String.valueOf(row.get("resType")), ((Number) row.get("cnt")).longValue(), Long::sum);
             }
         }
         infra.put("cloud", sortByValueDesc(cloud));
@@ -789,7 +789,7 @@ public class GraphStore implements FlowDataSource {
             Map<String, Long> restByMethod = new TreeMap<>();
             while (restResult.hasNext()) {
                 var row = restResult.next();
-                restByMethod.put((String) row.get("method"), ((Number) row.get("cnt")).longValue());
+                restByMethod.put(String.valueOf(row.get("method")), ((Number) row.get("cnt")).longValue());
             }
             long restTotal = restByMethod.values().stream().mapToLong(Long::longValue).sum();
             Map<String, Object> rest = new LinkedHashMap<>();
@@ -824,7 +824,7 @@ public class GraphStore implements FlowDataSource {
                             + "RETURN n.prop_auth_type AS authType, count(n) AS cnt");
             while (guardResult.hasNext()) {
                 var row = guardResult.next();
-                String authType = ((String) row.get("authType")).trim();
+                String authType = String.valueOf(row.get("authType")).trim();
                 if (!authType.isBlank()) {
                     authCounts.merge(authType, ((Number) row.get("cnt")).longValue(), Long::sum);
                 }
@@ -834,7 +834,7 @@ public class GraphStore implements FlowDataSource {
                             + "RETURN n.prop_framework AS fw, count(n) AS cnt");
             while (fwResult.hasNext()) {
                 var row = fwResult.next();
-                String fw = ((String) row.get("fw")).trim();
+                String fw = String.valueOf(row.get("fw")).trim();
                 String authType = fw.substring("auth:".length()).trim();
                 if (!authType.isEmpty()) {
                     authCounts.merge(authType, ((Number) row.get("cnt")).longValue(), Long::sum);

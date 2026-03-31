@@ -2,7 +2,6 @@ package io.github.randomcodespace.iq.api;
 
 import io.github.randomcodespace.iq.config.CodeIqConfig;
 import io.github.randomcodespace.iq.query.QueryService;
-import org.springframework.cache.CacheManager;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -32,14 +31,11 @@ public class GraphController {
 
     private final QueryService queryService;
     private final CodeIqConfig config;
-    private final CacheManager cacheManager;
 
     public GraphController(@org.springframework.beans.factory.annotation.Autowired(required = false) QueryService queryService,
-                           CodeIqConfig config,
-                           @org.springframework.beans.factory.annotation.Autowired(required = false) CacheManager cacheManager) {
+                           CodeIqConfig config) {
         this.queryService = queryService;
         this.config = config;
-        this.cacheManager = cacheManager;
     }
 
     @GetMapping("/stats")
@@ -246,21 +242,6 @@ public class GraphController {
                     .contentType(MediaType.TEXT_PLAIN)
                     .body("Failed to read file: " + e.getMessage());
         }
-    }
-
-    @PostMapping("/cache/invalidate")
-    public Map<String, Object> invalidateCache() {
-        int cleared = 0;
-        if (cacheManager != null) {
-            for (String name : cacheManager.getCacheNames()) {
-                var cache = cacheManager.getCache(name);
-                if (cache != null) {
-                    cache.clear();
-                    cleared++;
-                }
-            }
-        }
-        return Map.of("status", "ok", "caches_cleared", cleared);
     }
 
     // POST /api/analyze removed — API/MCP server is read-only.
