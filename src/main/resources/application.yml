@@ -34,7 +34,9 @@ codeiq:
 spring.ai.mcp.server:
   name: code-iq
   version: 0.1.0
-  protocol: STATELESS
+  protocol: STREAMABLE
+  streamable-http:
+    mcp-endpoint: /mcp
 
 ---
 spring:
@@ -45,7 +47,8 @@ spring:
     lazy-initialization: true
   autoconfigure:
     exclude:
-      - org.springframework.ai.mcp.server.autoconfigure.McpServerAutoConfiguration
+      - org.springframework.ai.mcp.server.webmvc.autoconfigure.McpServerStreamableHttpWebMvcAutoConfiguration
+      - org.springframework.ai.mcp.server.common.autoconfigure.annotations.McpServerAnnotationScannerAutoConfiguration
 
 codeiq:
   neo4j:
