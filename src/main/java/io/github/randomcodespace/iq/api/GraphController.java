@@ -2,12 +2,14 @@ package io.github.randomcodespace.iq.api;
 
 import io.github.randomcodespace.iq.config.CodeIqConfig;
 import io.github.randomcodespace.iq.query.QueryService;
+import org.springframework.cache.CacheManager;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.context.annotation.Profile;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -30,11 +32,14 @@ public class GraphController {
 
     private final QueryService queryService;
     private final CodeIqConfig config;
+    private final CacheManager cacheManager;
 
     public GraphController(@org.springframework.beans.factory.annotation.Autowired(required = false) QueryService queryService,
-                           CodeIqConfig config) {
+                           CodeIqConfig config,
+                           @org.springframework.beans.factory.annotation.Autowired(required = false) CacheManager cacheManager) {
         this.queryService = queryService;
         this.config = config;
+        this.cacheManager = cacheManager;
     }
 
     @GetMapping("/stats")
@@ -196,13 +201,6 @@ public class GraphController {
         return queryService.searchGraph(q, Math.min(limit, 1000));
     }
 
-    /**
-     * Check whether Neo4j (via QueryService) is available for queries.
-     */
-    private boolean useNeo4j() {
-        return queryService != null;
-    }
-
     private void requireQueryService() {
         if (queryService == null) {
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
@@ -248,6 +246,21 @@ public class GraphController {
                     .contentType(MediaType.TEXT_PLAIN)
                     .body("Failed to read file: " + e.getMessage());
         }
+    }
+
+    @PostMapping("/cache/invalidate")
+    public Map<String, Object> invalidateCache() {
+        int cleared = 0;
+        if (cacheManager != null) {
+            for (String name : cacheManager.getCacheNames()) {
+                var cache = cacheManager.getCache(name);
+                if (cache != null) {
+                    cache.clear();
+                    cleared++;
+                }
+            }
+        }
+        return Map.of("status", "ok", "caches_cleared", cleared);
     }
 
     // POST /api/analyze removed — API/MCP server is read-only.
