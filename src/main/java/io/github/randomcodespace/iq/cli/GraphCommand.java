@@ -122,7 +122,7 @@ public class GraphCommand implements Callable<Integer> {
         graphData.put("nodes", nodeList);
         graphData.put("count", nodes.size());
 
-        Yaml yaml = new Yaml();
+        Yaml yaml = new Yaml(new org.yaml.snakeyaml.constructor.SafeConstructor(new org.yaml.snakeyaml.LoaderOptions()));
         return yaml.dump(graphData);
     }
 

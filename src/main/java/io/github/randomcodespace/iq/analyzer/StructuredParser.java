@@ -62,7 +62,7 @@ public class StructuredParser {
 
     @SuppressWarnings("unchecked")
     private Object parseYaml(String content) {
-        var yaml = new Yaml();
+        var yaml = new Yaml(new org.yaml.snakeyaml.constructor.SafeConstructor(new org.yaml.snakeyaml.LoaderOptions()));
         var docs = new java.util.ArrayList<>();
         for (Object doc : yaml.loadAll(content)) {
             docs.add(doc);
