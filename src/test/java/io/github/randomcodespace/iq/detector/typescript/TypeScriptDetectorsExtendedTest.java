@@ -18,6 +18,8 @@ class TypeScriptDetectorsExtendedTest {
         @Test
         void detectsFastifyRoutes() {
             String code = """
+                    import Fastify from 'fastify';
+                    const fastify = Fastify();
                     fastify.get('/items', async (request, reply) => {
                       return db.items.findAll();
                     });
@@ -38,6 +40,7 @@ class TypeScriptDetectorsExtendedTest {
         @Test
         void detectsRouteMethod() {
             String code = """
+                    import Fastify from 'fastify';
                     fastify.route({
                       method: 'GET',
                       url: '/api/health',

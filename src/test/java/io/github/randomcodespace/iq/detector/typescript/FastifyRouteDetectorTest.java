@@ -15,6 +15,8 @@ class FastifyRouteDetectorTest {
     @Test
     void detectsShorthandRoutes() {
         String code = """
+                import Fastify from 'fastify';
+                const fastify = Fastify();
                 fastify.get('/api/users', async (request, reply) => {});
                 fastify.post('/api/users', async (request, reply) => {});
                 """;
@@ -30,6 +32,7 @@ class FastifyRouteDetectorTest {
     @Test
     void detectsHooks() {
         String code = """
+                import Fastify from 'fastify';
                 fastify.addHook('onRequest', async (request, reply) => {});
                 """;
         DetectorContext ctx = DetectorTestUtils.contextFor("src/app.ts", "typescript", code);
@@ -50,8 +53,37 @@ class FastifyRouteDetectorTest {
     }
 
     @Test
+    void noMatchOnExpressCode() {
+        String code = """
+                const express = require('express');
+                const router = express.Router();
+                router.get('/api/users', (req, res) => {});
+                router.post('/api/users', (req, res) => {});
+                """;
+        DetectorContext ctx = DetectorTestUtils.contextFor("src/routes.js", "javascript", code);
+        DetectorResult result = detector.detect(ctx);
+        assertTrue(result.nodes().isEmpty(), "Fastify detector should not match Express routes");
+        assertTrue(result.edges().isEmpty());
+    }
+
+    @Test
+    void matchesWithRequireFastify() {
+        String code = """
+                const fastify = require('fastify')();
+                fastify.get('/health', async () => ({ status: 'ok' }));
+                """;
+        DetectorContext ctx = DetectorTestUtils.contextFor("src/server.js", "javascript", code);
+        DetectorResult result = detector.detect(ctx);
+        assertEquals(1, result.nodes().size());
+        assertEquals("fastify", result.nodes().get(0).getProperties().get("framework"));
+    }
+
+    @Test
     void deterministic() {
-        String code = "fastify.get('/test', handler);";
+        String code = """
+                import Fastify from 'fastify';
+                fastify.get('/test', handler);
+                """;
         DetectorContext ctx = DetectorTestUtils.contextFor("typescript", code);
         DetectorTestUtils.assertDeterministic(detector, ctx);
     }

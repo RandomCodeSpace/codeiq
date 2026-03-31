@@ -32,6 +32,16 @@ import io.github.randomcodespace.iq.detector.ParserType;
 @Component
 public class FastifyRouteDetector extends AbstractAntlrDetector {
 
+    /**
+     * Guard pattern: file must contain a Fastify import/require to be considered.
+     * Matches: import fastify from 'fastify', import Fastify from 'fastify',
+     * require('fastify'), import { ... } from 'fastify', etc.
+     */
+    private static final Pattern FASTIFY_IMPORT_PATTERN = Pattern.compile(
+            "(?:import\\s+.*?from\\s+['\"]fastify['\"]|require\\s*\\(\\s*['\"]fastify['\"]\\s*\\))",
+            Pattern.DOTALL
+    );
+
     private static final Pattern SHORTHAND_PATTERN = Pattern.compile(
             "(\\w+)\\.(get|post|put|delete|patch)\\(\\s*['\"`]([^'\"`]+)['\"`]"
     );
@@ -72,9 +82,16 @@ public class FastifyRouteDetector extends AbstractAntlrDetector {
 
     @Override
     protected DetectorResult detectWithRegex(DetectorContext ctx) {
+        String text = ctx.content();
+
+        // Guard: only proceed if the file imports/requires 'fastify'.
+        // Without this, generic patterns like router.get() match Express and other frameworks.
+        if (!FASTIFY_IMPORT_PATTERN.matcher(text).find()) {
+            return DetectorResult.empty();
+        }
+
         List<CodeNode> nodes = new ArrayList<>();
         List<CodeEdge> edges = new ArrayList<>();
-        String text = ctx.content();
         String filePath = ctx.filePath();
         String moduleName = ctx.moduleName();
         Set<String> seenIds = new HashSet<>();
