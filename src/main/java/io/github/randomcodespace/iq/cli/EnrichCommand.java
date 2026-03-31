@@ -225,11 +225,20 @@ public class EnrichCommand implements Callable<Integer> {
                 }
             }
 
-            // Create index on id for edge resolution
+            // Create index on id for edge resolution and wait for it to come online
+            CliOutput.info("  Creating index on node ID...");
             try (Transaction tx = db.beginTx()) {
                 tx.execute("CREATE INDEX IF NOT EXISTS FOR (n:CodeNode) ON (n.id)");
                 tx.commit();
             }
+            // Wait for index to be populated (critical for edge MATCH performance)
+            try (Transaction tx = db.beginTx()) {
+                tx.execute("CALL db.awaitIndexes(300)");
+            } catch (Exception e) {
+                log.debug("Index await returned: {}", e.getMessage());
+                // Index may already be online, continue
+            }
+            CliOutput.info("  Index ready");
 
             // Bulk-load edges
             // Use validated edges from flush
