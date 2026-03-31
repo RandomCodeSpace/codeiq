@@ -44,7 +44,7 @@ public final class ProjectConfigLoader {
             if (Files.isRegularFile(configFile)) {
                 try {
                     String content = Files.readString(configFile, StandardCharsets.UTF_8);
-                    Yaml yaml = new Yaml();
+                    Yaml yaml = new Yaml(new org.yaml.snakeyaml.constructor.SafeConstructor(new org.yaml.snakeyaml.LoaderOptions()));
                     Map<String, Object> data = yaml.load(content);
                     if (data != null) {
                         applyOverrides(data, config);
@@ -74,7 +74,7 @@ public final class ProjectConfigLoader {
             if (Files.isRegularFile(configFile)) {
                 try {
                     String content = Files.readString(configFile, StandardCharsets.UTF_8);
-                    Yaml yaml = new Yaml();
+                    Yaml yaml = new Yaml(new org.yaml.snakeyaml.constructor.SafeConstructor(new org.yaml.snakeyaml.LoaderOptions()));
                     Map<String, Object> data = yaml.load(content);
                     if (data != null) {
                         log.info("Loaded project config from {}", configFile);

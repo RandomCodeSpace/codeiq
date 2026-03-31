@@ -94,7 +94,7 @@ public class ConfigScanner {
     private void parseSpringYaml(Path file, InfrastructureRegistry registry) {
         try {
             String content = Files.readString(file, StandardCharsets.UTF_8);
-            Yaml yaml = new Yaml();
+            Yaml yaml = new Yaml(new org.yaml.snakeyaml.constructor.SafeConstructor(new org.yaml.snakeyaml.LoaderOptions()));
             Object loaded = yaml.load(content);
             if (!(loaded instanceof Map<?, ?> raw)) return;
 
@@ -224,7 +224,7 @@ public class ConfigScanner {
     private void parseDockerCompose(Path file, InfrastructureRegistry registry) {
         try {
             String content = Files.readString(file, StandardCharsets.UTF_8);
-            Yaml yaml = new Yaml();
+            Yaml yaml = new Yaml(new org.yaml.snakeyaml.constructor.SafeConstructor(new org.yaml.snakeyaml.LoaderOptions()));
             Object loaded = yaml.load(content);
             if (!(loaded instanceof Map<?, ?> data)) return;
 
