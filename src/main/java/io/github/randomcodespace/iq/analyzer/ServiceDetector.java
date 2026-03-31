@@ -48,21 +48,79 @@ public class ServiceDetector {
      * Maps filename to build tool name.
      */
     private static final Map<String, String> BUILD_FILES = Map.ofEntries(
+            // Java/JVM
             Map.entry("pom.xml", "maven"),
-            Map.entry("package.json", "npm"),
-            Map.entry("go.mod", "go"),
             Map.entry("build.gradle", "gradle"),
             Map.entry("build.gradle.kts", "gradle"),
+            Map.entry("settings.gradle", "gradle"),
+            Map.entry("settings.gradle.kts", "gradle"),
+            Map.entry("build.xml", "ant"),
+            Map.entry("build.sbt", "sbt"),
+            Map.entry("project.clj", "leiningen"),
+            // JavaScript / TypeScript
+            Map.entry("package.json", "npm"),
+            Map.entry("deno.json", "deno"),
+            Map.entry("deno.jsonc", "deno"),
+            // Go
+            Map.entry("go.mod", "go"),
+            // Rust
             Map.entry("Cargo.toml", "cargo"),
-            Map.entry("requirements.txt", "python"),
-            Map.entry("setup.py", "python"),
+            // Python
             Map.entry("pyproject.toml", "python"),
+            Map.entry("setup.py", "python"),
+            Map.entry("setup.cfg", "python"),
+            Map.entry("Pipfile", "python"),
+            Map.entry("requirements.txt", "python"),
             Map.entry("manage.py", "django"),
-            Map.entry("Dockerfile", "docker")
+            // Ruby
+            Map.entry("Gemfile", "ruby"),
+            // PHP
+            Map.entry("composer.json", "php"),
+            // .NET (csproj handled by suffix match below)
+            Map.entry("Directory.Build.props", "dotnet"),
+            // Swift
+            Map.entry("Package.swift", "swift"),
+            // Elixir
+            Map.entry("mix.exs", "elixir"),
+            // Dart / Flutter
+            Map.entry("pubspec.yaml", "dart"),
+            // Scala (also build.sbt above)
+            // Haskell
+            Map.entry("stack.yaml", "haskell"),
+            // Zig
+            Map.entry("build.zig", "zig"),
+            // OCaml
+            Map.entry("dune-project", "ocaml"),
+            // R
+            Map.entry("DESCRIPTION", "r"),
+            // Bazel
+            Map.entry("BUILD", "bazel"),
+            Map.entry("BUILD.bazel", "bazel"),
+            // Mono-repo orchestrators (supplemental, like Docker)
+            Map.entry("nx.json", "nx"),
+            Map.entry("lerna.json", "lerna"),
+            Map.entry("turbo.json", "turbo"),
+            Map.entry("rush.json", "rush"),
+            // Docker (supplemental -- doesn't override other tools)
+            Map.entry("Dockerfile", "docker"),
+            Map.entry("docker-compose.yml", "docker"),
+            Map.entry("docker-compose.yaml", "docker"),
+            Map.entry("compose.yml", "docker"),
+            Map.entry("compose.yaml", "docker")
     );
 
-    /** File extension for .csproj files (matched by suffix). */
+    /** File extensions matched by suffix (not exact name). */
     private static final String CSPROJ_EXTENSION = ".csproj";
+    private static final String FSPROJ_EXTENSION = ".fsproj";
+    private static final String VBPROJ_EXTENSION = ".vbproj";
+    private static final String GEMSPEC_EXTENSION = ".gemspec";
+    private static final String CABAL_EXTENSION = ".cabal";
+    private static final String NIMBLE_EXTENSION = ".nimble";
+
+    /** Build tools that are supplemental (don't override real build tools). */
+    private static final java.util.Set<String> SUPPLEMENTAL_TOOLS = java.util.Set.of(
+            "docker", "nx", "lerna", "turbo", "rush"
+    );
 
     /** Python build files ranked by priority (first match wins for a directory). */
     private static final List<String> PYTHON_BUILD_FILES = List.of(
@@ -82,6 +140,16 @@ public class ServiceDetector {
             "^name\\s*=\\s*\"([^\"]+)\"", Pattern.MULTILINE);
     private static final Pattern SETUP_PY_NAME = Pattern.compile(
             "name\\s*=\\s*['\"]([^'\"]+)['\"]");
+    private static final Pattern GRADLE_SETTINGS_NAME = Pattern.compile(
+            "rootProject\\.name\\s*=\\s*['\"]([^'\"]+)['\"]");
+    private static final Pattern SBT_NAME = Pattern.compile(
+            "name\\s*:=\\s*\"([^\"]+)\"");
+    private static final Pattern COMPOSER_NAME = Pattern.compile(
+            "\"name\"\\s*:\\s*\"([^\"]+)\"");
+    private static final Pattern MIX_APP_NAME = Pattern.compile(
+            "app:\\s*:([\\w]+)");
+    private static final Pattern PUBSPEC_NAME = Pattern.compile(
+            "^name:\\s*(\\S+)", Pattern.MULTILINE);
 
     /**
      * Detect service boundaries from the graph's nodes and create SERVICE nodes.
@@ -129,8 +197,15 @@ public class ServiceDetector {
             if (buildTool != null) {
                 registerModule(modules, dirPath, buildTool, fileName);
             }
-            if (fileName.endsWith(CSPROJ_EXTENSION)) {
+            if (fileName.endsWith(CSPROJ_EXTENSION) || fileName.endsWith(FSPROJ_EXTENSION)
+                    || fileName.endsWith(VBPROJ_EXTENSION)) {
                 modules.putIfAbsent(dirPath, new ModuleInfo(dirPath, "dotnet", fileName));
+            } else if (fileName.endsWith(GEMSPEC_EXTENSION)) {
+                modules.putIfAbsent(dirPath, new ModuleInfo(dirPath, "ruby", fileName));
+            } else if (fileName.endsWith(CABAL_EXTENSION)) {
+                modules.putIfAbsent(dirPath, new ModuleInfo(dirPath, "haskell", fileName));
+            } else if (fileName.endsWith(NIMBLE_EXTENSION)) {
+                modules.putIfAbsent(dirPath, new ModuleInfo(dirPath, "nim", fileName));
             }
         }
 
@@ -249,7 +324,10 @@ public class ServiceDetector {
             stream.filter(Files::isRegularFile)
                     .filter(p -> {
                         String name = p.getFileName().toString();
-                        return BUILD_FILES.containsKey(name) || name.endsWith(CSPROJ_EXTENSION);
+                        return BUILD_FILES.containsKey(name)
+                                || name.endsWith(CSPROJ_EXTENSION) || name.endsWith(FSPROJ_EXTENSION)
+                                || name.endsWith(VBPROJ_EXTENSION) || name.endsWith(GEMSPEC_EXTENSION)
+                                || name.endsWith(CABAL_EXTENSION) || name.endsWith(NIMBLE_EXTENSION);
                     })
                     .sorted() // deterministic
                     .forEach(p -> {
@@ -265,8 +343,15 @@ public class ServiceDetector {
                             return;
                         }
 
-                        if (name.endsWith(CSPROJ_EXTENSION)) {
+                        if (name.endsWith(CSPROJ_EXTENSION) || name.endsWith(FSPROJ_EXTENSION)
+                                || name.endsWith(VBPROJ_EXTENSION)) {
                             modules.putIfAbsent(relDir, new ModuleInfo(relDir, "dotnet", name));
+                        } else if (name.endsWith(GEMSPEC_EXTENSION)) {
+                            modules.putIfAbsent(relDir, new ModuleInfo(relDir, "ruby", name));
+                        } else if (name.endsWith(CABAL_EXTENSION)) {
+                            modules.putIfAbsent(relDir, new ModuleInfo(relDir, "haskell", name));
+                        } else if (name.endsWith(NIMBLE_EXTENSION)) {
+                            modules.putIfAbsent(relDir, new ModuleInfo(relDir, "nim", name));
                         } else {
                             String buildTool = BUILD_FILES.get(name);
                             if (buildTool != null) {
@@ -285,12 +370,12 @@ public class ServiceDetector {
     private void registerModule(Map<String, ModuleInfo> modules, String dirPath,
                                  String buildTool, String fileName) {
         ModuleInfo existing = modules.get(dirPath);
-        // Python doesn't override non-Python
-        if (existing != null && isPythonTool(buildTool) && !isPythonTool(existing.buildTool())) {
+        // Supplemental tools (docker, nx, lerna, turbo, rush) don't override real build tools
+        if (SUPPLEMENTAL_TOOLS.contains(buildTool) && existing != null) {
             return;
         }
-        // Docker doesn't override anything
-        if ("docker".equals(buildTool) && existing != null) {
+        // Python doesn't override non-Python
+        if (existing != null && isPythonTool(buildTool) && !isPythonTool(existing.buildTool())) {
             return;
         }
         // Python priority: pyproject.toml > setup.py > requirements.txt > manage.py
@@ -298,6 +383,11 @@ public class ServiceDetector {
             if (pythonPriority(fileName) >= pythonPriority(existing.buildFile())) {
                 return;
             }
+        }
+        // Gradle settings files don't override gradle build files
+        if ("gradle".equals(buildTool) && existing != null && "gradle".equals(existing.buildTool())
+                && fileName.startsWith("settings.")) {
+            return;
         }
         modules.put(dirPath, new ModuleInfo(dirPath, buildTool, fileName));
     }
@@ -333,11 +423,16 @@ public class ServiceDetector {
             String content = Files.readString(buildFile, StandardCharsets.UTF_8);
             return switch (info.buildTool()) {
                 case "maven" -> extractFromPom(content);
+                case "gradle" -> extractFromGradleSettings(content, info.buildFile());
                 case "npm" -> extractFromPackageJson(content);
                 case "go" -> extractFromGoMod(content);
                 case "cargo" -> extractFromCargoToml(content);
                 case "python" -> extractFromPythonBuild(content, info.buildFile());
-                case "django" -> null; // manage.py doesn't contain the name
+                case "sbt" -> extractWithPattern(content, SBT_NAME);
+                case "php" -> extractWithPattern(content, COMPOSER_NAME);
+                case "elixir" -> extractWithPattern(content, MIX_APP_NAME);
+                case "dart" -> extractWithPattern(content, PUBSPEC_NAME);
+                case "django" -> null;
                 default -> null;
             };
         } catch (IOException e) {
@@ -385,6 +480,27 @@ public class ServiceDetector {
     private String extractFromCargoToml(String content) {
         Matcher m = CARGO_PACKAGE_NAME.matcher(content);
         return m.find() ? m.group(1).trim() : null;
+    }
+
+    private String extractFromGradleSettings(String content, String buildFile) {
+        if (buildFile.startsWith("settings.")) {
+            Matcher m = GRADLE_SETTINGS_NAME.matcher(content);
+            return m.find() ? m.group(1).trim() : null;
+        }
+        return null; // build.gradle doesn't typically have the project name
+    }
+
+    private String extractWithPattern(String content, Pattern pattern) {
+        Matcher m = pattern.matcher(content);
+        if (m.find()) {
+            String name = m.group(1).trim();
+            // Strip scope prefix for PHP composer (vendor/name -> name)
+            if (name.contains("/")) {
+                name = name.substring(name.lastIndexOf('/') + 1);
+            }
+            return name;
+        }
+        return null;
     }
 
     private String extractFromPythonBuild(String content, String fileName) {
