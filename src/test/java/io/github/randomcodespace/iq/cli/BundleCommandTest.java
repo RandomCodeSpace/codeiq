@@ -1,12 +1,8 @@
 package io.github.randomcodespace.iq.cli;
 
-import io.github.randomcodespace.iq.analyzer.AnalysisResult;
-import io.github.randomcodespace.iq.analyzer.Analyzer;
 import io.github.randomcodespace.iq.config.CodeIqConfig;
 import io.github.randomcodespace.iq.flow.FlowEngine;
 import io.github.randomcodespace.iq.graph.GraphStore;
-import io.github.randomcodespace.iq.model.CodeNode;
-import io.github.randomcodespace.iq.model.NodeKind;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -21,14 +17,9 @@ import java.io.PrintStream;
 import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.Path;
-import java.time.Duration;
-import java.util.List;
-import java.util.Map;
-import java.util.zip.ZipEntry;
 import java.util.zip.ZipFile;
 
 import static org.junit.jupiter.api.Assertions.*;
-import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 
@@ -37,9 +28,6 @@ class BundleCommandTest {
 
     private final PrintStream originalOut = System.out;
     private ByteArrayOutputStream capture;
-
-    @Mock
-    private Analyzer analyzer;
 
     @Mock
     private GraphStore graphStore;
@@ -58,95 +46,157 @@ class BundleCommandTest {
         System.setOut(originalOut);
     }
 
-    @Test
-    void bundleRunsAnalysisWhenNoCacheExists(@TempDir Path tempDir) throws IOException {
-        var config = new CodeIqConfig();
-        config.setCacheDir(".code-intelligence");
-
-        var result = new AnalysisResult(10, 8, 50, 20, Map.of(), Map.of(), Map.of(), Map.of(), Duration.ofMillis(500));
-        when(analyzer.run(any(), any())).thenReturn(result);
-        when(flowEngine.renderInteractive(anyString())).thenReturn("<html>flow</html>");
-
-        Path zipPath = tempDir.resolve("test-bundle.zip");
-        var cmd = new BundleCommand(config, analyzer, graphStore, flowEngine);
-        var cmdLine = new picocli.CommandLine(cmd);
-        int exitCode = cmdLine.execute(tempDir.toString(), "-o", zipPath.toString());
-
-        assertEquals(0, exitCode);
-        assertTrue(Files.exists(zipPath), "ZIP file should be created");
-        assertTrue(Files.size(zipPath) > 0, "ZIP file should not be empty");
+    private void createFakeGraphDb(Path tempDir) throws IOException {
+        Path graphDb = tempDir.resolve(".osscodeiq/graph.db");
+        Files.createDirectories(graphDb);
+        Files.writeString(graphDb.resolve("neostore"), "neo4j-data", StandardCharsets.UTF_8);
     }
 
     @Test
-    void bundleCreatesZipWithManifestAndFlow(@TempDir Path tempDir) throws IOException {
-        // Create a fake cache directory
-        Path cacheDir = tempDir.resolve(".code-intelligence");
-        Files.createDirectories(cacheDir);
-        Files.writeString(cacheDir.resolve("graph.bin"), "graph-data",
-                StandardCharsets.UTF_8);
+    void bundleFailsWhenNoGraphExists(@TempDir Path tempDir) {
+        var config = new CodeIqConfig();
+        var cmd = new BundleCommand(config, (GraphStore) null, (FlowEngine) null);
+        var cmdLine = new picocli.CommandLine(cmd);
+        int exitCode = cmdLine.execute(tempDir.toString());
+
+        assertEquals(1, exitCode, "Should fail when no Neo4j graph exists");
+    }
+
+    @Test
+    void bundleCreatesZipWithCorrectStructure(@TempDir Path tempDir) throws IOException {
+        createFakeGraphDb(tempDir);
+
+        // Create a source file
+        Files.writeString(tempDir.resolve("App.java"), "class App {}", StandardCharsets.UTF_8);
 
         var config = new CodeIqConfig();
         config.setCacheDir(".code-intelligence");
 
-        CodeNode node = new CodeNode("n1", NodeKind.CLASS, "MyClass");
-        when(graphStore.count()).thenReturn(5L);
-        when(graphStore.findAll()).thenReturn(List.of(node));
-        when(flowEngine.renderInteractive(anyString())).thenReturn("<html>interactive flow</html>");
+        when(flowEngine.renderInteractive(anyString())).thenReturn("<html>flow</html>");
 
         Path zipPath = tempDir.resolve("test-bundle.zip");
-        var cmd = new BundleCommand(config, analyzer, graphStore, flowEngine);
+        var cmd = new BundleCommand(config, (GraphStore) null, flowEngine);
         var cmdLine = new picocli.CommandLine(cmd);
         int exitCode = cmdLine.execute(tempDir.toString(), "-o", zipPath.toString(), "-t", "v1.0");
 
         assertEquals(0, exitCode);
-        assertTrue(Files.exists(zipPath), "ZIP file should be created");
+        assertTrue(Files.exists(zipPath));
 
-        // Verify ZIP contents
         try (var zf = new ZipFile(zipPath.toFile())) {
             assertNotNull(zf.getEntry("manifest.json"), "Should contain manifest.json");
+            assertNotNull(zf.getEntry("serve.sh"), "Should contain serve.sh");
+            assertNotNull(zf.getEntry("serve.bat"), "Should contain serve.bat");
+            assertNotNull(zf.getEntry("graph.db/neostore"), "Should contain Neo4j graph data");
             assertNotNull(zf.getEntry("flow.html"), "Should contain flow.html");
-            assertNotNull(zf.getEntry("graph/graph.bin"), "Should contain graph data");
 
-            // Verify manifest content
+            // Verify manifest
             String manifest = new String(
                     zf.getInputStream(zf.getEntry("manifest.json")).readAllBytes(),
                     StandardCharsets.UTF_8);
-            assertTrue(manifest.contains("\"tag\" : \"v1.0\""), "Manifest should contain tag");
-            assertTrue(manifest.contains("\"node_count\" : 5"), "Manifest should contain node count");
+            assertTrue(manifest.contains("\"tag\" : \"v1.0\""));
+            assertTrue(manifest.contains("\"bundle_format\" : 2"));
+            assertTrue(manifest.contains("\"backend\" : \"neo4j\""));
+            assertTrue(manifest.contains("\"includes_source\" : true"));
 
-            // Verify flow HTML
-            String flowHtml = new String(
-                    zf.getInputStream(zf.getEntry("flow.html")).readAllBytes(),
+            // Verify serve.sh content
+            String serveShell = new String(
+                    zf.getInputStream(zf.getEntry("serve.sh")).readAllBytes(),
                     StandardCharsets.UTF_8);
-            assertEquals("<html>interactive flow</html>", flowHtml);
+            assertTrue(serveShell.contains("#!/usr/bin/env bash"));
+            assertTrue(serveShell.contains("serve ./source"));
+            assertTrue(serveShell.contains("--graph ./graph.db"));
+            assertTrue(serveShell.contains("maven.org"));
+        }
+    }
+
+    @Test
+    void bundleSkipsSourceWithNoSourceFlag(@TempDir Path tempDir) throws IOException {
+        createFakeGraphDb(tempDir);
+        Files.writeString(tempDir.resolve("App.java"), "class App {}", StandardCharsets.UTF_8);
+
+        var config = new CodeIqConfig();
+        Path zipPath = tempDir.resolve("test-bundle.zip");
+        var cmd = new BundleCommand(config, (GraphStore) null, (FlowEngine) null);
+        var cmdLine = new picocli.CommandLine(cmd);
+        int exitCode = cmdLine.execute(tempDir.toString(), "-o", zipPath.toString(), "--no-source");
+
+        assertEquals(0, exitCode);
+
+        try (var zf = new ZipFile(zipPath.toFile())) {
+            assertNotNull(zf.getEntry("manifest.json"));
+            assertNotNull(zf.getEntry("graph.db/neostore"));
+            // No source/ entries
+            assertNull(zf.getEntry("source/App.java"), "Should not contain source when --no-source");
+
+            String manifest = new String(
+                    zf.getInputStream(zf.getEntry("manifest.json")).readAllBytes(),
+                    StandardCharsets.UTF_8);
+            assertTrue(manifest.contains("\"includes_source\" : false"));
         }
     }
 
     @Test
     void bundleHandlesFlowGenerationFailure(@TempDir Path tempDir) throws IOException {
-        Path cacheDir = tempDir.resolve(".code-intelligence");
-        Files.createDirectories(cacheDir);
-        Files.writeString(cacheDir.resolve("data.db"), "db-data", StandardCharsets.UTF_8);
+        createFakeGraphDb(tempDir);
 
         var config = new CodeIqConfig();
-        config.setCacheDir(".code-intelligence");
-
-        when(graphStore.count()).thenReturn(0L);
-        when(graphStore.findAll()).thenReturn(List.of());
         when(flowEngine.renderInteractive(anyString()))
                 .thenThrow(new RuntimeException("Flow generation failed"));
 
         Path zipPath = tempDir.resolve("test-bundle.zip");
-        var cmd = new BundleCommand(config, analyzer, graphStore, flowEngine);
+        var cmd = new BundleCommand(config, (GraphStore) null, flowEngine);
         var cmdLine = new picocli.CommandLine(cmd);
         int exitCode = cmdLine.execute(tempDir.toString(), "-o", zipPath.toString());
 
-        assertEquals(0, exitCode);
-        assertTrue(Files.exists(zipPath), "ZIP should still be created even if flow fails");
+        assertEquals(0, exitCode, "Bundle should succeed even if flow fails");
 
         try (var zf = new ZipFile(zipPath.toFile())) {
             assertNotNull(zf.getEntry("manifest.json"));
-            assertNull(zf.getEntry("flow.html"), "flow.html should be absent when generation fails");
+            assertNull(zf.getEntry("flow.html"), "flow.html should be absent");
+        }
+    }
+
+    @Test
+    void bundleSkipsNeo4jLockFiles(@TempDir Path tempDir) throws IOException {
+        Path graphDb = tempDir.resolve(".osscodeiq/graph.db");
+        Files.createDirectories(graphDb);
+        Files.writeString(graphDb.resolve("neostore"), "data", StandardCharsets.UTF_8);
+        Files.writeString(graphDb.resolve("store_lock"), "locked", StandardCharsets.UTF_8);
+
+        var config = new CodeIqConfig();
+        Path zipPath = tempDir.resolve("test-bundle.zip");
+        var cmd = new BundleCommand(config, (GraphStore) null, (FlowEngine) null);
+        var cmdLine = new picocli.CommandLine(cmd);
+        int exitCode = cmdLine.execute(tempDir.toString(), "-o", zipPath.toString(), "--no-source");
+
+        assertEquals(0, exitCode);
+
+        try (var zf = new ZipFile(zipPath.toFile())) {
+            assertNotNull(zf.getEntry("graph.db/neostore"), "Should include graph data");
+            assertNull(zf.getEntry("graph.db/store_lock"), "Should skip lock files");
+        }
+    }
+
+    @Test
+    void bundleIncludesH2Cache(@TempDir Path tempDir) throws IOException {
+        createFakeGraphDb(tempDir);
+
+        Path cacheDir = tempDir.resolve(".code-intelligence");
+        Files.createDirectories(cacheDir);
+        Files.writeString(cacheDir.resolve("analysis-cache.db"), "h2-data", StandardCharsets.UTF_8);
+
+        var config = new CodeIqConfig();
+        config.setCacheDir(".code-intelligence");
+
+        Path zipPath = tempDir.resolve("test-bundle.zip");
+        var cmd = new BundleCommand(config, (GraphStore) null, (FlowEngine) null);
+        var cmdLine = new picocli.CommandLine(cmd);
+        int exitCode = cmdLine.execute(tempDir.toString(), "-o", zipPath.toString(), "--no-source");
+
+        assertEquals(0, exitCode);
+
+        try (var zf = new ZipFile(zipPath.toFile())) {
+            assertNotNull(zf.getEntry("cache/analysis-cache.db"), "Should include H2 cache");
         }
     }
 }
