@@ -7,6 +7,9 @@ spring:
   threads:
     virtual:
       enabled: true
+  jackson:
+    deserialization:
+      fail-on-unknown-properties: false
   # Neo4j runs in embedded mode — no Bolt URI needed.
   # See Neo4jConfig.java and codeiq.graph.path below.
 
