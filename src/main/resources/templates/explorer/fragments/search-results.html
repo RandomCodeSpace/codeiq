@@ -38,7 +38,7 @@
                     <div th:if="${node['file_path'] != null}" class="text-xs text-muted dark:text-muted-dark font-mono truncate"
                          th:text="${node['file_path']}">file</div>
                 </div>
-                <button th:attr="hx-get='/ui/fragments/detail/' + ${node['id']}"
+                <button th:attr="hx-get='/ui/fragments/detail/' + ${#uris.escapePathSegment(node['id'])}"
                         hx-target="#content" hx-swap="innerHTML"
                         class="text-xs font-medium px-3 py-1.5 rounded-md text-muted dark:text-muted-dark hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors whitespace-nowrap">
                     Details
