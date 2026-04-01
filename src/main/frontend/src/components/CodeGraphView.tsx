@@ -228,6 +228,7 @@ export default function CodeGraphView() {
   const [dimensions, setDimensions] = useState({ width: 0, height: 0 });
   const [selectedKind, setSelectedKind] = useState<string | null>(null);
   const [drillNodes, setDrillNodes] = useState<NodeResponse[]>([]);
+  const [drillTotal, setDrillTotal] = useState(0);
   const [drillLoading, setDrillLoading] = useState(false);
 
   const { data: kindsData, loading: kindsLoading } = useApi(() => api.getKinds(), []);
@@ -258,12 +259,14 @@ export default function CodeGraphView() {
     setSelectedKind(kind);
     setDrillLoading(true);
     setDrillNodes([]);
+    setDrillTotal(0);
     try {
-      // Fetch up to 200 nodes for the drill-down view
       const result: NodesListResponse = await api.getNodesByKind(kind, 200, 0);
       setDrillNodes(result.nodes ?? []);
+      setDrillTotal(result.total ?? result.count ?? (result.nodes ?? []).length);
     } catch {
       setDrillNodes([]);
+      setDrillTotal(0);
     } finally {
       setDrillLoading(false);
     }
@@ -272,6 +275,7 @@ export default function CodeGraphView() {
   const handleDrillUp = useCallback(() => {
     setSelectedKind(null);
     setDrillNodes([]);
+    setDrillTotal(0);
   }, []);
 
   const kinds: KindEntry[] = kindsData?.kinds ?? [];
@@ -284,7 +288,9 @@ export default function CodeGraphView() {
           <h1 className="text-2xl font-bold gradient-text">Code Graph</h1>
           <p className="text-sm text-surface-400 mt-0.5">
             {selectedKind
-              ? `${drillNodes.length} nodes of kind "${selectedKind}"`
+              ? drillTotal > drillNodes.length
+                ? `Showing ${drillNodes.length} of ${drillTotal} "${selectedKind}" nodes`
+                : `${drillNodes.length} nodes of kind "${selectedKind}"`
               : `${kinds.length} node kinds — click a tile to explore`}
           </p>
         </div>
