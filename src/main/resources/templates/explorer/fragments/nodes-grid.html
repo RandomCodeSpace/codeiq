@@ -67,13 +67,13 @@
         </div>
         <div class="flex gap-2">
             <button th:if="${result['offset'] != null and result['offset'] > 0}"
-                    th:attr="hx-get='/ui/fragments/nodes/' + ${kind} + '?offset=' + ${result['offset'] - result['limit']} + '&amp;limit=' + ${result['limit']}"
+                    th:attr="hx-get='/ui/fragments/nodes/' + ${#uris.escapePathSegment(kind)} + '?offset=' + ${result['offset'] - result['limit']} + '&amp;limit=' + ${result['limit']}"
                     hx-target="#content" hx-swap="innerHTML"
                     class="text-sm font-medium px-3 py-1.5 rounded-md bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors">
                 Previous
             </button>
             <button th:if="${result['offset'] != null and (result['offset'] + result['limit']) < result['total']}"
-                    th:attr="hx-get='/ui/fragments/nodes/' + ${kind} + '?offset=' + (${result['offset']} + ${result['limit']}) + '&amp;limit=' + ${result['limit']}"
+                    th:attr="hx-get='/ui/fragments/nodes/' + ${#uris.escapePathSegment(kind)} + '?offset=' + (${result['offset']} + ${result['limit']}) + '&amp;limit=' + ${result['limit']}"
                     hx-target="#content" hx-swap="innerHTML"
                     class="text-sm font-medium px-3 py-1.5 rounded-md bg-brand-50 dark:bg-brand-900/30 text-brand-600 dark:text-brand-400 hover:bg-brand-100 dark:hover:bg-brand-900/50 transition-colors">
                 Next

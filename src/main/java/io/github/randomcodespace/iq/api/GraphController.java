@@ -173,6 +173,9 @@ public class GraphController {
             @RequestParam(required = false) String kind,
             @RequestParam(defaultValue = "100") int limit) {
         requireQueryService();
+        if (kind != null && !kind.isBlank()) {
+            validateNodeKind(kind);
+        }
         return ResponseEntity.ok(queryService.findDeadCode(kind, Math.min(limit, 1000)));
     }
 

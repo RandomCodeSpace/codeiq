@@ -22,7 +22,7 @@ public class CorsConfig {
             public void addCorsMappings(CorsRegistry registry) {
                 registry.addMapping("/api/**")
                         .allowedOriginPatterns(patterns)
-                        .allowedMethods("GET", "POST", "PUT", "DELETE", "OPTIONS")
+                        .allowedMethods("GET", "OPTIONS")
                         .allowedHeaders("*");
                 registry.addMapping("/mcp/**")
                         .allowedOriginPatterns(patterns)

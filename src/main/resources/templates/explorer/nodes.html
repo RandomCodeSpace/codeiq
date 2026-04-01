@@ -6,24 +6,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title th:text="'Nodes: ' + ${kind} + ' | OSSCodeIQ'">Nodes | OSSCodeIQ</title>
 
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script>
-        tailwind.config = {
-            darkMode: 'class',
-            theme: {
-                extend: {
-                    colors: {
-                        brand: { 50: '#eff6ff', 100: '#dbeafe', 200: '#bfdbfe', 400: '#60a5fa', 500: '#3b82f6', 600: '#2563eb', 700: '#1d4ed8', 800: '#1e40af', 900: '#1e3a5f' },
-                        surface: { DEFAULT: '#f8fafc', dark: '#0f172a' },
-                        card: { DEFAULT: '#ffffff', dark: '#1e293b' },
-                        muted: { DEFAULT: '#64748b', dark: '#94a3b8' }
-                    },
-                    animation: { 'slide-up': 'slideUp 0.3s ease-out' },
-                    keyframes: { slideUp: { '0%': { opacity: '0', transform: 'translateY(8px)' }, '100%': { opacity: '1', transform: 'translateY(0)' } } }
-                }
-            }
-        }
-    </script>
+    <link rel="stylesheet" th:href="@{/css/explorer.css}">
     <script th:src="@{/js/htmx.min.js}"></script>
     <script defer th:src="@{/js/alpine.min.js}"></script>
     <style>

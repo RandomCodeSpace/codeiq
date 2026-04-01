@@ -9,7 +9,10 @@ import io.github.randomcodespace.iq.model.CodeNode;
 import io.github.randomcodespace.iq.query.StatsService;
 import org.springframework.stereotype.Component;
 import org.yaml.snakeyaml.DumperOptions;
+import org.yaml.snakeyaml.LoaderOptions;
 import org.yaml.snakeyaml.Yaml;
+import org.yaml.snakeyaml.constructor.SafeConstructor;
+import org.yaml.snakeyaml.representer.Representer;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
 import picocli.CommandLine.Parameters;
@@ -258,7 +261,7 @@ public class StatsCommand implements Callable<Integer> {
         DumperOptions options = new DumperOptions();
         options.setDefaultFlowStyle(DumperOptions.FlowStyle.BLOCK);
         options.setPrettyFlow(true);
-        Yaml yaml = new Yaml(options);
+        Yaml yaml = new Yaml(new SafeConstructor(new LoaderOptions()), new Representer(options), options);
         out.println(yaml.dump(stats));
         return 0;
     }

@@ -531,7 +531,7 @@ public class Analyzer {
 
                 // Analyze batch in parallel
                 DetectorResult[] resultSlots = new DetectorResult[batch.size()];
-                int[] batchCacheHits = {0};
+                var batchCacheHits = new java.util.concurrent.atomic.AtomicInteger(0);
 
                 {
                     List<Future<?>> futures = new ArrayList<>(batch.size());
@@ -547,9 +547,7 @@ public class Analyzer {
                                         var cached = cache.loadCachedResults(hash);
                                         if (cached != null) {
                                             resultSlots[idx] = DetectorResult.of(cached.nodes(), cached.edges());
-                                            synchronized (batchCacheHits) {
-                                                batchCacheHits[0]++;
-                                            }
+                                            batchCacheHits.incrementAndGet();
                                             return null;
                                         }
                                     }
@@ -583,7 +581,7 @@ public class Analyzer {
                     }
                 }
 
-                cacheHits += batchCacheHits[0];
+                cacheHits += batchCacheHits.get();
 
                 // Collect batch results and flush non-cached to H2
                 List<CodeNode> batchNodes = new ArrayList<>();
@@ -902,7 +900,7 @@ public class Analyzer {
         report.accept("Processing batch " + batchNumber + " (" + batch.size() + " files)...");
 
         DetectorResult[] slots = new DetectorResult[batch.size()];
-        int[] batchCacheHits = {0};
+        var batchCacheHits = new java.util.concurrent.atomic.AtomicInteger(0);
 
         List<Future<?>> futures = new ArrayList<>(batch.size());
         for (int i = 0; i < batch.size(); i++) {
@@ -917,7 +915,7 @@ public class Analyzer {
                             var cached = cache.loadCachedResults(hash);
                             if (cached != null) {
                                 slots[idx] = DetectorResult.of(cached.nodes(), cached.edges());
-                                synchronized (batchCacheHits) { batchCacheHits[0]++; }
+                                batchCacheHits.incrementAndGet();
                                 return null;
                             }
                         }
@@ -986,7 +984,7 @@ public class Analyzer {
             cache.storeBatchResults(batchId, "batch-" + batchNumber, "mixed", batchNodes, batchEdges);
         }
 
-        return new int[]{nodes, edges, analyzed, batchCacheHits[0]};
+        return new int[]{nodes, edges, analyzed, batchCacheHits.get()};
     }
 
     /**
