@@ -523,6 +523,38 @@ class ServiceDetectorTest {
         }
     }
 
+    @Test
+    void filesystemWalkFindsModulesNotPresentAsNodes(@TempDir Path tempDir) throws IOException {
+        // Simulate a .NET monorepo: .csproj files exist on disk but NO detector created CodeNodes for them
+        Files.createDirectories(tempDir.resolve("src/Basket.API"));
+        Files.writeString(tempDir.resolve("src/Basket.API/Basket.API.csproj"),
+                "<Project Sdk=\"Microsoft.NET.Sdk.Web\" />", StandardCharsets.UTF_8);
+
+        Files.createDirectories(tempDir.resolve("src/Catalog.API"));
+        Files.writeString(tempDir.resolve("src/Catalog.API/Catalog.API.csproj"),
+                "<Project Sdk=\"Microsoft.NET.Sdk.Web\" />", StandardCharsets.UTF_8);
+
+        Files.createDirectories(tempDir.resolve("src/Ordering.API"));
+        Files.writeString(tempDir.resolve("src/Ordering.API/Ordering.API.csproj"),
+                "<Project Sdk=\"Microsoft.NET.Sdk.Web\" />", StandardCharsets.UTF_8);
+
+        // No nodes have build file paths — they are only on the filesystem
+        List<CodeNode> nodes = new ArrayList<>();
+        nodes.add(makeNode("cls:BasketCtrl", NodeKind.CLASS, "BasketController",
+                "src/Basket.API/Controllers/BasketController.cs"));
+        nodes.add(makeNode("cls:CatalogCtrl", NodeKind.CLASS, "CatalogController",
+                "src/Catalog.API/Controllers/CatalogController.cs"));
+
+        var result = detector.detect(nodes, List.of(), "eShop", tempDir);
+
+        // Should detect 3 services via filesystem walk (not from node paths)
+        assertEquals(3, result.serviceNodes().size());
+        var names = result.serviceNodes().stream().map(CodeNode::getLabel).sorted().toList();
+        assertEquals(List.of("Basket.API", "Catalog.API", "Ordering.API"), names);
+        result.serviceNodes().forEach(svc ->
+                assertEquals("dotnet", svc.getProperties().get("build_tool")));
+    }
+
     private static CodeNode makeNode(String id, NodeKind kind, String label, String filePath) {
         CodeNode node = new CodeNode(id, kind, label);
         node.setFilePath(filePath);
