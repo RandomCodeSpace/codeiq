@@ -67,6 +67,15 @@ public class CodeIqApplication implements CommandLineRunner, ExitCodeGenerator {
                 System.setProperty("server.port", portStr);
             }
 
+            // Disable web UI if --no-ui flag is present
+            boolean noUi = Arrays.asList(args).contains("--no-ui");
+            if (noUi) {
+                System.setProperty("codeiq.ui.enabled", "false");
+                // Also disable Spring Boot's static resource handler so no
+                // static files (index.html, JS, CSS bundles) are served.
+                System.setProperty("spring.web.resources.add-mappings", "false");
+            }
+
             // Resolve codebase root so Neo4j points to the correct graph.db
             String codebasePath = extractPositionalArg(args, "serve");
             java.nio.file.Path root = java.nio.file.Path.of(
@@ -126,8 +135,17 @@ public class CodeIqApplication implements CommandLineRunner, ExitCodeGenerator {
     }
 
     /**
+     * Boolean (no-value) flags for the serve command.
+     * These must NOT consume the next token as their value.
+     */
+    private static final java.util.Set<String> BOOLEAN_FLAGS = java.util.Set.of(
+            "--no-ui", "--help", "-h", "--version"
+    );
+
+    /**
      * Extract the first positional argument after the command name.
      * Skips flags (--name value pairs) to find positional args.
+     * Boolean flags (no value) are not allowed to consume the next token.
      */
     private static String extractPositionalArg(String[] args, String command) {
         boolean foundCommand = false;
@@ -142,17 +160,17 @@ public class CodeIqApplication implements CommandLineRunner, ExitCodeGenerator {
                 continue;
             }
             if (foundCommand) {
-                // Skip --flag value pairs
-                if (arg.startsWith("--") && !arg.contains("=")) {
+                // Skip --flag value pairs, but not boolean flags that take no value
+                if (arg.startsWith("--") && !arg.contains("=") && !BOOLEAN_FLAGS.contains(arg)) {
                     skipNext = true;
                     continue;
                 }
-                if (arg.startsWith("-") && arg.length() == 2) {
+                if (arg.startsWith("-") && arg.length() == 2 && !BOOLEAN_FLAGS.contains(arg)) {
                     skipNext = true; // short flag like -p 8080
                     continue;
                 }
                 if (arg.startsWith("-")) {
-                    continue; // --flag=value or -flag
+                    continue; // --flag=value, boolean flag, or unknown short flag
                 }
                 return arg;
             }

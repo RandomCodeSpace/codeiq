@@ -30,6 +30,8 @@ codeiq:
   max-depth: 10
   max-radius: 10
   batch-size: 500
+  ui:
+    enabled: true
 
 spring.ai.mcp.server:
   name: code-iq

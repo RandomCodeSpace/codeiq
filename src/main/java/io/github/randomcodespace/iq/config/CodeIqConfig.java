@@ -28,6 +28,9 @@ public class CodeIqConfig {
     /** Graph configuration sub-properties. */
     private Graph graph = new Graph();
 
+    /** Whether to serve the React web UI. Set to false via --no-ui flag. */
+    private boolean uiEnabled = true;
+
     public static class Graph {
         private String path = ".osscodeiq/graph.db";
 
@@ -94,5 +97,13 @@ public class CodeIqConfig {
 
     public void setGraph(Graph graph) {
         this.graph = graph;
+    }
+
+    public boolean isUiEnabled() {
+        return uiEnabled;
+    }
+
+    public void setUiEnabled(boolean uiEnabled) {
+        this.uiEnabled = uiEnabled;
     }
 }

@@ -48,4 +48,30 @@ class ServeCommandTest {
         cmdLine.parseArgs("--port", "9090");
         assertEquals(9090, cmd.getPort());
     }
+
+    @Test
+    void noUiDefaultsToFalse() {
+        var cmd = new ServeCommand();
+        var cmdLine = new CommandLine(cmd);
+        cmdLine.parseArgs();
+        assertEquals(false, cmd.isNoUi());
+    }
+
+    @Test
+    void noUiFlagIsRecognized() {
+        var cmd = new ServeCommand();
+        var cmdLine = new CommandLine(cmd);
+        cmdLine.parseArgs("--no-ui");
+        assertEquals(true, cmd.isNoUi());
+    }
+
+    @Test
+    void pathNotSwallowedWhenNoUiPrecedesPath() {
+        // Regression: --no-ui is boolean and must not consume the next positional arg.
+        var cmd = new ServeCommand();
+        var cmdLine = new CommandLine(cmd);
+        cmdLine.parseArgs("--no-ui", "/some/repo");
+        assertEquals(true, cmd.isNoUi());
+        assertEquals("/some/repo", cmd.getPath().toString());
+    }
 }

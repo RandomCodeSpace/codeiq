@@ -42,6 +42,10 @@ public class ServeCommand implements Callable<Integer> {
     @Option(names = {"--graph"}, description = "Path to shared graph directory (overrides default)")
     private Path graphPath;
 
+    @Option(names = {"--no-ui"}, defaultValue = "false",
+            description = "Disable the web UI (React SPA). API and MCP endpoints remain active.")
+    private boolean noUi;
+
     @Autowired
     private CodeIqConfig config;
 
@@ -73,7 +77,11 @@ public class ServeCommand implements Callable<Integer> {
 
         CliOutput.step("\uD83D\uDE80", "@|bold,green Server started|@");
         System.out.println();
-        CliOutput.info("  URL:       http://" + host + ":" + port);
+        if (noUi) {
+            CliOutput.info("  Web UI:    disabled (API and MCP active at :" + port + ")");
+        } else {
+            CliOutput.info("  Web UI:    http://" + host + ":" + port + " (React SPA)");
+        }
         CliOutput.info("  REST API:  http://" + host + ":" + port + "/api");
         CliOutput.info("  MCP:       http://" + host + ":" + port + "/mcp");
         CliOutput.info("  Health:    http://" + host + ":" + port + "/actuator/health");
@@ -94,4 +102,5 @@ public class ServeCommand implements Callable<Integer> {
     public int getPort() { return port; }
     public String getHost() { return host; }
     public Path getGraphPath() { return graphPath; }
+    public boolean isNoUi() { return noUi; }
 }
