@@ -64,4 +64,14 @@ class ServeCommandTest {
         cmdLine.parseArgs("--no-ui");
         assertEquals(true, cmd.isNoUi());
     }
+
+    @Test
+    void pathNotSwallowedWhenNoUiPrecedesPath() {
+        // Regression: --no-ui is boolean and must not consume the next positional arg.
+        var cmd = new ServeCommand();
+        var cmdLine = new CommandLine(cmd);
+        cmdLine.parseArgs("--no-ui", "/some/repo");
+        assertEquals(true, cmd.isNoUi());
+        assertEquals("/some/repo", cmd.getPath().toString());
+    }
 }
