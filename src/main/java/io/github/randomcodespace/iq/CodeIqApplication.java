@@ -67,6 +67,12 @@ public class CodeIqApplication implements CommandLineRunner, ExitCodeGenerator {
                 System.setProperty("server.port", portStr);
             }
 
+            // Disable web UI if --no-ui flag is present
+            boolean noUi = Arrays.asList(args).contains("--no-ui");
+            if (noUi) {
+                System.setProperty("codeiq.ui.enabled", "false");
+            }
+
             // Resolve codebase root so Neo4j points to the correct graph.db
             String codebasePath = extractPositionalArg(args, "serve");
             java.nio.file.Path root = java.nio.file.Path.of(
