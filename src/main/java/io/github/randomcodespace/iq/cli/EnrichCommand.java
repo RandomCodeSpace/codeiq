@@ -145,7 +145,7 @@ public class EnrichCommand implements Callable<Integer> {
         CliOutput.step("\uD83C\uDFD7\uFE0F", "Detecting service boundaries...");
         var serviceDetector = new io.github.randomcodespace.iq.analyzer.ServiceDetector();
         String projectName = root.getFileName().toString();
-        var serviceResult = serviceDetector.detect(enrichedNodes, enrichedEdges, projectName);
+        var serviceResult = serviceDetector.detect(enrichedNodes, enrichedEdges, projectName, root);
         if (!serviceResult.serviceNodes().isEmpty()) {
             // Add service nodes and edges to the builder
             builder.addNodes(serviceResult.serviceNodes());
