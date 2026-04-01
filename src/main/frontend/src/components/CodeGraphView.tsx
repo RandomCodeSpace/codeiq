@@ -5,6 +5,8 @@ import { api } from '@/lib/api';
 import { getKindColor, getEdgeColor, KIND_COLORS } from '@/lib/graphConstants';
 import type { TopologyResponse, EgoGraphResponse, NodesListResponse, NodeResponse } from '@/types/api';
 import { useFileSelection } from '@/contexts/FileSelectionContext';
+import { useRightPanel } from '@/components/Layout';
+import NodeDetailPanel from '@/components/NodeDetailPanel';
 import {
   Home,
   ChevronRight,
@@ -360,6 +362,14 @@ export default function CodeGraphView() {
   const [contextMenu, setContextMenu] = useState<ContextMenuState | null>(null);
 
   const { selectedPath, selectedType } = useFileSelection();
+  const { openPanel, closePanel } = useRightPanel();
+
+  // Stable refs so graph event handlers can call the latest callbacks without rebuild
+  const openPanelRef = useRef(openPanel);
+  const closePanelRef = useRef(closePanel);
+  const loadLevel2Ref = useRef<(id: string) => void>(() => {});
+  useEffect(() => { openPanelRef.current = openPanel; }, [openPanel]);
+  useEffect(() => { closePanelRef.current = closePanel; }, [closePanel]);
 
   // Current drill-down ids
   const currentServiceRef = useRef<string | null>(null);
@@ -476,7 +486,7 @@ export default function CodeGraphView() {
       },
     });
 
-    // ── Node click: highlight dependencies ─────────────────────────────────
+    // ── Node click: highlight dependencies + open right panel ─────────────
     graph.on('node:click', (evt: unknown) => {
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const nodeId = (evt as any)?.target?.id as string | undefined;
@@ -507,9 +517,17 @@ export default function CodeGraphView() {
       });
 
       graph.setElementState(stateMap);
+
+      // Open details panel for the selected node
+      openPanelRef.current(
+        <NodeDetailPanel
+          nodeId={nodeId}
+          onNavigateToNode={(targetId) => loadLevel2Ref.current(targetId)}
+        />,
+      );
     });
 
-    // ── Canvas click: clear states ──────────────────────────────────────────
+    // ── Canvas click: clear states + close panel ────────────────────────────
     graph.on('canvas:click', () => {
       setContextMenu(null);
       const stateMap: Record<string, string[]> = {};
@@ -518,6 +536,7 @@ export default function CodeGraphView() {
       allNodes.forEach(n => { stateMap[n.id] = []; });
       allEdges.forEach((e, i) => { stateMap[e.id ?? `edge-${i}`] = []; });
       graph.setElementState(stateMap);
+      closePanelRef.current();
     });
 
     // ── Double-click: drill down ────────────────────────────────────────────
@@ -643,6 +662,9 @@ export default function CodeGraphView() {
     }
   }, [renderG6]);
 
+  // Keep loadLevel2Ref in sync for stable use inside graph event handlers
+  useEffect(() => { loadLevel2Ref.current = loadLevel2; }, [loadLevel2]);
+
   // ── Drill-down handler ──────────────────────────────────────────────────────
 
   const handleDrillDown = useCallback((nodeId: string, label: string, kind: string) => {
@@ -749,8 +771,13 @@ export default function CodeGraphView() {
 
   // ── Context menu actions ────────────────────────────────────────────────────
 
-  const handleShowDetails = (_id: string) => {
-    // Details are shown via tooltip; deeper detail via drill-down
+  const handleShowDetails = (id: string) => {
+    openPanel(
+      <NodeDetailPanel
+        nodeId={id}
+        onNavigateToNode={(targetId) => loadLevel2(targetId)}
+      />,
+    );
   };
 
   const handleFindCallers = async (id: string) => {
