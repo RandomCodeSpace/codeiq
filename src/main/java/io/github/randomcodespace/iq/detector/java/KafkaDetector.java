@@ -21,7 +21,7 @@ import io.github.randomcodespace.iq.detector.DetectorInfo;
     name = "kafka",
     category = "messaging",
     description = "Detects Kafka producers, consumers, and topic configurations",
-    languages = {"java"},
+    languages = {"java", "kotlin"},
     nodeKinds = {NodeKind.TOPIC},
     edgeKinds = {EdgeKind.CONSUMES, EdgeKind.PRODUCES},
     properties = {"broker", "group_id", "topic"}
@@ -43,7 +43,7 @@ public class KafkaDetector extends AbstractRegexDetector {
 
     @Override
     public Set<String> getSupportedLanguages() {
-        return Set.of("java");
+        return Set.of("java", "kotlin");
     }
 
     @Override

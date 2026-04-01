@@ -79,6 +79,64 @@ class TopicLinkerTest {
     }
 
     @Test
+    void linksSendsToWithReceivesFrom() {
+        var topic = new CodeNode("topic:events", NodeKind.TOPIC, "events");
+        var sender = new CodeNode("svc:TibcoSender", NodeKind.CLASS, "TibcoSender");
+        var receiver = new CodeNode("svc:TibcoReceiver", NodeKind.CLASS, "TibcoReceiver");
+
+        var sendsEdge = new CodeEdge();
+        sendsEdge.setId("e1");
+        sendsEdge.setKind(EdgeKind.SENDS_TO);
+        sendsEdge.setSourceId("svc:TibcoSender");
+        sendsEdge.setTarget(topic);
+
+        var receivesEdge = new CodeEdge();
+        receivesEdge.setId("e2");
+        receivesEdge.setKind(EdgeKind.RECEIVES_FROM);
+        receivesEdge.setSourceId("svc:TibcoReceiver");
+        receivesEdge.setTarget(topic);
+
+        LinkResult result = linker.link(
+                List.of(topic, sender, receiver),
+                List.of(sendsEdge, receivesEdge)
+        );
+
+        assertEquals(1, result.edges().size());
+        CodeEdge callsEdge = result.edges().getFirst();
+        assertEquals(EdgeKind.CALLS, callsEdge.getKind());
+        assertEquals("svc:TibcoSender", callsEdge.getSourceId());
+        assertEquals("svc:TibcoReceiver", callsEdge.getTarget().getId());
+        assertEquals("events", callsEdge.getProperties().get("topic"));
+    }
+
+    @Test
+    void linksMixedSendsToAndConsumes() {
+        var topic = new CodeNode("topic:orders", NodeKind.TOPIC, "orders");
+        var sender = new CodeNode("svc:AzureSender", NodeKind.CLASS, "AzureSender");
+        var consumer = new CodeNode("svc:OrderWorker", NodeKind.CLASS, "OrderWorker");
+
+        var sendsEdge = new CodeEdge();
+        sendsEdge.setId("e1");
+        sendsEdge.setKind(EdgeKind.SENDS_TO);
+        sendsEdge.setSourceId("svc:AzureSender");
+        sendsEdge.setTarget(topic);
+
+        var consumesEdge = new CodeEdge();
+        consumesEdge.setId("e2");
+        consumesEdge.setKind(EdgeKind.CONSUMES);
+        consumesEdge.setSourceId("svc:OrderWorker");
+        consumesEdge.setTarget(topic);
+
+        LinkResult result = linker.link(
+                List.of(topic, sender, consumer),
+                List.of(sendsEdge, consumesEdge)
+        );
+
+        assertEquals(1, result.edges().size());
+        assertEquals(EdgeKind.CALLS, result.edges().getFirst().getKind());
+    }
+
+    @Test
     void handlesQueueNodes() {
         var queue = new CodeNode("queue:tasks", NodeKind.QUEUE, "tasks");
         var producer = new CodeNode("svc:TaskCreator", NodeKind.CLASS, "TaskCreator");

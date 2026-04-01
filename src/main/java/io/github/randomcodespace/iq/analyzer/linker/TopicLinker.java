@@ -18,11 +18,12 @@ import java.util.TreeMap;
 import java.util.TreeSet;
 
 /**
- * Links Kafka/RabbitMQ producers to consumers via shared topic names.
+ * Links messaging producers to consumers via shared topic/queue names.
  * <p>
- * Scans for TOPIC/QUEUE nodes and matches PRODUCES edges with CONSUMES
- * edges on the same topic label to create direct producer-to-consumer
- * CALLS edges.
+ * Scans for TOPIC/QUEUE nodes and matches PRODUCES/SENDS_TO edges with
+ * CONSUMES/RECEIVES_FROM edges on the same topic label to create direct
+ * producer-to-consumer CALLS edges. Supports Kafka, RabbitMQ, TIBCO EMS,
+ * IBM MQ, Azure Service Bus, and other enterprise messaging patterns.
  */
 @Component
 public class TopicLinker implements Linker {
@@ -51,11 +52,13 @@ public class TopicLinker implements Linker {
         Map<String, List<String>> consumersByTopic = new TreeMap<>();
 
         for (CodeEdge edge : edges) {
-            if (edge.getKind() == EdgeKind.PRODUCES && edge.getTarget() != null) {
+            boolean isProducer = edge.getKind() == EdgeKind.PRODUCES || edge.getKind() == EdgeKind.SENDS_TO;
+            boolean isConsumer = edge.getKind() == EdgeKind.CONSUMES || edge.getKind() == EdgeKind.RECEIVES_FROM;
+            if (isProducer && edge.getTarget() != null) {
                 producersByTopic
                         .computeIfAbsent(edge.getTarget().getId(), k -> new ArrayList<>())
                         .add(edge.getSourceId());
-            } else if (edge.getKind() == EdgeKind.CONSUMES && edge.getTarget() != null) {
+            } else if (isConsumer && edge.getTarget() != null) {
                 consumersByTopic
                         .computeIfAbsent(edge.getTarget().getId(), k -> new ArrayList<>())
                         .add(edge.getSourceId());
