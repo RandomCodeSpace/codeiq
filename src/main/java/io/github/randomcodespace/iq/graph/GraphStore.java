@@ -92,6 +92,9 @@ public class GraphStore implements FlowDataSource {
             tx.execute("CREATE FULLTEXT INDEX search_index IF NOT EXISTS "
                     + "FOR (n:CodeNode) ON EACH [n.label_lower, n.fqn_lower] "
                     + "OPTIONS {indexConfig: {`fulltext.analyzer`: 'keyword'}}");
+            tx.execute("CREATE FULLTEXT INDEX lexical_index IF NOT EXISTS "
+                    + "FOR (n:CodeNode) ON EACH [n.prop_lex_comment, n.prop_lex_config_keys] "
+                    + "OPTIONS {indexConfig: {`fulltext.analyzer`: 'standard'}}");
             tx.commit();
         }
 
@@ -260,6 +263,18 @@ public class GraphStore implements FlowDataSource {
     public List<CodeNode> search(String text, int limit) {
         return queryNodes(
                 "CALL db.index.fulltext.queryNodes('search_index', $text) "
+                        + "YIELD node RETURN node AS n LIMIT $limit",
+                Map.of("text", toLuceneQuery(text), "limit", limit));
+    }
+
+    /**
+     * Search the lexical index ({@code prop_lex_comment} and {@code prop_lex_config_keys})
+     * for nodes matching {@code text}. Used by {@code LexicalQueryService} for doc comment
+     * and config key retrieval.
+     */
+    public List<CodeNode> searchLexical(String text, int limit) {
+        return queryNodes(
+                "CALL db.index.fulltext.queryNodes('lexical_index', $text) "
                         + "YIELD node RETURN node AS n LIMIT $limit",
                 Map.of("text", toLuceneQuery(text), "limit", limit));
     }
