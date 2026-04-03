@@ -12,8 +12,10 @@ import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -104,7 +106,7 @@ public class GoLanguageExtractor implements LanguageExtractor {
     }
 
     private List<String> collectImportPaths(String content) {
-        List<String> paths = new ArrayList<>();
+        Set<String> paths = new LinkedHashSet<>();
 
         Matcher block = IMPORT_BLOCK.matcher(content);
         if (block.find()) {
@@ -119,7 +121,7 @@ public class GoLanguageExtractor implements LanguageExtractor {
             paths.add(single.group(1));
         }
 
-        return paths;
+        return new ArrayList<>(paths);
     }
 
     /**

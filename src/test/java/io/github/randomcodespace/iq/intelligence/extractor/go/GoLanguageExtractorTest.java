@@ -98,6 +98,36 @@ class GoLanguageExtractorTest {
     }
 
     @Test
+    void extract_duplicateImportBothStyles_noDuplicateEdges() {
+        CodeNode source = node("go:main.go:fn:main", NodeKind.METHOD, "main");
+        CodeNode target = node("go:handler.go:module:handler", NodeKind.MODULE, "handler");
+
+        Map<String, CodeNode> registry = Map.of(target.getLabel(), target);
+
+        // File has both a block import and a single-line import for the same package.
+        // collectImportPaths() must deduplicate so only one IMPORTS edge is produced.
+        String content = """
+                package main
+
+                import (
+                    "myapp/handler"
+                )
+                import "myapp/handler"
+
+                func main() {
+                    handler.Handle()
+                }
+                """;
+
+        DetectorContext ctx = new DetectorContext("main.go", "go", content, registry, null);
+        LanguageExtractionResult result = extractor.extract(ctx, source);
+
+        assertThat(result.symbolReferences()).hasSize(1);
+        assertThat(result.symbolReferences().get(0).getKind()).isEqualTo(EdgeKind.IMPORTS);
+        assertThat(result.symbolReferences().get(0).getTarget().getId()).isEqualTo(target.getId());
+    }
+
+    @Test
     void extract_determinism_sameTwice() {
         CodeNode source = node("go:a.go:fn:run", NodeKind.METHOD, "run");
         CodeNode target = node("go:b.go:module:worker", NodeKind.MODULE, "worker");
