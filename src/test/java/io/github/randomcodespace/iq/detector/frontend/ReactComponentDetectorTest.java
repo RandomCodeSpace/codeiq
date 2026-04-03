@@ -67,6 +67,50 @@ class ReactComponentDetectorTest {
     }
 
     @Test
+    void siblingComponentRendersEdgePreserved() {
+        // Header and Footer are both in the same file; Header uses <Footer>.
+        // The RENDERS edge Header->Footer must NOT be dropped.
+        String source = """
+                export const Header = () => {
+                  return <Footer />;
+                };
+
+                export const Footer = () => {
+                  return <div />;
+                };
+                """;
+        DetectorResult r = d.detect(DetectorTestUtils.contextFor("typescript", source));
+
+        assertEquals(2, r.nodes().size());
+
+        List<String> headerRenders = r.edges().stream()
+                .filter(e -> e.getKind() == EdgeKind.RENDERS && e.getSourceId().contains("Header"))
+                .map(e -> e.getTarget().getId())
+                .toList();
+
+        assertTrue(headerRenders.contains("Footer"), "Header should render Footer (sibling in same file)");
+    }
+
+    @Test
+    void selfRenderEdgeNotEmitted() {
+        // A component that uses its own name as a JSX tag should NOT produce a self-loop RENDERS edge.
+        String source = """
+                export const Recursive = () => {
+                  return <Recursive />;
+                };
+                """;
+        DetectorResult r = d.detect(DetectorTestUtils.contextFor("typescript", source));
+
+        assertEquals(1, r.nodes().size());
+        long selfEdges = r.edges().stream()
+                .filter(e -> e.getKind() == EdgeKind.RENDERS
+                        && e.getSourceId().contains("Recursive")
+                        && e.getTarget().getId().equals("Recursive"))
+                .count();
+        assertEquals(0, selfEdges, "Self-render edge must not be emitted");
+    }
+
+    @Test
     void singleComponentGetsAllJsxTags() {
         String source = """
                 export default function Dashboard() {

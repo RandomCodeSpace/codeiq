@@ -147,7 +147,7 @@ public class ReactComponentDetector extends AbstractRegexDetector {
             Matcher jsxM = JSX_TAG.matcher(bodyText);
             while (jsxM.find()) {
                 String tag = jsxM.group(1);
-                if (!allDetected.contains(tag)) {
+                if (!tag.equals(comp.name())) {
                     childNames.add(tag);
                 }
             }
