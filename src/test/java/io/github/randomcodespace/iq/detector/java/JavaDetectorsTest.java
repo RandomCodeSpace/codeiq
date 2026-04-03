@@ -406,6 +406,32 @@ class JavaDetectorsTest {
             assertFalse(r.nodes().isEmpty());
             assertTrue(r.edges().stream().anyMatch(e -> e.getKind().getValue().equals("produces")));
         }
+
+        @Test
+        void detectsKotlinObjectDeclaration() {
+            String kotlinSample = """
+                    object OrderConsumer {
+                        @KafkaListener(topics = "orders")
+                        fun consume(msg: String) {}
+                    }
+                    """;
+            var r = new KafkaDetector().detect(ctx("kotlin", kotlinSample));
+            assertFalse(r.nodes().isEmpty());
+            assertTrue(r.edges().stream().anyMatch(e -> e.getKind().getValue().equals("consumes")));
+        }
+
+        @Test
+        void detectsKotlinDataClassModifiers() {
+            String kotlinSample = """
+                    internal open class PaymentConsumer {
+                        @KafkaListener(topics = "payments")
+                        fun consume(msg: String) {}
+                    }
+                    """;
+            var r = new KafkaDetector().detect(ctx("kotlin", kotlinSample));
+            assertFalse(r.nodes().isEmpty());
+            assertTrue(r.edges().stream().anyMatch(e -> e.getKind().getValue().equals("consumes")));
+        }
     }
 
     // ==================== KafkaProtocolDetector ====================
