@@ -380,10 +380,14 @@ export default function CodeGraphView() {
   const renderG6 = useCallback(async (data: G6Data, layout: LayoutMode) => {
     if (!containerRef.current) return;
 
+    const dataReceivedAt = performance.now();
+
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const { Graph } = await import('@antv/g6') as any;
 
     const container = containerRef.current;
+    // Reset render state for this render pass
+    container.removeAttribute('data-render-state');
     const { offsetWidth: width, offsetHeight: height } = container;
 
     // Destroy previous instance
@@ -567,6 +571,13 @@ export default function CodeGraphView() {
         nodeLabel: nodeData?.data.label ?? nodeId,
         nodeKind: nodeData?.data.kind ?? 'unknown',
       });
+    });
+
+    // Expose render timing + state for E2E tests
+    graph.on('afterrender', () => {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      (window as any).__graphRenderMs = performance.now() - dataReceivedAt;
+      container.setAttribute('data-render-state', 'ready');
     });
 
     await graph.render();
@@ -843,7 +854,7 @@ export default function CodeGraphView() {
         </div>
 
         {/* Breadcrumb */}
-        <nav className="flex items-center gap-1 text-sm" aria-label="Graph drill-down breadcrumb">
+        <nav className="flex items-center gap-1 text-sm" aria-label="Graph drill-down breadcrumb" data-testid="breadcrumb">
           {breadcrumb.map((crumb, i) => (
             <span key={i} className="flex items-center gap-1">
               {i > 0 && <ChevronRight className="w-3.5 h-3.5 text-muted-foreground/50" />}
@@ -878,13 +889,14 @@ export default function CodeGraphView() {
           className="absolute bottom-3 right-3 z-30 rounded-lg border border-border bg-card/80 backdrop-blur-sm overflow-hidden"
           style={{ width: 160, height: 100 }}
           aria-label="Graph minimap"
+          data-testid="graph-minimap"
         />
 
         {/* Legend */}
         <GraphLegend kinds={availableKinds.filter(k => !hiddenKinds.has(k))} />
 
         {/* Toolbar */}
-        <div className="absolute top-3 right-3 z-40 flex flex-col gap-1.5">
+        <div className="absolute top-3 right-3 z-40 flex flex-col gap-1.5" data-testid="graph-controls">
           {/* Layout selector */}
           <div className="flex gap-1 p-1 rounded-lg border border-border bg-card/90 backdrop-blur-sm">
             {(Object.keys(LAYOUT_LABELS) as LayoutMode[]).map(mode => (
