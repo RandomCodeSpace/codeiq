@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 
 /**
  * Runs all {@link LanguageExtractor} beans after {@link io.github.randomcodespace.iq.intelligence.lexical.LexicalEnricher}
@@ -67,8 +68,9 @@ public class LanguageEnricher {
             extractorByLanguage.put(extractor.getLanguage(), extractor);
         }
 
-        // Group nodes by file path (read each file only once)
-        Map<String, List<CodeNode>> nodesByFile = new HashMap<>();
+        // Group nodes by file path (read each file only once).
+        // TreeMap guarantees deterministic iteration order (alphabetical by path).
+        Map<String, List<CodeNode>> nodesByFile = new TreeMap<>();
         for (CodeNode node : nodes) {
             if (node.getFilePath() != null) {
                 nodesByFile.computeIfAbsent(node.getFilePath(), k -> new ArrayList<>()).add(node);

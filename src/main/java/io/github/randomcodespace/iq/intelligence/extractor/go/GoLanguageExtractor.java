@@ -87,12 +87,14 @@ public class GoLanguageExtractor implements LanguageExtractor {
         List<String> importPaths = collectImportPaths(ctx.content());
 
         for (String importPath : importPaths) {
-            // Match by last path segment (package name)
+            // Match by last path segment (package name) with ambiguity guard.
+            // Short names like "db", "log", "config" can match multiple nodes —
+            // skip the edge if more than one node shares the label.
             String pkgName = importPath.substring(importPath.lastIndexOf('/') + 1);
-            CodeNode target = registry.get(pkgName);
+            CodeNode target = lookupUnambiguous(pkgName, registry);
             if (target == null) {
-                // Try full path
-                target = registry.get(importPath);
+                // Try full path as direct registry key fallback
+                target = lookupUnambiguous(importPath, registry);
             }
             if (target != null && !target.getId().equals(node.getId())) {
                 String edgeId = "imports:%s:%s".formatted(node.getId(), target.getId());
@@ -154,5 +156,21 @@ public class GoLanguageExtractor implements LanguageExtractor {
             return Map.of("satisfies_interfaces", String.join(", ", satisfied));
         }
         return Map.of();
+    }
+
+    /**
+     * Look up a node by label, returning null if zero or more than one node matches.
+     * Prevents false-positive IMPORTS edges for short package names like {@code db},
+     * {@code log}, {@code config} that may match multiple nodes in the registry.
+     */
+    private CodeNode lookupUnambiguous(String label, Map<String, CodeNode> registry) {
+        CodeNode match = null;
+        for (CodeNode candidate : registry.values()) {
+            if (label.equals(candidate.getLabel())) {
+                if (match != null) return null; // ambiguous
+                match = candidate;
+            }
+        }
+        return match;
     }
 }

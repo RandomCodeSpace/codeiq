@@ -11,8 +11,10 @@ import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -70,19 +72,25 @@ public class PythonLanguageExtractor implements LanguageExtractor {
         if (ctx.content() == null || registry.isEmpty()) return List.of();
 
         List<CodeEdge> edges = new ArrayList<>();
+        Set<String> seen = new LinkedHashSet<>();
 
         Matcher from = FROM_IMPORT.matcher(ctx.content());
         while (from.find()) {
             for (String symbol : from.group(1).split(",")) {
                 String sym = symbol.trim();
                 if (sym.isEmpty()) continue;
+                // Strip alias: "Foo as bar" → "Foo"
+                int asIdx = sym.indexOf(" as ");
+                if (asIdx >= 0) sym = sym.substring(0, asIdx).trim();
                 CodeNode target = lookupUnambiguous(sym, registry);
                 if (target != null && !target.getId().equals(node.getId())) {
                     String edgeId = "imports:%s:%s".formatted(node.getId(), target.getId());
-                    CodeEdge edge = new CodeEdge(edgeId, EdgeKind.IMPORTS, node.getId(), target);
-                    edge.getProperties().put("confidence", "PARTIAL");
-                    edge.getProperties().put("extractorName", "python_language_extractor");
-                    edges.add(edge);
+                    if (seen.add(edgeId)) {
+                        CodeEdge edge = new CodeEdge(edgeId, EdgeKind.IMPORTS, node.getId(), target);
+                        edge.getProperties().put("confidence", "PARTIAL");
+                        edge.getProperties().put("extractorName", "python_language_extractor");
+                        edges.add(edge);
+                    }
                 }
             }
         }
@@ -93,10 +101,12 @@ public class PythonLanguageExtractor implements LanguageExtractor {
             CodeNode target = lookupUnambiguous(sym, registry);
             if (target != null && !target.getId().equals(node.getId())) {
                 String edgeId = "imports:%s:%s".formatted(node.getId(), target.getId());
-                CodeEdge edge = new CodeEdge(edgeId, EdgeKind.IMPORTS, node.getId(), target);
-                edge.getProperties().put("confidence", "PARTIAL");
-                edge.getProperties().put("extractorName", "python_language_extractor");
-                edges.add(edge);
+                if (seen.add(edgeId)) {
+                    CodeEdge edge = new CodeEdge(edgeId, EdgeKind.IMPORTS, node.getId(), target);
+                    edge.getProperties().put("confidence", "PARTIAL");
+                    edge.getProperties().put("extractorName", "python_language_extractor");
+                    edges.add(edge);
+                }
             }
         }
 

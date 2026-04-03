@@ -147,6 +147,26 @@ class GoLanguageExtractorTest {
     }
 
     @Test
+    void extract_ambiguousPackageName_noFalsePositiveEdge() {
+        CodeNode source = node("go:main.go:fn:main", NodeKind.METHOD, "main");
+        // Two unrelated nodes share the short label "db" — common in Go codebases.
+        CodeNode db1 = node("go:db/conn.go:module:db", NodeKind.MODULE, "db");
+        CodeNode db2 = node("go:dbutil/query.go:module:db", NodeKind.MODULE, "db");
+
+        Map<String, CodeNode> registry = new LinkedHashMap<>();
+        registry.put(db1.getId(), db1);
+        registry.put(db2.getId(), db2);
+
+        String content = "import \"myapp/db\"\n";
+
+        DetectorContext ctx = new DetectorContext("main.go", "go", content, registry, null);
+        LanguageExtractionResult result = extractor.extract(ctx, source);
+
+        // Ambiguous: two nodes labelled "db" → lookupUnambiguous returns null → no edge.
+        assertThat(result.symbolReferences()).isEmpty();
+    }
+
+    @Test
     void extract_satisfiesInterfaces_hintIsDeterministicallySorted() {
         CodeNode struct = node("go:s.go:struct:Worker", NodeKind.CLASS, "Worker");
         CodeNode ifaceReader = node("go:r.go:interface:Reader", NodeKind.INTERFACE, "Reader");

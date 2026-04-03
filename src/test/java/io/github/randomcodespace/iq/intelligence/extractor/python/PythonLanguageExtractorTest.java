@@ -123,6 +123,38 @@ class PythonLanguageExtractorTest {
     }
 
     @Test
+    void extract_fromImportAndPlainImportSameSymbol_noDuplicateEdges() {
+        CodeNode source = node("py:app.py:fn:run", NodeKind.METHOD, "run");
+        CodeNode target = node("py:utils.py:class:Foo", NodeKind.CLASS, "Foo");
+        Map<String, CodeNode> registry = Map.of(target.getLabel(), target);
+
+        // Both FROM_IMPORT and PLAIN_IMPORT match Foo → same edge id must deduplicate.
+        String content = "from utils import Foo\nimport Foo\n";
+
+        DetectorContext ctx = new DetectorContext("app.py", "python", content, registry, null);
+        LanguageExtractionResult result = extractor.extract(ctx, source);
+
+        assertThat(result.symbolReferences()).hasSize(1);
+        assertThat(result.symbolReferences().get(0).getTarget().getId()).isEqualTo(target.getId());
+    }
+
+    @Test
+    void extract_aliasedFromImport_edgeCreatedUsingOriginalName() {
+        CodeNode source = node("py:app.py:fn:run", NodeKind.METHOD, "run");
+        CodeNode target = node("py:models.py:class:User", NodeKind.CLASS, "User");
+        Map<String, CodeNode> registry = Map.of(target.getLabel(), target);
+
+        // Alias "as u" must be stripped so lookup is on "User", not "User as u".
+        String content = "from models import User as u\n";
+
+        DetectorContext ctx = new DetectorContext("app.py", "python", content, registry, null);
+        LanguageExtractionResult result = extractor.extract(ctx, source);
+
+        assertThat(result.symbolReferences()).hasSize(1);
+        assertThat(result.symbolReferences().get(0).getTarget().getId()).isEqualTo(target.getId());
+    }
+
+    @Test
     void extract_ambiguousShortSymbolName_noFalsePositiveEdge() {
         CodeNode source = node("py:app.py:fn:run", NodeKind.METHOD, "run");
         // Two unrelated nodes share the short label "get" — common in Django/dict APIs.
