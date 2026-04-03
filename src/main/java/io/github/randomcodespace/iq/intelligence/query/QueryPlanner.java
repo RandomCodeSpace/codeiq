@@ -1,7 +1,6 @@
 package io.github.randomcodespace.iq.intelligence.query;
 
 import io.github.randomcodespace.iq.intelligence.CapabilityLevel;
-import org.springframework.stereotype.Service;
 
 import java.util.EnumSet;
 import java.util.List;
@@ -24,7 +23,6 @@ import java.util.Set;
  * <p>{@link QueryType#SEARCH_TEXT} always routes to {@link QueryRoute#LEXICAL_FIRST}
  * regardless of language, because text search operates on raw source content, not the graph.
  */
-@Service
 public class QueryPlanner {
 
     // ------------------------------------------------------------------

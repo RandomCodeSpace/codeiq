@@ -67,6 +67,9 @@ public final class CapabilityMatrix {
     /** Rust: ANTLR grammar — partial structural coverage. */
     private static final Map<CapabilityDimension, CapabilityLevel> RUST_CAPS;
 
+    /** C++: ANTLR grammar — partial structural coverage, no ORM convention. */
+    private static final Map<CapabilityDimension, CapabilityLevel> CPP_CAPS;
+
     /** Fallback for regex-only languages. */
     private static final Map<CapabilityDimension, CapabilityLevel> LEXICAL_ONLY_CAPS;
 
@@ -158,6 +161,18 @@ public final class CapabilityMatrix {
                 CapabilityDimension.ASYNC_PATTERNS,       CapabilityLevel.PARTIAL
         );
 
+        CPP_CAPS = immutableDimMap(
+                CapabilityDimension.SYMBOL_DEFINITIONS,  CapabilityLevel.PARTIAL,
+                CapabilityDimension.SYMBOL_REFERENCES,   CapabilityLevel.PARTIAL,
+                CapabilityDimension.IMPORT_RESOLUTION,   CapabilityLevel.PARTIAL,
+                CapabilityDimension.TYPE_INFO,            CapabilityLevel.PARTIAL,
+                CapabilityDimension.CLASS_HIERARCHY,      CapabilityLevel.PARTIAL,
+                CapabilityDimension.FRAMEWORK_SEMANTICS,  CapabilityLevel.PARTIAL,
+                CapabilityDimension.ORM_ENTITY_MAPPING,   CapabilityLevel.UNSUPPORTED,
+                CapabilityDimension.AUTH_SECURITY,        CapabilityLevel.LEXICAL_ONLY,
+                CapabilityDimension.ASYNC_PATTERNS,       CapabilityLevel.PARTIAL
+        );
+
         LEXICAL_ONLY_CAPS = immutableDimMap(
                 CapabilityDimension.SYMBOL_DEFINITIONS,  CapabilityLevel.LEXICAL_ONLY,
                 CapabilityDimension.SYMBOL_REFERENCES,   CapabilityLevel.LEXICAL_ONLY,
@@ -219,7 +234,7 @@ public final class CapabilityMatrix {
     public static Map<String, Map<String, String>> asSerializableMap() {
         Map<String, Map<String, String>> result = new TreeMap<>();
         for (String lang : new String[]{
-                "java", "typescript", "javascript", "python", "go", "csharp", "rust",
+                "java", "typescript", "javascript", "python", "go", "csharp", "rust", "cpp",
                 "kotlin", "scala", "ruby", "php", "shell"}) {
             Map<CapabilityDimension, CapabilityLevel> caps = tableFor(lang);
             Map<String, String> row = new LinkedHashMap<>();
@@ -249,9 +264,9 @@ public final class CapabilityMatrix {
             case "go"         -> GO_CAPS;
             case "csharp", "c#" -> CSHARP_CAPS;
             case "rust"       -> RUST_CAPS;
+            case "cpp", "c++" -> CPP_CAPS;
             default -> {
                 if (LEXICAL_ONLY_LANGUAGES.contains(lang)) yield LEXICAL_ONLY_CAPS;
-                if (ANTLR_LANGUAGES.contains(lang))        yield CSHARP_CAPS; // cpp etc → PARTIAL
                 yield UNSUPPORTED_CAPS;
             }
         };
