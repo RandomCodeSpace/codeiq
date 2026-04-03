@@ -206,19 +206,6 @@ function Sidebar({ collapsed, mobileOpen, onCollapse, onMobileClose }: SidebarPr
           </>
         )}
 
-        {/* Theme toggle at bottom */}
-        <Separator />
-        <div className={cn(
-          'p-2 flex',
-          collapsed ? 'justify-center' : 'justify-start',
-        )}>
-          <ThemeToggle />
-          {!collapsed && (
-            <span className="ml-2 text-xs text-muted-foreground self-center capitalize">
-              theme
-            </span>
-          )}
-        </div>
       </aside>
     </>
   );

@@ -61,6 +61,10 @@ export default function SearchBar() {
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-surface-500" />
         <input
           type="text"
+          role="combobox"
+          aria-expanded={open && results.length > 0}
+          aria-autocomplete="list"
+          aria-controls="search-listbox"
           value={query}
           onChange={e => onChange(e.target.value)}
           onFocus={() => results.length > 0 && setOpen(true)}
@@ -82,10 +86,16 @@ export default function SearchBar() {
       </div>
 
       {open && results.length > 0 && (
-        <div className="absolute top-full mt-1 w-full z-50 glass-card max-h-80 overflow-y-auto">
-          {results.map((r, i) => (
+        <div
+          id="search-listbox"
+          role="listbox"
+          className="absolute top-full mt-1 w-full z-50 glass-card max-h-80 overflow-y-auto"
+        >
+          {results.map((r) => (
             <button
-              key={r.id || i}
+              key={r.id}
+              role="option"
+              aria-selected={false}
               onClick={() => selectResult(r)}
               className="w-full flex items-center gap-3 px-4 py-2.5 text-left
                          hover:bg-surface-800/50 transition-colors text-sm border-b border-surface-800/30 last:border-0"

@@ -432,12 +432,13 @@ export default function CodeGraphView() {
           getContent: (_: unknown, items: G6NodeDatum[]) => {
             const item = items?.[0];
             if (!item) return '';
+            const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
             const { label, kind, filePath, nodeCount: nc } = item.data;
             return `
               <div style="font-size:12px;padding:6px 8px;line-height:1.5;max-width:220px">
-                <div style="font-weight:600;color:#e2e8f0;margin-bottom:2px">${label}</div>
-                <div style="color:#94a3b8">Kind: <span style="color:${getKindColor(kind)}">${kind}</span></div>
-                ${filePath ? `<div style="color:#94a3b8;font-size:10px;word-break:break-all">${filePath}</div>` : ''}
+                <div style="font-weight:600;color:#e2e8f0;margin-bottom:2px">${esc(label ?? '')}</div>
+                <div style="color:#94a3b8">Kind: <span style="color:${getKindColor(kind)}">${esc(kind ?? '')}</span></div>
+                ${filePath ? `<div style="color:#94a3b8;font-size:10px;word-break:break-all">${esc(filePath)}</div>` : ''}
                 ${nc !== undefined ? `<div style="color:#94a3b8">Nodes: ${nc}</div>` : ''}
                 <div style="color:#64748b;font-size:10px;margin-top:2px">Double-click to drill down · Right-click for menu</div>
               </div>
@@ -485,6 +486,7 @@ export default function CodeGraphView() {
         },
       },
     });
+    graphRef.current = graph;
 
     // ── Node click: highlight dependencies + open right panel ─────────────
     graph.on('node:click', (evt: unknown) => {
@@ -567,7 +569,6 @@ export default function CodeGraphView() {
       });
     });
 
-    graphRef.current = graph;
     await graph.render();
   }, [hiddenKinds]); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -739,6 +740,12 @@ export default function CodeGraphView() {
     if (!isInitializedRef.current || !graphRef.current) return;
     if (level === 0) loadLevel0();
     else if (level === 1 && currentServiceRef.current) loadLevel1(currentServiceRef.current);
+    return () => {
+      if (graphRef.current) {
+        graphRef.current.destroy();
+        graphRef.current = null;
+      }
+    };
   }, [layoutMode]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // ── Controls ─────────────────────────────────────────────────────────────────
@@ -789,7 +796,7 @@ export default function CodeGraphView() {
         setNodeCount(nodes.length);
         await renderG6(data, 'dagre');
       }
-    } catch { /* ignore */ }
+    } catch (err) { setError(err instanceof Error ? err.message : 'Failed to load callers'); }
   };
 
   const handleFindDeps = async (id: string) => {
@@ -801,7 +808,7 @@ export default function CodeGraphView() {
         setNodeCount(nodes.length);
         await renderG6(data, 'dagre');
       }
-    } catch { /* ignore */ }
+    } catch (err) { setError(err instanceof Error ? err.message : 'Failed to load dependencies'); }
   };
 
   // ── Layout switcher labels ───────────────────────────────────────────────────

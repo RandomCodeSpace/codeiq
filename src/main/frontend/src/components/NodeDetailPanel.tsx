@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState } from 'react';
 import Editor from '@monaco-editor/react';
 import {
   FileCode2,
@@ -147,39 +147,43 @@ export default function NodeDetailPanel({ nodeId, onNavigateToNode }: NodeDetail
   const [error, setError] = useState<string | null>(null);
   const { theme } = useTheme();
 
-  const load = useCallback(async (id: string) => {
-    setLoading(true);
-    setError(null);
-    setNode(null);
-    setNeighbors(null);
-    setSourceCode(null);
-
-    try {
-      const [detail, nbrsRaw] = await Promise.all([
-        api.getNodeDetail(id),
-        api.getNodeNeighbors(id, 'both'),
-      ]);
-      const nbrs = nbrsRaw as unknown as NeighborsResponse;
-      setNode(detail);
-      setNeighbors(nbrs);
-
-      if (detail.file_path) {
-        const start = detail.line_start ? Math.max(1, detail.line_start - 2) : 1;
-        const end = detail.line_end ? detail.line_end + 4 : start + 40;
-        setSourceStartLine(start);
-        const code = await api.readFile(detail.file_path, start, end);
-        setSourceCode(code);
-      }
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load node details');
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
   useEffect(() => {
-    load(nodeId);
-  }, [nodeId, load]);
+    let isCancelled = false;
+
+    const load = async () => {
+      setLoading(true);
+      setError(null);
+      setNode(null);
+      setNeighbors(null);
+      setSourceCode(null);
+
+      try {
+        const [detail, nbrsRaw] = await Promise.all([
+          api.getNodeDetail(nodeId),
+          api.getNodeNeighbors(nodeId, 'both'),
+        ]);
+        if (isCancelled) return;
+        const nbrs = nbrsRaw as unknown as NeighborsResponse;
+        setNode(detail);
+        setNeighbors(nbrs);
+
+        if (detail.file_path) {
+          const start = detail.line_start ? Math.max(1, detail.line_start - 2) : 1;
+          const end = detail.line_end ? detail.line_end + 4 : start + 40;
+          setSourceStartLine(start);
+          const code = await api.readFile(detail.file_path, start, end);
+          if (!isCancelled) setSourceCode(code);
+        }
+      } catch (err) {
+        if (!isCancelled) setError(err instanceof Error ? err.message : 'Failed to load node details');
+      } finally {
+        if (!isCancelled) setLoading(false);
+      }
+    };
+
+    load();
+    return () => { isCancelled = true; };
+  }, [nodeId]);
 
   if (loading) {
     return (
