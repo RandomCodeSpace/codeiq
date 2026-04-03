@@ -1,4 +1,7 @@
+/// <reference types="node" />
 import { type Page, expect } from '@playwright/test';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 
 // ── Route helpers ────────────────────────────────────────────────────────────
 
@@ -12,10 +15,49 @@ export const ROUTES = {
 
 export type AppRoute = (typeof ROUTES)[keyof typeof ROUTES];
 
+/**
+ * Intercept the HTML shell served by Spring Boot and replace it with the
+ * current on-disk version. The running JAR may contain a stale index.html
+ * (built before the last frontend rebuild), causing it to load an old
+ * JS bundle that crashes before React mounts.
+ *
+ * Bug: STALE_BUNDLE — tracked in RAN-80 (filed separately).
+ */
+export async function patchIndexHtml(page: Page) {
+  // process.cwd() is the frontend dir when running `npx playwright test`
+  const diskHtml = readFileSync(
+    resolve(process.cwd(), '../resources/static/index.html'),
+    'utf-8',
+  );
+  // Intercept the SPA shell route (all navigation routes return the same HTML)
+  await page.route('**/*', async (route) => {
+    const req = route.request();
+    const url = req.url();
+    // Only intercept HTML document requests (the SPA shell), not API/asset calls
+    if (
+      req.resourceType() === 'document' &&
+      !url.includes('/api/') &&
+      !url.includes('/assets/') &&
+      !url.includes('/swagger') &&
+      !url.includes('/v3/')
+    ) {
+      await route.fulfill({
+        status: 200,
+        contentType: 'text/html',
+        body: diskHtml,
+      });
+    } else {
+      await route.continue();
+    }
+  });
+}
+
 /** Navigate to a route and wait for the main content area to be visible. */
 export async function gotoRoute(page: Page, route: AppRoute) {
+  await patchIndexHtml(page);
   await page.goto(route);
-  await page.waitForSelector('main', { state: 'visible' });
+  // Wait for React to hydrate (main rendered by Layout component)
+  await page.waitForSelector('main', { state: 'visible', timeout: 30000 });
 }
 
 // ── Theme helpers ────────────────────────────────────────────────────────────
