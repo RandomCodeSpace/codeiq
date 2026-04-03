@@ -32,10 +32,11 @@ public record FileInventory(List<FileEntry> entries) {
                         TreeMap::new, Collectors.counting()));
     }
 
-    /** Count of files per language. */
+    /** Count of files per language, sorted alphabetically for determinism. */
     public Map<String, Long> countsByLanguage() {
         return entries.stream()
-                .collect(Collectors.groupingBy(FileEntry::language, Collectors.counting()));
+                .collect(Collectors.groupingBy(FileEntry::language,
+                        TreeMap::new, Collectors.counting()));
     }
 
     /** Sum of all file sizes in bytes. */
@@ -51,10 +52,15 @@ public record FileInventory(List<FileEntry> entries) {
         summary.put("total_files", totalFiles());
         summary.put("total_bytes", totalBytes());
         var byCls = countsByClassification().entrySet().stream()
-                .collect(Collectors.toMap(e -> e.getKey().name().toLowerCase(), Map.Entry::getValue));
+                .collect(Collectors.toMap(
+                        e -> e.getKey().name().toLowerCase(),
+                        Map.Entry::getValue,
+                        (a, b) -> a,
+                        java.util.LinkedHashMap::new));  // preserve TreeMap insertion order
         summary.put("by_classification", byCls);
         var byLang = countsByLanguage().entrySet().stream()
-                .sorted(Map.Entry.<String, Long>comparingByValue().reversed())
+                .sorted(Map.Entry.<String, Long>comparingByValue().reversed()
+                        .thenComparing(Map.Entry.comparingByKey()))
                 .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue,
                         (a, b) -> a, java.util.LinkedHashMap::new));
         summary.put("by_language", byLang);
