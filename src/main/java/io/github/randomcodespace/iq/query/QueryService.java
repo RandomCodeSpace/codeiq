@@ -362,7 +362,7 @@ public class QueryService {
             }
         }
 
-        List<Map<String, Object>> tree = buildTreeOutput(root, maxDepth, 1);
+        List<Map<String, Object>> tree = buildTreeOutput(root, maxDepth, 1, "");
         Map<String, Object> result = new LinkedHashMap<>();
         result.put("tree", tree);
         result.put("total_files", (long) rows.size());
@@ -370,7 +370,7 @@ public class QueryService {
         return result;
     }
 
-    private List<Map<String, Object>> buildTreeOutput(TreeNode node, Integer maxDepth, int currentDepth) {
+    private List<Map<String, Object>> buildTreeOutput(TreeNode node, Integer maxDepth, int currentDepth, String parentPath) {
         List<Map<String, Object>> output = new ArrayList<>();
 
         List<TreeNode> dirs = node.children.values().stream()
@@ -383,20 +383,24 @@ public class QueryService {
                 .toList();
 
         for (TreeNode child : dirs) {
+            String childPath = parentPath.isEmpty() ? child.name : parentPath + "/" + child.name;
             Map<String, Object> m = new LinkedHashMap<>();
             m.put("name", child.name);
+            m.put("path", childPath);
             m.put("type", "directory");
             m.put("nodeCount", aggregateCount(child));
             if (maxDepth == null || currentDepth < maxDepth) {
-                m.put("children", buildTreeOutput(child, maxDepth, currentDepth + 1));
+                m.put("children", buildTreeOutput(child, maxDepth, currentDepth + 1, childPath));
             } else {
                 m.put("children", List.of());
             }
             output.add(m);
         }
         for (TreeNode child : files) {
+            String childPath = parentPath.isEmpty() ? child.name : parentPath + "/" + child.name;
             Map<String, Object> m = new LinkedHashMap<>();
             m.put("name", child.name);
+            m.put("path", childPath);
             m.put("type", "file");
             m.put("nodeCount", child.nodeCount);
             m.put("children", List.of());

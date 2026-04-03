@@ -573,6 +573,41 @@ class QueryServiceTest {
 
     @Test
     @SuppressWarnings("unchecked")
+    void getFileTreeShouldIncludePathFieldAtEveryLevel() {
+        when(graphStore.getFilePathsWithCounts(anyInt())).thenReturn(new GraphStore.FilePathResult(List.of(
+                Map.of("filePath", "src/main/java/Foo.java", "nodeCount", 2L),
+                Map.of("filePath", "pom.xml", "nodeCount", 1L)), false));
+
+        Map<String, Object> result = service.getFileTree(null);
+
+        List<Map<String, Object>> tree = (List<Map<String, Object>>) result.get("tree");
+
+        // Root-level directory: path = "src"
+        Map<String, Object> src = tree.get(0);
+        assertEquals("src", src.get("path"));
+
+        // Nested directory: path = "src/main"
+        List<Map<String, Object>> srcChildren = (List<Map<String, Object>>) src.get("children");
+        Map<String, Object> main = srcChildren.get(0);
+        assertEquals("src/main", main.get("path"));
+
+        // Deeper directory: path = "src/main/java"
+        List<Map<String, Object>> mainChildren = (List<Map<String, Object>>) main.get("children");
+        Map<String, Object> java = mainChildren.get(0);
+        assertEquals("src/main/java", java.get("path"));
+
+        // File inside directory: path = "src/main/java/Foo.java"
+        List<Map<String, Object>> javaChildren = (List<Map<String, Object>>) java.get("children");
+        Map<String, Object> foo = javaChildren.get(0);
+        assertEquals("src/main/java/Foo.java", foo.get("path"));
+
+        // Root-level file: path = "pom.xml"
+        Map<String, Object> pom = tree.get(1);
+        assertEquals("pom.xml", pom.get("path"));
+    }
+
+    @Test
+    @SuppressWarnings("unchecked")
     void getFileTreeShouldSortDirectoriesBeforeFiles() {
         when(graphStore.getFilePathsWithCounts(anyInt())).thenReturn(new GraphStore.FilePathResult(List.of(
                 Map.of("filePath", "README.md", "nodeCount", 1L),
