@@ -75,8 +75,7 @@ public class JavaLanguageExtractor implements LanguageExtractor {
             extractTypeHierarchyHints(cu, node, typeHints);
         }
 
-        CapabilityLevel confidence = callEdges.isEmpty() ? CapabilityLevel.PARTIAL : CapabilityLevel.EXACT;
-        return new LanguageExtractionResult(callEdges, List.of(), typeHints, confidence);
+        return new LanguageExtractionResult(callEdges, List.of(), typeHints, CapabilityLevel.PARTIAL);
     }
 
     private void extractCallEdges(CompilationUnit cu, CodeNode methodNode,
@@ -96,7 +95,10 @@ public class JavaLanguageExtractor implements LanguageExtractor {
                         String edgeId = "calls:%s:%s:%d".formatted(
                                 methodNode.getId(), target.getId(),
                                 mce.getBegin().map(p -> p.line).orElse(0));
-                        callEdges.add(new CodeEdge(edgeId, EdgeKind.CALLS, methodNode.getId(), target));
+                        CodeEdge edge = new CodeEdge(edgeId, EdgeKind.CALLS, methodNode.getId(), target);
+                        edge.getProperties().put("confidence", "PARTIAL");
+                        edge.getProperties().put("extractorName", "java_language_extractor");
+                        callEdges.add(edge);
                     }
                 }));
     }
@@ -134,14 +136,18 @@ public class JavaLanguageExtractor implements LanguageExtractor {
         }
     }
 
-    /** Look up a node by label in the registry (label is the simple method/class name). */
+    /**
+     * Look up a node by label in the registry (label is the simple method name).
+     * Returns null if zero or more than one distinct node matches to avoid false-positive
+     * CALLS edges for common method names like {@code save}, {@code get}, {@code execute}.
+     */
     private CodeNode lookupByLabel(String label, Map<String, CodeNode> registry) {
-        // Try FQN suffix match first (exact lookup by label)
+        Map<String, CodeNode> matches = new java.util.LinkedHashMap<>();
         for (CodeNode candidate : registry.values()) {
             if (label.equals(candidate.getLabel()) && candidate.getKind() == NodeKind.METHOD) {
-                return candidate;
+                matches.put(candidate.getId(), candidate);
             }
         }
-        return null;
+        return matches.size() == 1 ? matches.values().iterator().next() : null;
     }
 }

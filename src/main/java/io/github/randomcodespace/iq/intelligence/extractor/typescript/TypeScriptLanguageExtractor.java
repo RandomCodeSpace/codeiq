@@ -86,7 +86,10 @@ public class TypeScriptLanguageExtractor implements LanguageExtractor {
                 CodeNode target = registry.get(sym);
                 if (target != null && !target.getId().equals(node.getId())) {
                     String edgeId = "imports:%s:%s".formatted(node.getId(), target.getId());
-                    edges.add(new CodeEdge(edgeId, EdgeKind.IMPORTS, node.getId(), target));
+                    CodeEdge edge = new CodeEdge(edgeId, EdgeKind.IMPORTS, node.getId(), target);
+                    edge.getProperties().put("confidence", "PARTIAL");
+                    edge.getProperties().put("extractorName", "typescript_language_extractor");
+                    edges.add(edge);
                 }
             }
         }
@@ -97,7 +100,10 @@ public class TypeScriptLanguageExtractor implements LanguageExtractor {
             CodeNode target = registry.get(sym);
             if (target != null && !target.getId().equals(node.getId())) {
                 String edgeId = "imports:%s:%s".formatted(node.getId(), target.getId());
-                edges.add(new CodeEdge(edgeId, EdgeKind.IMPORTS, node.getId(), target));
+                CodeEdge edge = new CodeEdge(edgeId, EdgeKind.IMPORTS, node.getId(), target);
+                edge.getProperties().put("confidence", "PARTIAL");
+                edge.getProperties().put("extractorName", "typescript_language_extractor");
+                edges.add(edge);
             }
         }
 

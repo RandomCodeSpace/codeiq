@@ -108,7 +108,8 @@ class JavaLanguageExtractorTest {
     }
 
     @Test
-    void extract_confidenceIsExact_whenCallsFound() {
+    void extract_confidenceIsPartial_whenCallsFound() {
+        // Registry-lookup edges are cross-file by definition → always PARTIAL
         CodeNode caller = node("method:Foo:doWork", NodeKind.METHOD, "doWork");
         CodeNode callee = node("method:Bar:helper", NodeKind.METHOD, "helper");
         Map<String, CodeNode> registry = Map.of(callee.getId(), callee, callee.getLabel(), callee);
@@ -117,7 +118,36 @@ class JavaLanguageExtractorTest {
         DetectorContext ctx = new DetectorContext("Foo.java", "java", content, registry, null);
 
         LanguageExtractionResult result = extractor.extract(ctx, caller);
-        assertThat(result.confidence()).isEqualTo(CapabilityLevel.EXACT);
+        assertThat(result.confidence()).isEqualTo(CapabilityLevel.PARTIAL);
+    }
+
+    @Test
+    void extract_noFalsePositive_whenTwoClassesHaveSameMethodName() {
+        // Two unrelated classes both have process() — match is ambiguous → no CALLS edge
+        CodeNode caller = node("method:Alpha:process", NodeKind.METHOD, "process");
+        CodeNode calleeA = node("method:Alpha:process", NodeKind.METHOD, "process");
+        CodeNode calleeB = node("method:Beta:process", NodeKind.METHOD, "process");
+
+        Map<String, CodeNode> registry = new HashMap<>();
+        registry.put(calleeA.getId(), calleeA);
+        registry.put(calleeB.getId(), calleeB);
+
+        String content = """
+                public class Alpha {
+                    public void run() {
+                        process();
+                    }
+                    public void process() {}
+                }
+                """;
+
+        CodeNode runMethod = node("method:Alpha:run", NodeKind.METHOD, "run");
+        DetectorContext ctx = new DetectorContext("Alpha.java", "java", content, registry, null);
+        LanguageExtractionResult result = extractor.extract(ctx, runMethod);
+
+        assertThat(result.callEdges())
+                .as("ambiguous method name must not produce false-positive CALLS edge")
+                .isEmpty();
     }
 
     @Test
