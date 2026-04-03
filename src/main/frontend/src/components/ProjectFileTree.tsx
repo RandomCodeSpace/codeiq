@@ -23,7 +23,7 @@ import {
 import { cn } from '@/lib/utils';
 import { api } from '@/lib/api';
 import { useApi } from '@/hooks/useApi';
-import type { FileTreeNode } from '@/types/api';
+import type { FileTreeNode, FileTreeResponse } from '@/types/api';
 import { useFileSelection } from '@/contexts/FileSelectionContext';
 import { useNavigate } from 'react-router-dom';
 
@@ -279,8 +279,18 @@ function DensityBar({ value, max }: { value: number; max: number }) {
 /* ------------------------------------------------------------------ */
 
 export default function ProjectFileTree() {
-  const { data: treeResponse, loading, error } = useApi(() => api.getFileTree(), []);
-  const root = treeResponse?.tree?.[0] ?? null;
+  const { data: treeResponse, loading, error } = useApi<FileTreeResponse>(() => api.getFileTree(), []);
+
+  const root = useMemo<FileTreeNode | null>(() => {
+    if (!treeResponse) return null;
+    return {
+      name: 'Project',
+      path: '/',
+      type: 'directory',
+      nodeCount: treeResponse.total_files,
+      children: treeResponse.tree,
+    };
+  }, [treeResponse]);
   const { selectedPath, setSelection } = useFileSelection();
   const navigate = useNavigate();
 
@@ -300,8 +310,6 @@ export default function ProjectFileTree() {
     () => (root ? filterTree(root, search) : null),
     [root, search],
   );
-
-  const maxCount = root?.nodeCount ?? 1;
 
   const handleToggle = useCallback((path: string) => {
     setExpanded(prev => {
@@ -374,10 +382,15 @@ export default function ProjectFileTree() {
             Project Files
           </p>
           <span className="text-[10px] text-muted-foreground/60 font-mono">
-            {root.nodeCount.toLocaleString()} nodes
+            {treeResponse!.total_files.toLocaleString()} files
           </span>
         </div>
-        <DensityBar value={root.nodeCount} max={maxCount} />
+        <DensityBar value={treeResponse!.total_files} max={treeResponse!.total_files} />
+        {treeResponse!.truncated && (
+          <p className="text-[9px] text-amber-500/80 mt-0.5">
+            Tree truncated — showing partial results
+          </p>
+        )}
       </div>
 
       {/* Search filter */}
