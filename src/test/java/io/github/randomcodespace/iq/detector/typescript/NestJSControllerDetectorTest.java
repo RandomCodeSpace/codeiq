@@ -3,6 +3,7 @@ package io.github.randomcodespace.iq.detector.typescript;
 import io.github.randomcodespace.iq.detector.DetectorContext;
 import io.github.randomcodespace.iq.detector.DetectorResult;
 import io.github.randomcodespace.iq.detector.DetectorTestUtils;
+import io.github.randomcodespace.iq.model.EdgeKind;
 import io.github.randomcodespace.iq.model.NodeKind;
 import org.junit.jupiter.api.Test;
 
@@ -15,6 +16,7 @@ class NestJSControllerDetectorTest {
     @Test
     void detectsNestJSController() {
         String code = """
+                import { Controller, Get, Post } from '@nestjs/common';
                 @Controller('users')
                 export class UsersController {
                     @Get()
@@ -35,8 +37,42 @@ class NestJSControllerDetectorTest {
         // Endpoints
         assertTrue(result.nodes().stream().anyMatch(n ->
                 n.getKind() == NodeKind.ENDPOINT && "GET /users".equals(n.getLabel())));
-        // EXPOSES edges
+        // EXPOSES edges with valid targets
         assertEquals(3, result.edges().size());
+        assertTrue(result.edges().stream().allMatch(e ->
+                e.getKind() == EdgeKind.EXPOSES && e.getTarget() != null));
+    }
+
+    @Test
+    void noMatchWithoutNestJSImport() {
+        // Generic TypeScript with @Controller-like patterns but no @nestjs import
+        String code = """
+                @Controller('users')
+                export class UsersController {
+                    @Get()
+                    findAll() {}
+                }
+                """;
+        DetectorContext ctx = DetectorTestUtils.contextFor("src/users.controller.ts", "typescript", code);
+        DetectorResult result = detector.detect(ctx);
+        assertTrue(result.nodes().isEmpty());
+        assertTrue(result.edges().isEmpty());
+    }
+
+    @Test
+    void noMatchOnAngularComponent() {
+        // Angular also uses @Component decorator, should not match NestJS
+        String code = """
+                import { Component } from '@angular/core';
+                @Component({ selector: 'app-root', templateUrl: './app.component.html' })
+                export class AppComponent {
+                    @Get('/users')
+                    getUsers() {}
+                }
+                """;
+        DetectorContext ctx = DetectorTestUtils.contextFor("src/app.component.ts", "typescript", code);
+        DetectorResult result = detector.detect(ctx);
+        assertTrue(result.nodes().isEmpty());
     }
 
     @Test
@@ -49,8 +85,8 @@ class NestJSControllerDetectorTest {
 
     @Test
     void deterministic() {
-        String code = "@Controller('test')\nexport class TestController {\n    @Get()\n    find() {}\n}";
-        DetectorContext ctx = DetectorTestUtils.contextFor("typescript", code);
+        String code = "import { Controller, Get } from '@nestjs/common';\n@Controller('test')\nexport class TestController {\n    @Get()\n    find() {}\n}";
+        DetectorContext ctx = DetectorTestUtils.contextFor("src/test.controller.ts", "typescript", code);
         DetectorTestUtils.assertDeterministic(detector, ctx);
     }
 }

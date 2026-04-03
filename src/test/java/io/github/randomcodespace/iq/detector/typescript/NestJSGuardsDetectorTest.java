@@ -15,6 +15,8 @@ class NestJSGuardsDetectorTest {
     @Test
     void detectsGuardsAndRoles() {
         String code = """
+                import { Injectable, CanActivate } from '@nestjs/common';
+                import { AuthGuard } from '@nestjs/passport';
                 @UseGuards(JwtAuthGuard, RolesGuard)
                 @Roles('admin', 'user')
                 canActivate(context) {
@@ -35,6 +37,21 @@ class NestJSGuardsDetectorTest {
     }
 
     @Test
+    void noMatchWithoutNestJSImport() {
+        // Generic TypeScript with canActivate() but no @nestjs import
+        String code = """
+                class RouteGuard {
+                    canActivate(context) {
+                        return this.authService.isAuthenticated();
+                    }
+                }
+                """;
+        DetectorContext ctx = DetectorTestUtils.contextFor("src/route.guard.ts", "typescript", code);
+        DetectorResult result = detector.detect(ctx);
+        assertTrue(result.nodes().isEmpty());
+    }
+
+    @Test
     void noMatchOnNonGuardCode() {
         String code = "class SomeService {}";
         DetectorContext ctx = DetectorTestUtils.contextFor("typescript", code);
@@ -44,8 +61,8 @@ class NestJSGuardsDetectorTest {
 
     @Test
     void deterministic() {
-        String code = "@UseGuards(AuthGuard)\n@Roles('admin')";
-        DetectorContext ctx = DetectorTestUtils.contextFor("typescript", code);
+        String code = "import { Injectable } from '@nestjs/common';\n@UseGuards(AuthGuard)\n@Roles('admin')";
+        DetectorContext ctx = DetectorTestUtils.contextFor("src/auth.guard.ts", "typescript", code);
         DetectorTestUtils.assertDeterministic(detector, ctx);
     }
 }
