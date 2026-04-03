@@ -11,6 +11,7 @@ import io.github.randomcodespace.iq.model.NodeKind;
 import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -149,6 +150,7 @@ public class GoLanguageExtractor implements LanguageExtractor {
         }
 
         if (!satisfied.isEmpty()) {
+            Collections.sort(satisfied);
             return Map.of("satisfies_interfaces", String.join(", ", satisfied));
         }
         return Map.of();

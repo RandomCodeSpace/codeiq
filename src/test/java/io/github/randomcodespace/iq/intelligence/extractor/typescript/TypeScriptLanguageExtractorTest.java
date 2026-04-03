@@ -111,6 +111,26 @@ class TypeScriptLanguageExtractorTest {
         }
     }
 
+    @Test
+    void extract_sameSymbolMatchedByNamedAndDefaultImport_noDuplicateEdges() {
+        CodeNode source = node("src:a.ts:fn:run", NodeKind.METHOD, "run");
+        CodeNode target = node("src:b.ts:class:Config", NodeKind.CLASS, "Config");
+        Map<String, CodeNode> registry = Map.of(target.getLabel(), target);
+
+        // Both named and default import patterns match Config → same edge id, must deduplicate.
+        String content = """
+                import { Config } from './b';
+                import Config from './b';
+                """;
+
+        DetectorContext ctx = new DetectorContext("a.ts", "typescript", content, registry, null);
+        LanguageExtractionResult result = extractor.extract(ctx, source);
+
+        assertThat(result.symbolReferences()).hasSize(1);
+        assertThat(result.symbolReferences().get(0).getKind()).isEqualTo(EdgeKind.IMPORTS);
+        assertThat(result.symbolReferences().get(0).getTarget().getId()).isEqualTo(target.getId());
+    }
+
     private static CodeNode node(String id, NodeKind kind, String label) {
         CodeNode n = new CodeNode(id, kind, label);
         n.setFqn(id);

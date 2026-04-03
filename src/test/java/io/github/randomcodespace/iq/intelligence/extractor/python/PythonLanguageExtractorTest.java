@@ -9,6 +9,7 @@ import io.github.randomcodespace.iq.model.EdgeKind;
 import io.github.randomcodespace.iq.model.NodeKind;
 import org.junit.jupiter.api.Test;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -119,6 +120,26 @@ class PythonLanguageExtractorTest {
         LanguageExtractionResult r2 = extractor.extract(ctx, fnNode);
 
         assertThat(r1.typeHints()).isEqualTo(r2.typeHints());
+    }
+
+    @Test
+    void extract_ambiguousShortSymbolName_noFalsePositiveEdge() {
+        CodeNode source = node("py:app.py:fn:run", NodeKind.METHOD, "run");
+        // Two unrelated nodes share the short label "get" — common in Django/dict APIs.
+        CodeNode target1 = node("py:dict_utils.py:fn:get", NodeKind.METHOD, "get");
+        CodeNode target2 = node("py:list_utils.py:fn:get", NodeKind.METHOD, "get");
+
+        Map<String, CodeNode> registry = new LinkedHashMap<>();
+        registry.put(target1.getId(), target1);
+        registry.put(target2.getId(), target2);
+
+        String content = "from utils import get\n";
+
+        DetectorContext ctx = new DetectorContext("app.py", "python", content, registry, null);
+        LanguageExtractionResult result = extractor.extract(ctx, source);
+
+        // Ambiguous: two nodes labelled "get" → lookupUnambiguous returns null → no edge.
+        assertThat(result.symbolReferences()).isEmpty();
     }
 
     private static CodeNode node(String id, NodeKind kind, String label) {

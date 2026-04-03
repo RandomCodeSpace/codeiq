@@ -11,8 +11,10 @@ import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
@@ -73,6 +75,7 @@ public class TypeScriptLanguageExtractor implements LanguageExtractor {
         if (ctx.content() == null || registry.isEmpty()) return List.of();
 
         List<CodeEdge> edges = new ArrayList<>();
+        Set<String> seen = new LinkedHashSet<>();
 
         Matcher named = NAMED_IMPORT.matcher(ctx.content());
         while (named.find()) {
@@ -86,10 +89,12 @@ public class TypeScriptLanguageExtractor implements LanguageExtractor {
                 CodeNode target = registry.get(sym);
                 if (target != null && !target.getId().equals(node.getId())) {
                     String edgeId = "imports:%s:%s".formatted(node.getId(), target.getId());
-                    CodeEdge edge = new CodeEdge(edgeId, EdgeKind.IMPORTS, node.getId(), target);
-                    edge.getProperties().put("confidence", "PARTIAL");
-                    edge.getProperties().put("extractorName", "typescript_language_extractor");
-                    edges.add(edge);
+                    if (seen.add(edgeId)) {
+                        CodeEdge edge = new CodeEdge(edgeId, EdgeKind.IMPORTS, node.getId(), target);
+                        edge.getProperties().put("confidence", "PARTIAL");
+                        edge.getProperties().put("extractorName", "typescript_language_extractor");
+                        edges.add(edge);
+                    }
                 }
             }
         }
@@ -100,10 +105,12 @@ public class TypeScriptLanguageExtractor implements LanguageExtractor {
             CodeNode target = registry.get(sym);
             if (target != null && !target.getId().equals(node.getId())) {
                 String edgeId = "imports:%s:%s".formatted(node.getId(), target.getId());
-                CodeEdge edge = new CodeEdge(edgeId, EdgeKind.IMPORTS, node.getId(), target);
-                edge.getProperties().put("confidence", "PARTIAL");
-                edge.getProperties().put("extractorName", "typescript_language_extractor");
-                edges.add(edge);
+                if (seen.add(edgeId)) {
+                    CodeEdge edge = new CodeEdge(edgeId, EdgeKind.IMPORTS, node.getId(), target);
+                    edge.getProperties().put("confidence", "PARTIAL");
+                    edge.getProperties().put("extractorName", "typescript_language_extractor");
+                    edges.add(edge);
+                }
             }
         }
 

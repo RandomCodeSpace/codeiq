@@ -76,7 +76,7 @@ public class PythonLanguageExtractor implements LanguageExtractor {
             for (String symbol : from.group(1).split(",")) {
                 String sym = symbol.trim();
                 if (sym.isEmpty()) continue;
-                CodeNode target = registry.get(sym);
+                CodeNode target = lookupUnambiguous(sym, registry);
                 if (target != null && !target.getId().equals(node.getId())) {
                     String edgeId = "imports:%s:%s".formatted(node.getId(), target.getId());
                     CodeEdge edge = new CodeEdge(edgeId, EdgeKind.IMPORTS, node.getId(), target);
@@ -90,7 +90,7 @@ public class PythonLanguageExtractor implements LanguageExtractor {
         Matcher plain = PLAIN_IMPORT.matcher(ctx.content());
         while (plain.find()) {
             String sym = plain.group(1);
-            CodeNode target = registry.get(sym);
+            CodeNode target = lookupUnambiguous(sym, registry);
             if (target != null && !target.getId().equals(node.getId())) {
                 String edgeId = "imports:%s:%s".formatted(node.getId(), target.getId());
                 CodeEdge edge = new CodeEdge(edgeId, EdgeKind.IMPORTS, node.getId(), target);
@@ -138,5 +138,21 @@ public class PythonLanguageExtractor implements LanguageExtractor {
         }
 
         return hints;
+    }
+
+    /**
+     * Look up a node by label, returning null if zero or more than one node matches.
+     * Prevents false-positive IMPORTS edges for common short names like {@code join},
+     * {@code get}, {@code load} that may match multiple unrelated nodes.
+     */
+    private CodeNode lookupUnambiguous(String label, Map<String, CodeNode> registry) {
+        CodeNode match = null;
+        for (CodeNode candidate : registry.values()) {
+            if (label.equals(candidate.getLabel())) {
+                if (match != null) return null; // ambiguous
+                match = candidate;
+            }
+        }
+        return match;
     }
 }

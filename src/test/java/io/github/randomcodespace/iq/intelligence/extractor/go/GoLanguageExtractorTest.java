@@ -9,6 +9,7 @@ import io.github.randomcodespace.iq.model.EdgeKind;
 import io.github.randomcodespace.iq.model.NodeKind;
 import org.junit.jupiter.api.Test;
 
+import java.util.LinkedHashMap;
 import java.util.Map;
 
 import static org.assertj.core.api.Assertions.assertThat;
@@ -143,6 +144,33 @@ class GoLanguageExtractorTest {
             assertThat(r1.symbolReferences().get(0).getId())
                     .isEqualTo(r2.symbolReferences().get(0).getId());
         }
+    }
+
+    @Test
+    void extract_satisfiesInterfaces_hintIsDeterministicallySorted() {
+        CodeNode struct = node("go:s.go:struct:Worker", NodeKind.CLASS, "Worker");
+        CodeNode ifaceReader = node("go:r.go:interface:Reader", NodeKind.INTERFACE, "Reader");
+        CodeNode ifaceCloser = node("go:c.go:interface:Closer", NodeKind.INTERFACE, "Closer");
+
+        // filePath must be non-null or extractInterfaceHints skips the candidate.
+        ifaceReader.setFilePath("go:r.go");
+        ifaceCloser.setFilePath("go:c.go");
+
+        // Registry iterated Reader-first; without sorting hint would be "Reader, Closer".
+        // After fix it must always be "Closer, Reader" (alphabetical).
+        Map<String, CodeNode> registry = new LinkedHashMap<>();
+        registry.put(ifaceReader.getLabel(), ifaceReader);
+        registry.put(ifaceCloser.getLabel(), ifaceCloser);
+
+        String content = "Worker) Reader\nWorker) Closer\n";
+
+        DetectorContext ctx = new DetectorContext("s.go", "go", content, registry, null);
+        LanguageExtractionResult r1 = extractor.extract(ctx, struct);
+        LanguageExtractionResult r2 = extractor.extract(ctx, struct);
+
+        assertThat(r1.typeHints()).containsKey("satisfies_interfaces");
+        assertThat(r1.typeHints().get("satisfies_interfaces")).isEqualTo("Closer, Reader");
+        assertThat(r1.typeHints()).isEqualTo(r2.typeHints());
     }
 
     private static CodeNode node(String id, NodeKind kind, String label) {
