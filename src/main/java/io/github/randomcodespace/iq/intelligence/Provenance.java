@@ -50,7 +50,9 @@ public record Provenance(
         String repoUrl      = (String) props.get(KEY_REPO_URL);
         String sha          = (String) props.get(KEY_COMMIT_SHA);
         String extVer       = (String) props.getOrDefault(KEY_EXTRACTOR_VER, "unknown");
-        int schemaVer       = ((Number) props.getOrDefault(KEY_SCHEMA_VER, CURRENT_SCHEMA_VERSION)).intValue();
+        Object schemaVerObj = props.getOrDefault(KEY_SCHEMA_VER, CURRENT_SCHEMA_VERSION);
+        int schemaVer = schemaVerObj instanceof Number n ? n.intValue()
+                : Integer.parseInt(schemaVerObj.toString());
         String confStr      = (String) props.getOrDefault(KEY_CONFIDENCE, CapabilityLevel.PARTIAL.name());
         CapabilityLevel confidence;
         try {

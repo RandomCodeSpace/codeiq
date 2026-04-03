@@ -3,6 +3,7 @@ package io.github.randomcodespace.iq.intelligence;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.stream.Collectors;
 
 /**
@@ -24,10 +25,11 @@ public record FileInventory(List<FileEntry> entries) {
         return entries.size();
     }
 
-    /** Count of files per {@link FileClassification}. */
+    /** Count of files per {@link FileClassification}, sorted by name for determinism. */
     public Map<FileClassification, Long> countsByClassification() {
         return entries.stream()
-                .collect(Collectors.groupingBy(FileEntry::classification, Collectors.counting()));
+                .collect(Collectors.groupingBy(FileEntry::classification,
+                        TreeMap::new, Collectors.counting()));
     }
 
     /** Count of files per language. */
