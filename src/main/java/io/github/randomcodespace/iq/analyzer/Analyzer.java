@@ -13,11 +13,9 @@ import io.github.randomcodespace.iq.detector.DetectorRegistry;
 import io.github.randomcodespace.iq.detector.DetectorResult;
 import io.github.randomcodespace.iq.detector.DetectorUtils;
 import io.github.randomcodespace.iq.grammar.AntlrParserFactory;
-import io.github.randomcodespace.iq.intelligence.CapabilityLevel;
 import io.github.randomcodespace.iq.intelligence.FileClassification;
 import io.github.randomcodespace.iq.intelligence.FileEntry;
 import io.github.randomcodespace.iq.intelligence.FileInventory;
-import io.github.randomcodespace.iq.intelligence.Provenance;
 import io.github.randomcodespace.iq.intelligence.RepositoryIdentity;
 import io.github.randomcodespace.iq.model.CodeEdge;
 import io.github.randomcodespace.iq.model.CodeNode;
@@ -236,14 +234,7 @@ public class Analyzer {
 
         // 1b. Resolve repository identity and build file inventory
         RepositoryIdentity repoIdentity = RepositoryIdentity.resolve(root);
-        FileInventory fileInventory = buildFileInventory(files);
-        Provenance provenance = new Provenance(
-                repoIdentity.repoUrl(),
-                repoIdentity.commitSha(),
-                VersionCommand.VERSION,
-                Provenance.CURRENT_SCHEMA_VERSION,
-                CapabilityLevel.PARTIAL
-        );
+        FileInventory fileInventory = buildFileInventory(files, cache);
 
         // Compute language breakdown
         Map<String, Integer> languageBreakdown = new HashMap<>();
@@ -318,7 +309,7 @@ public class Analyzer {
 
         // 3. Build graph (batched)
         report.accept("Building graph...");
-        var builder = new GraphBuilder(provenance);
+        var builder = new GraphBuilder(repoIdentity, VersionCommand.VERSION);
         int filesAnalyzed = 0;
         for (int i = 0; i < resultSlots.length; i++) {
             DetectorResult result = resultSlots[i];
@@ -347,7 +338,7 @@ public class Analyzer {
         String projectDirName = root.getFileName() != null ? root.getFileName().toString() : "root";
         var serviceResult = serviceDetector.detect(allNodes, builder.getEdges(), projectDirName, root);
         if (!serviceResult.serviceNodes().isEmpty()) {
-            serviceResult.serviceNodes().forEach(n -> n.setProvenance(provenance));
+            serviceResult.serviceNodes().forEach(n -> n.setProvenance(builder.getProvenance()));
             builder.addNodes(serviceResult.serviceNodes());
             builder.addEdges(serviceResult.serviceEdges());
             allNodes = builder.getNodes(); // refresh reference after adding service nodes
@@ -1278,14 +1269,16 @@ public class Analyzer {
 
     /**
      * Build a deterministic FileInventory from the list of discovered files.
-     * Content hashes are not computed here (too expensive at discovery time); they remain null.
+     * Content hashes are reused from {@code cache} when available (no re-read of files).
+     * Hashes remain null for files not yet present in the cache.
      */
-    private static FileInventory buildFileInventory(List<DiscoveredFile> files) {
+    private static FileInventory buildFileInventory(List<DiscoveredFile> files, AnalysisCache cache) {
         List<FileEntry> entries = new ArrayList<>(files.size());
         for (DiscoveredFile f : files) {
             String relPath = f.path().toString().replace('\\', '/');
             FileClassification cls = FileEntry.classify(relPath, f.language());
-            entries.add(new FileEntry(relPath, f.language(), f.sizeBytes(), null, cls));
+            String contentHash = cache != null ? cache.getHashForPath(relPath) : null;
+            entries.add(new FileEntry(relPath, f.language(), f.sizeBytes(), contentHash, cls));
         }
         return new FileInventory(entries);
     }

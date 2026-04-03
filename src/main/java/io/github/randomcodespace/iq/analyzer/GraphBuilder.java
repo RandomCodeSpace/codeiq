@@ -3,7 +3,9 @@ package io.github.randomcodespace.iq.analyzer;
 import io.github.randomcodespace.iq.analyzer.linker.LinkResult;
 import io.github.randomcodespace.iq.analyzer.linker.Linker;
 import io.github.randomcodespace.iq.detector.DetectorResult;
+import io.github.randomcodespace.iq.intelligence.CapabilityLevel;
 import io.github.randomcodespace.iq.intelligence.Provenance;
+import io.github.randomcodespace.iq.intelligence.RepositoryIdentity;
 import io.github.randomcodespace.iq.model.CodeEdge;
 import io.github.randomcodespace.iq.model.CodeNode;
 import org.slf4j.Logger;
@@ -45,13 +47,36 @@ public class GraphBuilder {
         this(batchSize, null);
     }
 
-    public GraphBuilder(Provenance provenance) {
-        this(1000, provenance);
+    /**
+     * Construct with repository identity and extractor version.
+     * Provenance is derived internally from the identity.
+     */
+    public GraphBuilder(RepositoryIdentity identity, String extractorVersion) {
+        this(1000, identity, extractorVersion);
     }
 
-    public GraphBuilder(int batchSize, Provenance provenance) {
+    /**
+     * Construct with batch size, repository identity, and extractor version.
+     * Provenance is derived internally from the identity.
+     */
+    public GraphBuilder(int batchSize, RepositoryIdentity identity, String extractorVersion) {
+        this(batchSize, identity == null ? null : new Provenance(
+                identity.repoUrl(),
+                identity.commitSha(),
+                extractorVersion,
+                Provenance.CURRENT_SCHEMA_VERSION,
+                CapabilityLevel.PARTIAL
+        ));
+    }
+
+    private GraphBuilder(int batchSize, Provenance provenance) {
         this.batchSize = Math.max(1, batchSize);
         this.provenance = provenance;
+    }
+
+    /** Returns the provenance stamped on every node, or null if none was configured. */
+    public Provenance getProvenance() {
+        return provenance;
     }
 
     /**
