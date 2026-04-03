@@ -3,6 +3,9 @@ package io.github.randomcodespace.iq.analyzer;
 import io.github.randomcodespace.iq.analyzer.linker.LinkResult;
 import io.github.randomcodespace.iq.analyzer.linker.Linker;
 import io.github.randomcodespace.iq.detector.DetectorResult;
+import io.github.randomcodespace.iq.intelligence.CapabilityLevel;
+import io.github.randomcodespace.iq.intelligence.Provenance;
+import io.github.randomcodespace.iq.intelligence.RepositoryIdentity;
 import io.github.randomcodespace.iq.model.CodeEdge;
 import io.github.randomcodespace.iq.model.CodeNode;
 import org.slf4j.Logger;
@@ -34,13 +37,46 @@ public class GraphBuilder {
     private final List<CodeEdge> deferredEdges = new ArrayList<>();
     private int droppedEdgeCount = 0;
     private final int batchSize;
+    private final Provenance provenance;
 
     public GraphBuilder() {
-        this(1000);
+        this(1000, null);
     }
 
     public GraphBuilder(int batchSize) {
+        this(batchSize, null);
+    }
+
+    /**
+     * Construct with repository identity and extractor version.
+     * Provenance is derived internally from the identity.
+     */
+    public GraphBuilder(RepositoryIdentity identity, String extractorVersion) {
+        this(1000, identity, extractorVersion);
+    }
+
+    /**
+     * Construct with batch size, repository identity, and extractor version.
+     * Provenance is derived internally from the identity.
+     */
+    public GraphBuilder(int batchSize, RepositoryIdentity identity, String extractorVersion) {
+        this(batchSize, identity == null ? null : new Provenance(
+                identity.repoUrl(),
+                identity.commitSha(),
+                extractorVersion,
+                Provenance.CURRENT_SCHEMA_VERSION,
+                CapabilityLevel.PARTIAL
+        ));
+    }
+
+    private GraphBuilder(int batchSize, Provenance provenance) {
         this.batchSize = Math.max(1, batchSize);
+        this.provenance = provenance;
+    }
+
+    /** Returns the provenance stamped on every node, or null if none was configured. */
+    public Provenance getProvenance() {
+        return provenance;
     }
 
     /**
@@ -67,11 +103,18 @@ public class GraphBuilder {
 
     /**
      * Flush all buffered data: insert nodes first, then edges.
-     * Edges whose source or target node doesn't exist are deferred.
+     * Applies provenance to every node, then partitions edges into valid/deferred.
      *
      * @return a snapshot of all valid nodes and edges
      */
     public FlushResult flush() {
+        // Stamp provenance on every node
+        if (provenance != null) {
+            for (CodeNode node : allNodes) {
+                node.setProvenance(provenance);
+            }
+        }
+
         // Build the set of all node IDs
         Set<String> nodeIds = new HashSet<>();
         for (CodeNode node : allNodes) {

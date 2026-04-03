@@ -153,6 +153,23 @@ public class AnalysisCache implements Closeable {
         }
     }
 
+    /**
+     * Look up the content hash stored for a given file path.
+     * Returns null if the path has not been cached yet.
+     */
+    public synchronized String getHashForPath(String filePath) {
+        try (var stmt = conn.prepareStatement(
+                "SELECT content_hash FROM files WHERE path = ? LIMIT 1")) {
+            stmt.setString(1, filePath);
+            try (ResultSet rs = stmt.executeQuery()) {
+                return rs.next() ? rs.getString(1) : null;
+            }
+        } catch (SQLException e) {
+            log.debug("Hash lookup by path failed", e);
+            return null;
+        }
+    }
+
     // --- Store results ---
 
     /**

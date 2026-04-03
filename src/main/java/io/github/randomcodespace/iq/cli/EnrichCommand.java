@@ -5,6 +5,8 @@ import io.github.randomcodespace.iq.analyzer.LayerClassifier;
 import io.github.randomcodespace.iq.analyzer.linker.Linker;
 import io.github.randomcodespace.iq.cache.AnalysisCache;
 import io.github.randomcodespace.iq.config.CodeIqConfig;
+import io.github.randomcodespace.iq.intelligence.RepositoryIdentity;
+import io.github.randomcodespace.iq.intelligence.lexical.LexicalEnricher;
 import io.github.randomcodespace.iq.model.CodeEdge;
 import io.github.randomcodespace.iq.model.CodeNode;
 import io.github.randomcodespace.iq.model.EdgeKind;
@@ -58,11 +60,14 @@ public class EnrichCommand implements Callable<Integer> {
     private final CodeIqConfig config;
     private final LayerClassifier layerClassifier;
     private final List<Linker> linkers;
+    private final LexicalEnricher lexicalEnricher;
 
-    public EnrichCommand(CodeIqConfig config, LayerClassifier layerClassifier, List<Linker> linkers) {
+    public EnrichCommand(CodeIqConfig config, LayerClassifier layerClassifier,
+                         List<Linker> linkers, LexicalEnricher lexicalEnricher) {
         this.config = config;
         this.layerClassifier = layerClassifier;
         this.linkers = linkers;
+        this.lexicalEnricher = lexicalEnricher;
     }
 
     @Override
@@ -116,7 +121,8 @@ public class EnrichCommand implements Callable<Integer> {
 
         // 2. Run linkers (these work on in-memory node/edge lists)
         CliOutput.step("\uD83D\uDD17", "Running cross-file linkers...");
-        var builder = new GraphBuilder();
+        RepositoryIdentity repoIdentity = RepositoryIdentity.resolve(root);
+        var builder = new GraphBuilder(repoIdentity, VersionCommand.VERSION);
         for (CodeNode node : allNodes) {
             builder.addNodes(List.of(node));
         }
@@ -141,12 +147,17 @@ public class EnrichCommand implements Callable<Integer> {
         CliOutput.step("\uD83C\uDFF7\uFE0F", "Classifying layers...");
         layerClassifier.classify(enrichedNodes);
 
-        // 3b. Detect services
+        // 3b. Enrich lexical metadata (doc comments, config keys) for fulltext search
+        CliOutput.step("\uD83D\uDD0D", "Enriching lexical metadata...");
+        lexicalEnricher.enrich(enrichedNodes, root);
+
+        // 3c. Detect services
         CliOutput.step("\uD83C\uDFD7\uFE0F", "Detecting service boundaries...");
         var serviceDetector = new io.github.randomcodespace.iq.analyzer.ServiceDetector();
         String projectName = root.getFileName().toString();
         var serviceResult = serviceDetector.detect(enrichedNodes, enrichedEdges, projectName, root);
         if (!serviceResult.serviceNodes().isEmpty()) {
+            serviceResult.serviceNodes().forEach(n -> n.setProvenance(builder.getProvenance()));
             // Add service nodes and edges to the builder
             builder.addNodes(serviceResult.serviceNodes());
             builder.addEdges(serviceResult.serviceEdges());
@@ -312,6 +323,9 @@ public class EnrichCommand implements Callable<Integer> {
                 tx.execute("CREATE FULLTEXT INDEX search_index IF NOT EXISTS "
                         + "FOR (n:CodeNode) ON EACH [n.label_lower, n.fqn_lower] "
                         + "OPTIONS {indexConfig: {`fulltext.analyzer`: 'keyword'}}");
+                tx.execute("CREATE FULLTEXT INDEX lexical_index IF NOT EXISTS "
+                        + "FOR (n:CodeNode) ON EACH [n.prop_lex_comment, n.prop_lex_config_keys] "
+                        + "OPTIONS {indexConfig: {`fulltext.analyzer`: 'standard'}}");
                 tx.commit();
             }
             // Wait for all indexes (including fulltext) to finish building

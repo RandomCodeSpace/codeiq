@@ -3,7 +3,11 @@ package io.github.randomcodespace.iq.mcp;
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.randomcodespace.iq.config.CodeIqConfig;
+import io.github.randomcodespace.iq.intelligence.evidence.EvidencePackAssembler;
+import io.github.randomcodespace.iq.intelligence.evidence.EvidencePackRequest;
+import io.github.randomcodespace.iq.intelligence.provenance.ArtifactMetadata;
 import io.github.randomcodespace.iq.flow.FlowEngine;
+import io.github.randomcodespace.iq.intelligence.query.CapabilityMatrix;
 // Note: No Analyzer import — MCP server is read-only. Analysis is done via CLI only.
 import io.github.randomcodespace.iq.flow.FlowModels.FlowDiagram;
 import io.github.randomcodespace.iq.graph.GraphStore;
@@ -44,12 +48,16 @@ public class McpTools {
     private final StatsService statsService;
     private final TopologyService topologyService;
     private final GraphStore graphStore;
+    private final EvidencePackAssembler evidencePackAssembler;
+    private final ArtifactMetadata artifactMetadata;
 
     public McpTools(QueryService queryService,
                     CodeIqConfig config, ObjectMapper objectMapper,
                     Optional<FlowEngine> flowEngine, GraphDatabaseService graphDb,
                     StatsService statsService, TopologyService topologyService,
-                    GraphStore graphStore) {
+                    GraphStore graphStore,
+                    Optional<EvidencePackAssembler> evidencePackAssembler,
+                    Optional<ArtifactMetadata> artifactMetadata) {
         this.queryService = queryService;
         this.config = config;
         this.objectMapper = objectMapper;
@@ -58,6 +66,8 @@ public class McpTools {
         this.statsService = statsService;
         this.topologyService = topologyService;
         this.graphStore = graphStore;
+        this.evidencePackAssembler = evidencePackAssembler.orElse(null);
+        this.artifactMetadata = artifactMetadata.orElse(null);
     }
 
     /**
@@ -337,6 +347,26 @@ public class McpTools {
         }
     }
 
+    @McpTool(name = "get_capabilities", description = "Return the capability matrix declaring per-language analysis fidelity levels (EXACT/PARTIAL/LEXICAL_ONLY/UNSUPPORTED) for each intelligence dimension. Optionally filter by a single language.")
+    public String getCapabilities(
+            @McpToolParam(description = "Language to filter (e.g. java, python). Omit for the full matrix.", required = false) String language) {
+        try {
+            Map<String, Object> result = new LinkedHashMap<>();
+            if (language != null && !language.isBlank()) {
+                result.put("language", language.strip().toLowerCase());
+                Map<String, String> caps = new java.util.TreeMap<>();
+                CapabilityMatrix.forLanguage(language)
+                        .forEach((dim, lvl) -> caps.put(dim.name().toLowerCase(), lvl.name()));
+                result.put("capabilities", caps);
+            } else {
+                result.put("matrix", CapabilityMatrix.asSerializableMap());
+            }
+            return toJson(result);
+        } catch (Exception e) {
+            return toJson(Map.of("error", e.getMessage()));
+        }
+    }
+
     @McpTool(name = "read_file", description = "Read a source file from the codebase, optionally a specific line range")
     public String readFile(
             @McpToolParam(description = "File path relative to codebase root") String filePath,
@@ -473,6 +503,37 @@ public class McpTools {
         try {
             var data = getCachedData();
             return toJson(topologyService.findNode(query, data.nodes()));
+        } catch (Exception e) {
+            return toJson(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @McpTool(name = "get_evidence_pack", description = "Assemble an evidence pack for a symbol or file. Returns matched nodes, snippets, provenance, and degradation notes. Provide symbol name and/or file path.")
+    public String getEvidencePack(
+            @McpToolParam(description = "Symbol name to look up (e.g. UserService, handleLogin)", required = false) String symbol,
+            @McpToolParam(description = "File path relative to repo root", required = false) String filePath,
+            @McpToolParam(description = "Max lines per snippet (default: config value)", required = false) Integer maxSnippetLines,
+            @McpToolParam(description = "Include cross-reference nodes (default: false)", required = false) Boolean includeReferences) {
+        if (evidencePackAssembler == null) {
+            return toJson(Map.of("error", "Evidence pack service unavailable. Run 'enrich' first."));
+        }
+        try {
+            EvidencePackRequest request = new EvidencePackRequest(
+                    symbol, filePath, maxSnippetLines,
+                    Boolean.TRUE.equals(includeReferences));
+            return toJson(evidencePackAssembler.assemble(request, artifactMetadata));
+        } catch (Exception e) {
+            return toJson(Map.of("error", e.getMessage()));
+        }
+    }
+
+    @McpTool(name = "get_artifact_metadata", description = "Return artifact metadata: repo identity, commit SHA, build timestamp, extractor versions, capability matrix snapshot, and integrity hash.")
+    public String getArtifactMetadata() {
+        if (artifactMetadata == null) {
+            return toJson(Map.of("error", "Artifact metadata unavailable. Run 'enrich' first."));
+        }
+        try {
+            return toJson(artifactMetadata);
         } catch (Exception e) {
             return toJson(Map.of("error", e.getMessage()));
         }
