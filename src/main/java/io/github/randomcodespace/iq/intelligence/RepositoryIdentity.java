@@ -40,8 +40,8 @@ public record RepositoryIdentity(
                     .directory(repoPath.toFile())
                     .redirectErrorStream(true);
             var proc = pb.start();
-            try {
-                String out = new String(proc.getInputStream().readAllBytes()).trim();
+            try (var is = proc.getInputStream()) {
+                String out = new String(is.readAllBytes()).trim();
                 int exit = proc.waitFor();
                 return (exit == 0 && !out.isBlank()) ? out : null;
             } finally {
