@@ -382,10 +382,10 @@ export default function ProjectFileTree() {
             Project Files
           </p>
           <span className="text-[10px] text-muted-foreground/60 font-mono">
-            {treeResponse!.total_files.toLocaleString()} files
+            {(treeResponse!.total_files ?? 0).toLocaleString()} files
           </span>
         </div>
-        <DensityBar value={treeResponse!.total_files} max={treeResponse!.total_files} />
+        <DensityBar value={treeResponse!.total_files ?? 0} max={treeResponse!.total_files ?? 0} />
         {treeResponse!.truncated && (
           <p className="text-[9px] text-amber-500/80 mt-0.5">
             Tree truncated — showing partial results

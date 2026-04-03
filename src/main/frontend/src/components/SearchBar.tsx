@@ -122,28 +122,28 @@ export default function SearchBar() {
         )}
       </div>
 
-      {open && (
+      {open && loading && (
+        <div
+          data-testid="search-spinner"
+          className="absolute top-full mt-1 w-full z-50 glass-card flex items-center justify-center gap-2 p-4 text-surface-400 text-sm"
+        >
+          <Loader2 className="w-4 h-4 animate-spin" />
+          Searching...
+        </div>
+      )}
+
+      {open && !loading && (
         <div
           data-testid="search-dropdown"
           id="search-listbox"
           role="listbox"
           className="absolute top-full mt-1 w-full z-50 glass-card max-h-80 overflow-y-auto"
         >
-          {loading && (
-            <div
-              data-testid="search-spinner"
-              className="flex items-center justify-center gap-2 p-4 text-surface-400 text-sm"
-            >
-              <Loader2 className="w-4 h-4 animate-spin" />
-              Searching...
-            </div>
-          )}
-
-          {!loading && results.length === 0 && (
+          {results.length === 0 && (
             <div className="p-4 text-center text-surface-400 text-sm">No results found</div>
           )}
 
-          {!loading && results.map((r, i) => (
+          {results.map((r, i) => (
             <button
               key={r.id}
               role="option"
