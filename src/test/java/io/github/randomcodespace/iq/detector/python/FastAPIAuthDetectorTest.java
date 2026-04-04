@@ -103,4 +103,111 @@ class FastAPIAuthDetectorTest {
         DetectorContext ctx = DetectorTestUtils.contextFor("python", code);
         DetectorTestUtils.assertDeterministic(detector, ctx);
     }
+
+    @Test
+    void detectsDependsRequireAuth() {
+        String code = """
+                async def get_data(auth=Depends(require_auth)):
+                    return {}
+                """;
+        DetectorContext ctx = DetectorTestUtils.contextFor("python", code);
+        DetectorResult result = detector.detect(ctx);
+
+        assertEquals(1, result.nodes().size());
+        assertEquals("require_auth", result.nodes().get(0).getProperties().get("dependency"));
+    }
+
+    @Test
+    void detectsDependsAuthPrefix() {
+        String code = """
+                async def endpoint(current=Depends(auth_handler)):
+                    pass
+                """;
+        DetectorContext ctx = DetectorTestUtils.contextFor("python", code);
+        DetectorResult result = detector.detect(ctx);
+
+        assertEquals(1, result.nodes().size());
+        assertEquals("fastapi", result.nodes().get(0).getProperties().get("auth_type"));
+        assertEquals("oauth2", result.nodes().get(0).getProperties().get("auth_flow"));
+        assertEquals(true, result.nodes().get(0).getProperties().get("auth_required"));
+    }
+
+    @Test
+    void allAuthTypesInOneFile() {
+        String code = """
+                oauth2 = OAuth2PasswordBearer(tokenUrl="/token")
+                bearer_scheme = HTTPBearer()
+                basic_scheme = HTTPBasic()
+
+                async def endpoint1(user=Depends(get_current_user)):
+                    pass
+
+                async def endpoint2(user=Security(oauth2)):
+                    pass
+                """;
+        DetectorContext ctx = DetectorTestUtils.contextFor("api.py", "python", code);
+        DetectorResult result = detector.detect(ctx);
+
+        // OAuth2PasswordBearer + HTTPBearer + HTTPBasic + Depends + Security = 5 guards
+        assertTrue(result.nodes().size() >= 5);
+        assertTrue(result.nodes().stream().allMatch(n -> n.getKind() == NodeKind.GUARD));
+    }
+
+    @Test
+    void authRequiredPropertyIsTrue() {
+        String code = """
+                auth = HTTPBearer()
+                """;
+        DetectorContext ctx = DetectorTestUtils.contextFor("python", code);
+        DetectorResult result = detector.detect(ctx);
+
+        assertEquals(true, result.nodes().get(0).getProperties().get("auth_required"));
+    }
+
+    @Test
+    void annotationsSetCorrectly() {
+        String code = """
+                bearer = HTTPBearer()
+                """;
+        DetectorContext ctx = DetectorTestUtils.contextFor("python", code);
+        DetectorResult result = detector.detect(ctx);
+
+        var node = result.nodes().get(0);
+        assertNotNull(node.getAnnotations());
+        assertFalse(node.getAnnotations().isEmpty());
+        assertTrue(node.getAnnotations().contains("HTTPBearer"));
+    }
+
+    @Test
+    void oauth2PasswordBearerAuthFlow() {
+        String code = """
+                scheme = OAuth2PasswordBearer(tokenUrl="/login")
+                """;
+        DetectorContext ctx = DetectorTestUtils.contextFor("python", code);
+        DetectorResult result = detector.detect(ctx);
+
+        assertEquals("oauth2", result.nodes().get(0).getProperties().get("auth_flow"));
+    }
+
+    @Test
+    void emptyFileReturnsEmpty() {
+        DetectorContext ctx = DetectorTestUtils.contextFor("python", "");
+        DetectorResult result = detector.detect(ctx);
+
+        assertEquals(0, result.nodes().size());
+        assertEquals(0, result.edges().size());
+    }
+
+    @Test
+    void fileLevelModuleAndPath() {
+        String code = """
+                async def get_items(user=Depends(get_current_user)):
+                    return []
+                """;
+        DetectorContext ctx = DetectorTestUtils.contextFor("api/routes.py", "python", code);
+        DetectorResult result = detector.detect(ctx);
+
+        assertEquals(1, result.nodes().size());
+        assertEquals("api/routes.py", result.nodes().get(0).getFilePath());
+    }
 }

@@ -96,4 +96,116 @@ class SQLAlchemyModelDetectorTest {
         DetectorContext ctx = DetectorTestUtils.contextFor("python", code);
         DetectorTestUtils.assertDeterministic(detector, ctx);
     }
+
+    @Test
+    void detectsDeclarativeBaseModel() {
+        String code = """
+                class Category(DeclarativeBase):
+                    __tablename__ = 'categories'
+                    id = Column(Integer, primary_key=True)
+                    name = Column(String)
+                """;
+        DetectorContext ctx = DetectorTestUtils.contextFor("python", code);
+        DetectorResult result = detector.detect(ctx);
+
+        var entityNode = result.nodes().stream()
+                .filter(n -> n.getKind() == NodeKind.ENTITY).findFirst().orElseThrow();
+        assertEquals("categories", entityNode.getProperties().get("table_name"));
+    }
+
+    @Test
+    void detectsMappedColumns() {
+        String code = """
+                class Article(Base):
+                    __tablename__ = 'articles'
+                    id: Mapped[int] = mapped_column(primary_key=True)
+                    title: Mapped[str] = mapped_column(String(200))
+                """;
+        DetectorContext ctx = DetectorTestUtils.contextFor("python", code);
+        DetectorResult result = detector.detect(ctx);
+
+        var entityNode = result.nodes().stream()
+                .filter(n -> n.getKind() == NodeKind.ENTITY).findFirst().orElseThrow();
+        @SuppressWarnings("unchecked")
+        List<String> columns = (List<String>) entityNode.getProperties().get("columns");
+        assertNotNull(columns);
+        assertTrue(columns.contains("id"));
+        assertTrue(columns.contains("title"));
+    }
+
+    @Test
+    void multipleRelationshipsCreateMultipleEdges() {
+        String code = """
+                class User(Base):
+                    __tablename__ = 'users'
+                    id = Column(Integer, primary_key=True)
+                    posts = relationship("Post")
+                    comments = relationship("Comment")
+                """;
+        DetectorContext ctx = DetectorTestUtils.contextFor("python", code);
+        DetectorResult result = detector.detect(ctx);
+
+        long mapsToEdges = result.edges().stream()
+                .filter(e -> e.getKind() == EdgeKind.MAPS_TO).count();
+        assertEquals(2, mapsToEdges);
+    }
+
+    @Test
+    void databaseNodeKindIsDbConnection() {
+        String code = """
+                class Customer(Base):
+                    __tablename__ = 'customers'
+                    id = Column(Integer, primary_key=True)
+                """;
+        DetectorContext ctx = DetectorTestUtils.contextFor("python", code);
+        DetectorResult result = detector.detect(ctx);
+
+        var dbNode = result.nodes().stream()
+                .filter(n -> n.getKind() == NodeKind.DATABASE_CONNECTION).findFirst();
+        assertTrue(dbNode.isPresent());
+    }
+
+    @Test
+    void noMatchOnEmptyContent() {
+        DetectorContext ctx = DetectorTestUtils.contextFor("python", "");
+        DetectorResult result = detector.detect(ctx);
+
+        assertEquals(0, result.nodes().size());
+        assertEquals(0, result.edges().size());
+    }
+
+    @Test
+    void detectsModelBase() {
+        String code = """
+                class Tag(Model):
+                    __tablename__ = 'tags'
+                    id = Column(Integer, primary_key=True)
+                    name = Column(String)
+                """;
+        DetectorContext ctx = DetectorTestUtils.contextFor("python", code);
+        DetectorResult result = detector.detect(ctx);
+
+        var entityNode = result.nodes().stream()
+                .filter(n -> n.getKind() == NodeKind.ENTITY).findFirst().orElseThrow();
+        assertEquals("Tag", entityNode.getLabel());
+    }
+
+    @Test
+    void databaseCreatedOnce() {
+        String code = """
+                class A(Base):
+                    __tablename__ = 'a'
+                    id = Column(Integer)
+
+                class B(Base):
+                    __tablename__ = 'b'
+                    id = Column(Integer)
+                """;
+        DetectorContext ctx = DetectorTestUtils.contextFor("python", code);
+        DetectorResult result = detector.detect(ctx);
+
+        long dbCount = result.nodes().stream()
+                .filter(n -> n.getKind() == NodeKind.DATABASE_CONNECTION).count();
+        assertEquals(1, dbCount);
+    }
 }
