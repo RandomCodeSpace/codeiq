@@ -323,7 +323,7 @@ mvn dependency-check:check
 | `config/JacksonConfig.java` | Jackson config (FAIL_ON_UNKNOWN_PROPERTIES disabled for MCP compat) |
 | `cache/AnalysisCache.java` | H2 incremental cache |
 | `api/GraphController.java` | REST API endpoints (read-only) |
-| `mcp/McpTools.java` | 31 MCP tool definitions (`@McpTool`, read-only) |
+| `mcp/McpTools.java` | 34 MCP tool definitions (`@McpTool`, read-only) |
 | `query/QueryService.java` | Graph query operations with Spring caching |
 | `query/StatsService.java` | Rich categorized statistics (7 categories) |
 | `query/TopologyService.java` | Service topology queries |
