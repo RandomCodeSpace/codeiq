@@ -308,6 +308,8 @@ public class Analyzer {
                     log.warn("Analysis interrupted for {}", files.get(i).path());
                 }
             }
+            // Force-cancel any stuck threads before auto-close waits for them
+            executorService.shutdownNow();
         }
 
         if (cache != null && cacheHitsCounter.get() > 0) {
@@ -653,7 +655,9 @@ public class Analyzer {
                 batch.clear();
             }
         }
-        } // close batchExecutorService
+            // Force-cancel any stuck threads before auto-close waits for them
+            batchExecutorService.shutdownNow();
+        }
 
         if (cacheHits > 0) {
             report.accept("Cache hits: " + cacheHits + " / " + totalFiles + " files");
@@ -1000,6 +1004,8 @@ public class Analyzer {
                 nodes += result.nodes().size();
                 edges += result.edges().size();
             }
+            // Force-cancel any stuck threads before auto-close waits for them
+            executor.shutdownNow();
         }
 
         if (!incremental && (!batchNodes.isEmpty() || !batchEdges.isEmpty())) {
