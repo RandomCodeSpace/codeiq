@@ -171,7 +171,7 @@ code-iq serve /path/to/repo          # needs enrich if using index
 
 ## Server Endpoints (all read-only)
 
-### REST API (`/api`) -- 39 endpoints
+### REST API (`/api`) -- 37 endpoints
 
 **GraphController** (`/api`):
 - `GET /api/stats` -- Rich categorized statistics (graph, languages, frameworks, infra, connections, auth, architecture)

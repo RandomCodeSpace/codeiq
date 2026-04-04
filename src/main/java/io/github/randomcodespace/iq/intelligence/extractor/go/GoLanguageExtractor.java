@@ -56,12 +56,6 @@ public class GoLanguageExtractor implements LanguageExtractor {
             Pattern.compile("^import\\s+(?:\\w+\\s+)?\"([^\"]+)\"", Pattern.MULTILINE);
 
     /**
-     * Method signature in an interface: {@code MethodName(params) ReturnType}.
-     */
-    private static final Pattern INTERFACE_METHOD =
-            Pattern.compile("^\\s+(\\w+)\\s*\\(", Pattern.MULTILINE);
-
-    /**
      * Go receiver method: {@code func (varName StructName) MethodName(}.
      * Captures: group(1) = struct name (with optional pointer *), group(2) = method name.
      */
