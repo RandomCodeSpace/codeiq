@@ -266,6 +266,12 @@
                 <groupId>org.jacoco</groupId>
                 <artifactId>jacoco-maven-plugin</artifactId>
                 <version>${jacoco.version}</version>
+                <configuration>
+                    <!-- Exclude ANTLR-generated grammar parsers from coverage -->
+                    <excludes>
+                        <exclude>io/github/randomcodespace/iq/grammar/**</exclude>
+                    </excludes>
+                </configuration>
                 <executions>
                     <execution>
                         <id>prepare-agent</id>
