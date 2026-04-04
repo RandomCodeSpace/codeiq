@@ -137,8 +137,8 @@ public class EnrichCommand implements Callable<Integer> {
         GraphBuilder.FlushResult flushed = builder.flush();
         List<CodeEdge> recoveredEdges = builder.flushDeferred();
 
-        List<CodeNode> enrichedNodes = builder.getNodes();
-        List<CodeEdge> enrichedEdges = builder.getEdges();
+        List<CodeNode> enrichedNodes = new ArrayList<>(builder.getNodes());
+        List<CodeEdge> enrichedEdges = new ArrayList<>(builder.getEdges());
 
         int linkerNodeDelta = enrichedNodes.size() - allNodes.size();
         int linkerEdgeDelta = enrichedEdges.size() - allEdges.size();
