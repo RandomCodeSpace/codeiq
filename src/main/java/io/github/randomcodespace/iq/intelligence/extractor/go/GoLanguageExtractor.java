@@ -84,6 +84,7 @@ public class GoLanguageExtractor implements LanguageExtractor {
         if (ctx.content() == null || registry.isEmpty()) return List.of();
 
         List<CodeEdge> edges = new ArrayList<>();
+        Set<String> seen = new LinkedHashSet<>();
         List<String> importPaths = collectImportPaths(ctx.content());
 
         for (String importPath : importPaths) {
@@ -98,10 +99,12 @@ public class GoLanguageExtractor implements LanguageExtractor {
             }
             if (target != null && !target.getId().equals(node.getId())) {
                 String edgeId = "imports:%s:%s".formatted(node.getId(), target.getId());
-                CodeEdge edge = new CodeEdge(edgeId, EdgeKind.IMPORTS, node.getId(), target);
-                edge.getProperties().put("confidence", "PARTIAL");
-                edge.getProperties().put("extractorName", "go_language_extractor");
-                edges.add(edge);
+                if (seen.add(edgeId)) {
+                    CodeEdge edge = new CodeEdge(edgeId, EdgeKind.IMPORTS, node.getId(), target);
+                    edge.getProperties().put("confidence", "PARTIAL");
+                    edge.getProperties().put("extractorName", "go_language_extractor");
+                    edges.add(edge);
+                }
             }
         }
 
@@ -159,16 +162,21 @@ public class GoLanguageExtractor implements LanguageExtractor {
     }
 
     /**
-     * Look up a node by label, returning null if zero or more than one node matches.
+     * Look up a node by label, returning null if zero or more than one distinct node matches.
      * Prevents false-positive IMPORTS edges for short package names like {@code db},
      * {@code log}, {@code config} that may match multiple nodes in the registry.
+     * Deduplicates by node ID so that the same node stored under multiple keys is not
+     * counted as ambiguous.
      */
     private CodeNode lookupUnambiguous(String label, Map<String, CodeNode> registry) {
         CodeNode match = null;
         for (CodeNode candidate : registry.values()) {
             if (label.equals(candidate.getLabel())) {
-                if (match != null) return null; // ambiguous
-                match = candidate;
+                if (match == null) {
+                    match = candidate;
+                } else if (!match.getId().equals(candidate.getId())) {
+                    return null; // genuinely ambiguous — two distinct nodes share the label
+                }
             }
         }
         return match;

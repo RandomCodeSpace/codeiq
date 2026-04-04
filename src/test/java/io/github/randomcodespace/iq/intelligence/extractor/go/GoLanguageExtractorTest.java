@@ -193,6 +193,34 @@ class GoLanguageExtractorTest {
         assertThat(r1.typeHints()).isEqualTo(r2.typeHints());
     }
 
+    @Test
+    void extract_samePkgMatchedByNameAndPath_noDuplicateEdges() {
+        var extractor = new GoLanguageExtractor();
+        String content = """
+                package main
+                import "github.com/myorg/utils"
+                import utils "github.com/myorg/utils"
+                """;
+
+        CodeNode source = node("go:main.go:package:main", NodeKind.MODULE, "main");
+        source.setFilePath("main.go");
+        CodeNode target = node("go:utils/utils.go:package:utils", NodeKind.MODULE, "utils");
+        target.setFilePath("utils/utils.go");
+
+        Map<String, CodeNode> registry = new java.util.LinkedHashMap<>();
+        registry.put(target.getId(), target);
+        registry.put(target.getLabel(), target);
+        registry.put("github.com/myorg/utils", target);
+
+        var ctx = new DetectorContext("main.go", "go", content, registry, null);
+        var result = extractor.extract(ctx, source);
+
+        long importEdges = result.symbolReferences().stream()
+                .filter(e -> e.getKind() == EdgeKind.IMPORTS)
+                .count();
+        assertThat(importEdges).isEqualTo(1);
+    }
+
     private static CodeNode node(String id, NodeKind kind, String label) {
         CodeNode n = new CodeNode(id, kind, label);
         n.setFqn(id);
