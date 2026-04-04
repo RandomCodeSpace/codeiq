@@ -1,8 +1,8 @@
-# OSSCodeIQ (Java) -- Project Instructions
+# Code IQ (Java) -- Project Instructions
 
 ## What This Project Is
 
-**OSSCodeIQ** -- a CLI tool + server that scans codebases to build a deterministic code knowledge graph. No AI, no external APIs -- pure static analysis. 97 detectors, 35+ languages, Neo4j Embedded graph database, Spring AI MCP server, REST API, web UI.
+**Code IQ** -- a CLI tool + server that scans codebases to build a deterministic code knowledge graph. No AI, no external APIs -- pure static analysis. 97 detectors, 35+ languages, Neo4j Embedded graph database, Spring AI MCP server, REST API, web UI.
 
 - **Maven coordinates:** `io.github.randomcodespace.iq:code-iq`
 - **CLI command:** `code-iq` (via `java -jar`)
