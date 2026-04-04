@@ -297,7 +297,10 @@ public class Analyzer {
             // Collect in order -- deterministic regardless of thread completion order
             for (int i = 0; i < futures.size(); i++) {
                 try {
-                    futures.get(i).get();
+                    futures.get(i).get(30, java.util.concurrent.TimeUnit.SECONDS);
+                } catch (java.util.concurrent.TimeoutException e) {
+                    futures.get(i).cancel(true);
+                    log.warn("Analysis timed out for {} (30s limit), skipping", files.get(i).path());
                 } catch (ExecutionException e) {
                     log.warn("Analysis failed for {}", files.get(i).path(), e.getCause());
                 } catch (InterruptedException e) {
@@ -585,7 +588,10 @@ public class Analyzer {
                     // Collect in order
                     for (int i = 0; i < futures.size(); i++) {
                         try {
-                            futures.get(i).get();
+                            futures.get(i).get(30, java.util.concurrent.TimeUnit.SECONDS);
+                        } catch (java.util.concurrent.TimeoutException e) {
+                            futures.get(i).cancel(true);
+                            log.warn("Analysis timed out for {} (30s limit), skipping", batch.get(i).path());
                         } catch (ExecutionException e) {
                             log.warn("Analysis failed for {}", batch.get(i).path(), e.getCause());
                         } catch (InterruptedException e) {
@@ -952,7 +958,10 @@ public class Analyzer {
 
         for (int i = 0; i < futures.size(); i++) {
             try {
-                futures.get(i).get();
+                futures.get(i).get(30, java.util.concurrent.TimeUnit.SECONDS);
+            } catch (java.util.concurrent.TimeoutException e) {
+                futures.get(i).cancel(true);
+                log.warn("Analysis timed out for {} (30s limit), skipping", batch.get(i).path());
             } catch (ExecutionException e) {
                 log.warn("Analysis failed for {}", batch.get(i).path(), e.getCause());
             } catch (InterruptedException e) {
