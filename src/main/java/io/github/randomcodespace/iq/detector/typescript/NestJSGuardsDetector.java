@@ -1,6 +1,5 @@
 package io.github.randomcodespace.iq.detector.typescript;
 
-import io.github.randomcodespace.iq.detector.AbstractAntlrDetector;
 import io.github.randomcodespace.iq.detector.DetectorContext;
 import io.github.randomcodespace.iq.detector.DetectorResult;
 import io.github.randomcodespace.iq.model.CodeNode;
@@ -9,7 +8,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import io.github.randomcodespace.iq.detector.DetectorInfo;
@@ -20,12 +18,12 @@ import io.github.randomcodespace.iq.detector.ParserType;
     category = "auth",
     description = "Detects NestJS guards (AuthGuard, RolesGuard, custom guards)",
     parser = ParserType.REGEX,
-    languages = {"typescript"},
+    languages = {"typescript", "javascript"},
     nodeKinds = {NodeKind.GUARD},
     properties = {"auth_type", "roles", "strategy"}
 )
 @Component
-public class NestJSGuardsDetector extends AbstractAntlrDetector {
+public class NestJSGuardsDetector extends AbstractTypeScriptDetector {
     private static final String PROP_AUTH_TYPE = "auth_type";
     private static final String PROP_NESTJS_GUARD = "nestjs_guard";
     private static final String PROP_ROLES = "roles";
@@ -56,18 +54,6 @@ public class NestJSGuardsDetector extends AbstractAntlrDetector {
     @Override
     public String getName() {
         return "typescript.nestjs_guards";
-    }
-
-    @Override
-    public Set<String> getSupportedLanguages() {
-        return Set.of("typescript");
-    }
-
-    @Override
-    public DetectorResult detect(DetectorContext ctx) {
-        // Skip ANTLR parsing — regex is the primary detection method for this detector
-        // ANTLR infrastructure is in place for future enhancement
-        return detectWithRegex(ctx);
     }
 
     @Override

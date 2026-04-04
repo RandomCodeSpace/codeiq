@@ -1,6 +1,5 @@
 package io.github.randomcodespace.iq.detector.typescript;
 
-import io.github.randomcodespace.iq.detector.AbstractAntlrDetector;
 import io.github.randomcodespace.iq.grammar.AntlrParserFactory;
 import io.github.randomcodespace.iq.detector.DetectorContext;
 import io.github.randomcodespace.iq.detector.DetectorResult;
@@ -30,7 +29,7 @@ import io.github.randomcodespace.iq.detector.ParserType;
     edgeKinds = {EdgeKind.IMPORTS}
 )
 @Component
-public class TypeScriptStructuresDetector extends AbstractAntlrDetector {
+public class TypeScriptStructuresDetector extends AbstractTypeScriptDetector {
     private static final String PROP_ASYNC = "async";
     private static final String PROP_TYPESCRIPT = "typescript";
 
@@ -66,8 +65,16 @@ public class TypeScriptStructuresDetector extends AbstractAntlrDetector {
     }
 
     @Override
-    public Set<String> getSupportedLanguages() {
-        return Set.of(PROP_TYPESCRIPT, "javascript");
+    public DetectorResult detect(DetectorContext ctx) {
+        try {
+            ParseTree tree = parse(ctx);
+            if (tree != null) {
+                return detectWithAst(tree, ctx);
+            }
+        } catch (Throwable e) {
+            // Fall back to regex on ANTLR parse failure
+        }
+        return detectWithRegex(ctx);
     }
 
     @Override

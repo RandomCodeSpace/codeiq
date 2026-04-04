@@ -1,6 +1,5 @@
 package io.github.randomcodespace.iq.detector.typescript;
 
-import io.github.randomcodespace.iq.detector.AbstractAntlrDetector;
 import io.github.randomcodespace.iq.grammar.AntlrParserFactory;
 import io.github.randomcodespace.iq.detector.DetectorContext;
 import io.github.randomcodespace.iq.detector.DetectorResult;
@@ -13,7 +12,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import io.github.randomcodespace.iq.detector.DetectorInfo;
@@ -24,13 +22,13 @@ import io.github.randomcodespace.iq.detector.ParserType;
     category = "endpoints",
     description = "Detects NestJS controllers and their route definitions",
     parser = ParserType.REGEX,
-    languages = {"typescript"},
+    languages = {"typescript", "javascript"},
     nodeKinds = {NodeKind.CLASS, NodeKind.ENDPOINT},
     edgeKinds = {EdgeKind.EXPOSES, EdgeKind.CALLS},
     properties = {"framework", "http_method", "protocol"}
 )
 @Component
-public class NestJSControllerDetector extends AbstractAntlrDetector {
+public class NestJSControllerDetector extends AbstractTypeScriptDetector {
 
     // ---- HTTP client patterns (for CALLS edge emission) ----
     private static final Pattern HTTP_CLIENT_RE = Pattern.compile(
@@ -51,11 +49,6 @@ public class NestJSControllerDetector extends AbstractAntlrDetector {
     @Override
     public String getName() {
         return "typescript.nestjs_controllers";
-    }
-
-    @Override
-    public Set<String> getSupportedLanguages() {
-        return Set.of("typescript");
     }
 
     @Override

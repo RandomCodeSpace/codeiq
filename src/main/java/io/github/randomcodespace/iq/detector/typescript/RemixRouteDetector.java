@@ -1,6 +1,5 @@
 package io.github.randomcodespace.iq.detector.typescript;
 
-import io.github.randomcodespace.iq.detector.AbstractAntlrDetector;
 import io.github.randomcodespace.iq.detector.DetectorContext;
 import io.github.randomcodespace.iq.detector.DetectorResult;
 import io.github.randomcodespace.iq.model.CodeNode;
@@ -9,7 +8,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import io.github.randomcodespace.iq.detector.DetectorInfo;
@@ -25,7 +23,7 @@ import io.github.randomcodespace.iq.detector.ParserType;
     properties = {"framework", "http_method", "route_path"}
 )
 @Component
-public class RemixRouteDetector extends AbstractAntlrDetector {
+public class RemixRouteDetector extends AbstractTypeScriptDetector {
     private static final String PROP_FRAMEWORK = "framework";
     private static final String PROP_REMIX = "remix";
     private static final String PROP_ROUTE_PATH = "route_path";
@@ -59,18 +57,6 @@ public class RemixRouteDetector extends AbstractAntlrDetector {
     @Override
     public String getName() {
         return "remix_routes";
-    }
-
-    @Override
-    public Set<String> getSupportedLanguages() {
-        return Set.of("typescript", "javascript");
-    }
-
-    @Override
-    public DetectorResult detect(DetectorContext ctx) {
-        // Skip ANTLR parsing — regex is the primary detection method for this detector
-        // ANTLR infrastructure is in place for future enhancement
-        return detectWithRegex(ctx);
     }
 
     @Override

@@ -1,7 +1,5 @@
 package io.github.randomcodespace.iq.detector.typescript;
 
-import io.github.randomcodespace.iq.detector.AbstractAntlrDetector;
-import io.github.randomcodespace.iq.grammar.AntlrParserFactory;
 import io.github.randomcodespace.iq.detector.DetectorContext;
 import io.github.randomcodespace.iq.detector.DetectorResult;
 import io.github.randomcodespace.iq.model.CodeNode;
@@ -10,7 +8,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import io.github.randomcodespace.iq.detector.DetectorInfo;
@@ -26,7 +23,7 @@ import io.github.randomcodespace.iq.detector.ParserType;
     properties = {"framework", "protocol"}
 )
 @Component
-public class GraphQLResolverDetector extends AbstractAntlrDetector {
+public class GraphQLResolverDetector extends AbstractTypeScriptDetector {
 
     private static final Pattern NESTJS_RESOLVER = Pattern.compile(
             "@Resolver\\(\\s*(?:of\\s*=>\\s*)?(\\w+)?\\s*\\)\\s*\\n\\s*(?:export\\s+)?class\\s+(\\w+)"
@@ -47,18 +44,6 @@ public class GraphQLResolverDetector extends AbstractAntlrDetector {
     @Override
     public String getName() {
         return "typescript.graphql_resolvers";
-    }
-
-    @Override
-    public Set<String> getSupportedLanguages() {
-        return Set.of("typescript", "javascript");
-    }
-
-    @Override
-    public DetectorResult detect(DetectorContext ctx) {
-        // Skip ANTLR parsing — regex is the primary detection method for this detector
-        // ANTLR infrastructure is in place for future enhancement
-        return detectWithRegex(ctx);
     }
 
     @Override

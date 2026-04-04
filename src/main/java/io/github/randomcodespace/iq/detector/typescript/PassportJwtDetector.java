@@ -1,6 +1,5 @@
 package io.github.randomcodespace.iq.detector.typescript;
 
-import io.github.randomcodespace.iq.detector.AbstractAntlrDetector;
 import io.github.randomcodespace.iq.detector.DetectorContext;
 import io.github.randomcodespace.iq.detector.DetectorResult;
 import io.github.randomcodespace.iq.model.CodeNode;
@@ -9,7 +8,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import io.github.randomcodespace.iq.detector.DetectorInfo;
@@ -25,7 +23,7 @@ import io.github.randomcodespace.iq.detector.ParserType;
     properties = {"auth_type", "strategy"}
 )
 @Component
-public class PassportJwtDetector extends AbstractAntlrDetector {
+public class PassportJwtDetector extends AbstractTypeScriptDetector {
     private static final String PROP_AUTH_TYPE = "auth_type";
     private static final String PROP_JWT = "jwt";
 
@@ -53,18 +51,6 @@ public class PassportJwtDetector extends AbstractAntlrDetector {
     @Override
     public String getName() {
         return "typescript.passport_jwt";
-    }
-
-    @Override
-    public Set<String> getSupportedLanguages() {
-        return Set.of("typescript", "javascript");
-    }
-
-    @Override
-    public DetectorResult detect(DetectorContext ctx) {
-        // Skip ANTLR parsing — regex is the primary detection method for this detector
-        // ANTLR infrastructure is in place for future enhancement
-        return detectWithRegex(ctx);
     }
 
     @Override

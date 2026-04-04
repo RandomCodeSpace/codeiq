@@ -1,8 +1,6 @@
 package io.github.randomcodespace.iq.detector.typescript;
 
-import io.github.randomcodespace.iq.detector.AbstractAntlrDetector;
 import io.github.randomcodespace.iq.detector.DetectorDbHelper;
-import io.github.randomcodespace.iq.grammar.AntlrParserFactory;
 import io.github.randomcodespace.iq.detector.DetectorContext;
 import io.github.randomcodespace.iq.detector.DetectorResult;
 import io.github.randomcodespace.iq.model.CodeEdge;
@@ -13,7 +11,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Set;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import io.github.randomcodespace.iq.detector.DetectorInfo;
@@ -24,13 +21,13 @@ import io.github.randomcodespace.iq.detector.ParserType;
     category = "entities",
     description = "Detects TypeORM entity definitions and column mappings",
     parser = ParserType.REGEX,
-    languages = {"typescript"},
+    languages = {"typescript", "javascript"},
     nodeKinds = {NodeKind.ENTITY, NodeKind.DATABASE_CONNECTION},
     edgeKinds = {EdgeKind.MAPS_TO, EdgeKind.CONNECTS_TO},
     properties = {"columns", "framework", "table_name"}
 )
 @Component
-public class TypeORMEntityDetector extends AbstractAntlrDetector {
+public class TypeORMEntityDetector extends AbstractTypeScriptDetector {
 
     private static final Pattern ENTITY_PATTERN = Pattern.compile(
             "@Entity\\(\\s*['\"`]?(\\w*)['\"`]?\\s*\\)\\s*\\n\\s*(?:export\\s+)?class\\s+(\\w+)"
@@ -47,18 +44,6 @@ public class TypeORMEntityDetector extends AbstractAntlrDetector {
     @Override
     public String getName() {
         return "typescript.typeorm_entities";
-    }
-
-    @Override
-    public Set<String> getSupportedLanguages() {
-        return Set.of("typescript");
-    }
-
-    @Override
-    public DetectorResult detect(DetectorContext ctx) {
-        // Skip ANTLR parsing — regex is the primary detection method for this detector
-        // ANTLR infrastructure is in place for future enhancement
-        return detectWithRegex(ctx);
     }
 
     @Override

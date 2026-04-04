@@ -1,8 +1,6 @@
 package io.github.randomcodespace.iq.detector.typescript;
 
-import io.github.randomcodespace.iq.detector.AbstractAntlrDetector;
 import io.github.randomcodespace.iq.detector.DetectorDbHelper;
-import io.github.randomcodespace.iq.grammar.AntlrParserFactory;
 import io.github.randomcodespace.iq.detector.DetectorContext;
 import io.github.randomcodespace.iq.detector.DetectorResult;
 import io.github.randomcodespace.iq.model.CodeEdge;
@@ -28,7 +26,7 @@ import io.github.randomcodespace.iq.detector.ParserType;
     properties = {"framework", "operation"}
 )
 @Component
-public class PrismaORMDetector extends AbstractAntlrDetector {
+public class PrismaORMDetector extends AbstractTypeScriptDetector {
 
     private static final Pattern PRISMA_OP_RE = Pattern.compile(
             "prisma\\.(\\w+)\\.(findMany|findFirst|findUnique|create|update|delete|upsert|count|aggregate|groupBy)\\s*\\("
@@ -49,18 +47,6 @@ public class PrismaORMDetector extends AbstractAntlrDetector {
     @Override
     public String getName() {
         return "prisma_orm";
-    }
-
-    @Override
-    public Set<String> getSupportedLanguages() {
-        return Set.of("typescript", "javascript");
-    }
-
-    @Override
-    public DetectorResult detect(DetectorContext ctx) {
-        // Skip ANTLR parsing — regex is the primary detection method for this detector
-        // ANTLR infrastructure is in place for future enhancement
-        return detectWithRegex(ctx);
     }
 
     @Override

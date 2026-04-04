@@ -64,7 +64,7 @@ class AnalyzeCommandTest {
 
         String output = capture.toString(StandardCharsets.UTF_8);
         assertEquals(0, exitCode);
-        assertTrue(output.contains("Analysis complete"), "Should report completion");
+        assertTrue(output.contains("Complete"), "Should report completion");
         assertTrue(output.contains("120"), "Should show node count");
         assertTrue(output.contains("85"), "Should show edge count");
     }

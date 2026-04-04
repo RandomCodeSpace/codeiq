@@ -1,6 +1,5 @@
 package io.github.randomcodespace.iq.detector.typescript;
 
-import io.github.randomcodespace.iq.detector.AbstractAntlrDetector;
 import io.github.randomcodespace.iq.detector.DetectorContext;
 import io.github.randomcodespace.iq.detector.DetectorResult;
 import io.github.randomcodespace.iq.grammar.AntlrParserFactory;
@@ -30,7 +29,7 @@ import io.github.randomcodespace.iq.detector.ParserType;
     properties = {"framework", "http_method", "protocol"}
 )
 @Component
-public class ExpressRouteDetector extends AbstractAntlrDetector {
+public class ExpressRouteDetector extends AbstractTypeScriptDetector {
 
     private static final Set<String> HTTP_METHODS = Set.of(
             "get", "post", "put", "delete", "patch", "options", "head", "all"
@@ -43,19 +42,6 @@ public class ExpressRouteDetector extends AbstractAntlrDetector {
     @Override
     public String getName() {
         return "typescript.express_routes";
-    }
-
-    @Override
-    public Set<String> getSupportedLanguages() {
-        return Set.of("typescript", "javascript");
-    }
-
-    @Override
-    public DetectorResult detect(DetectorContext ctx) {
-        // Skip ANTLR parsing — regex is the primary detection method for this detector.
-        // The JavaScript ANTLR grammar is too slow for production use (1-20s per file).
-        // Regex produces identical results for Express route detection.
-        return detectWithRegex(ctx);
     }
 
     @Override

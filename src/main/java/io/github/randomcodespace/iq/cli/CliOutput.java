@@ -80,6 +80,42 @@ final class CliOutput {
     }
 
     /**
+     * Configure shared CLI options: graph directory, service name, and project-level overrides.
+     * Used by both {@code analyze} and {@code index} commands.
+     */
+    static void configureFromOptions(io.github.randomcodespace.iq.config.CodeIqConfig config,
+                                     java.nio.file.Path graphDir, String serviceName,
+                                     java.nio.file.Path root) {
+        if (graphDir != null) {
+            java.nio.file.Path sharedDir = graphDir.toAbsolutePath().normalize();
+            config.setCacheDir(sharedDir.toString());
+            info("  Graph dir: " + sharedDir + " (shared multi-repo)");
+        }
+        if (serviceName != null && !serviceName.isBlank()) {
+            config.setServiceName(serviceName);
+            info("  Service name: " + serviceName);
+        }
+        io.github.randomcodespace.iq.config.ProjectConfigLoader.loadIfPresent(root, config);
+    }
+
+    /**
+     * Print the result summary shared by analyze and index commands:
+     * blank line, success banner, blank line, files/nodes/edges/time, and breakdowns.
+     */
+    static void printResultSummary(AnalysisResult result, NumberFormat nf) {
+        long secs = result.elapsed().toSeconds();
+        String timeStr = secs > 0 ? secs + "s" : result.elapsed().toMillis() + "ms";
+
+        System.out.println();
+        success("\u2705 Complete \u2014 "
+                + nf.format(result.nodeCount()) + " nodes, "
+                + nf.format(result.edgeCount()) + " edges in " + timeStr);
+        System.out.println();
+        printAnalysisStats(result, nf);
+        printBreakdowns(result, nf);
+    }
+
+    /**
      * Print files/nodes/edges/time summary lines shared by analyze and index commands.
      * Callers are responsible for printing the preceding success banner and any
      * command-specific extra lines (e.g. "Store: H2…").

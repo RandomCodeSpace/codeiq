@@ -3,7 +3,6 @@ package io.github.randomcodespace.iq.cli;
 import io.github.randomcodespace.iq.analyzer.AnalysisResult;
 import io.github.randomcodespace.iq.analyzer.Analyzer;
 import io.github.randomcodespace.iq.config.CodeIqConfig;
-import io.github.randomcodespace.iq.config.ProjectConfigLoader;
 import org.springframework.stereotype.Component;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
@@ -63,21 +62,7 @@ public class IndexCommand implements Callable<Integer> {
     public Integer call() {
         Path root = path.toAbsolutePath().normalize();
 
-        // If --graph is set, override the cache directory to the shared location
-        if (graphDir != null) {
-            Path sharedDir = graphDir.toAbsolutePath().normalize();
-            config.setCacheDir(sharedDir.toString());
-            CliOutput.info("  Graph dir: " + sharedDir + " (shared multi-repo)");
-        }
-
-        // If --service-name is set, tag all nodes with this service identifier
-        if (serviceName != null && !serviceName.isBlank()) {
-            config.setServiceName(serviceName);
-            CliOutput.info("  Service name: " + serviceName);
-        }
-
-        // Load project-level config overrides from .osscodeiq.yml if present
-        ProjectConfigLoader.loadIfPresent(root, config);
+        CliOutput.configureFromOptions(config, graphDir, serviceName, root);
 
         // Use configured batch size if not overridden on command line
         int effectiveBatchSize = batchSize > 0 ? batchSize : config.getBatchSize();
@@ -118,17 +103,8 @@ public class IndexCommand implements Callable<Integer> {
             }
         });
 
-        long secs = result.elapsed().toSeconds();
-        String timeStr = secs > 0 ? secs + "s" : result.elapsed().toMillis() + "ms";
-
-        System.out.println();
-        CliOutput.success("\u2705 Index complete -- "
-                + nf.format(result.nodeCount()) + " nodes, "
-                + nf.format(result.edgeCount()) + " edges in " + timeStr);
-        System.out.println();
-        CliOutput.printAnalysisStats(result, nf);
+        CliOutput.printResultSummary(result, nf);
         CliOutput.info("  Store:   H2 (.code-intelligence/analysis-cache)");
-        CliOutput.printBreakdowns(result, nf);
 
         System.out.println();
         CliOutput.info("  Next step: code-iq enrich " + root);

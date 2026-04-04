@@ -1,6 +1,5 @@
 package io.github.randomcodespace.iq.detector.typescript;
 
-import io.github.randomcodespace.iq.detector.AbstractAntlrDetector;
 import io.github.randomcodespace.iq.detector.DetectorContext;
 import io.github.randomcodespace.iq.detector.DetectorResult;
 import io.github.randomcodespace.iq.model.CodeEdge;
@@ -26,7 +25,7 @@ import io.github.randomcodespace.iq.detector.ParserType;
     properties = {"broker", "group_id", "topic"}
 )
 @Component
-public class KafkaJSDetector extends AbstractAntlrDetector {
+public class KafkaJSDetector extends AbstractTypeScriptDetector {
     private static final String PROP_KAFKA = "kafka";
     private static final String PROP_TOPIC = "topic";
 
@@ -49,17 +48,6 @@ public class KafkaJSDetector extends AbstractAntlrDetector {
     @Override
     public String getName() {
         return "kafka_js";
-    }
-
-    @Override
-    public Set<String> getSupportedLanguages() {
-        return Set.of("typescript", "javascript");
-    }
-    @Override
-    public DetectorResult detect(DetectorContext ctx) {
-        // Skip ANTLR parsing — regex is the primary detection method for this detector
-        // ANTLR infrastructure is in place for future enhancement
-        return detectWithRegex(ctx);
     }
 
     @Override
