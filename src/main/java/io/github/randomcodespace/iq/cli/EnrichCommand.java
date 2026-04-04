@@ -374,11 +374,4 @@ public class EnrichCommand implements Callable<Integer> {
         }
     }
 
-    /**
-     * Sanitize relationship type for Neo4j Cypher.
-     * Neo4j relationship types must be alphanumeric + underscore.
-     */
-    private static String sanitizeRelType(String kind) {
-        return kind.replaceAll("[^A-Za-z0-9_]", "_").toUpperCase();
-    }
 }

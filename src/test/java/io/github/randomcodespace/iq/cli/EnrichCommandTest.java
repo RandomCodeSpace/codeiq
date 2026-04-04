@@ -57,10 +57,7 @@ class EnrichCommandTest {
         var cmdLine = new picocli.CommandLine(cmd);
         int exitCode = cmdLine.execute(tempDir.toString());
 
-        // Should fail because no H2 index exists (or succeed creating empty DB)
-        // The command tries to load from H2 which may be empty
-        // At minimum it should not crash
-        assertTrue(exitCode == 0 || exitCode == 1);
+        assertEquals(1, exitCode, "enrich with no H2 index should fail with exit code 1");
     }
 
     @Test
