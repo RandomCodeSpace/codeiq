@@ -18,7 +18,7 @@
 
 ---
 
-**OSSCodeIQ** scans codebases to build a deterministic knowledge graph of code relationships -- classes, methods, endpoints, entities, dependencies, infrastructure resources, auth patterns, service topology, and more. 97 detectors across 35+ languages, Neo4j Embedded graph database, Spring AI MCP server (31 tools), REST API (34 endpoints), React web UI, and zero AI dependency.
+**OSSCodeIQ** scans codebases to build a deterministic knowledge graph of code relationships -- classes, methods, endpoints, entities, dependencies, infrastructure resources, auth patterns, service topology, and more. 97 detectors across 35+ languages, Neo4j Embedded graph database, Spring AI MCP server (34 tools), REST API (37 endpoints), React web UI, and zero AI dependency.
 
 ## Quick Start
 
@@ -49,8 +49,8 @@ java -jar target/code-iq-*-cli.jar serve /path/to/repo
 - **ANTLR grammars** for 10 languages (TypeScript, JavaScript, Python, Go, C#, Rust, Kotlin, Scala, C++)
 - **Neo4j Embedded** graph database -- full Cypher query support, no external server needed
 - **H2 analysis cache** -- batched streaming for memory-efficient indexing on CI runners
-- **Spring AI MCP server** -- 31 tools via streamable HTTP for AI-powered triage
-- **REST API** -- 34 endpoints for programmatic access
+- **Spring AI MCP server** -- 34 tools via streamable HTTP for AI-powered triage
+- **REST API** -- 37 endpoints for programmatic access
 - **React UI** -- Dashboard, Topology (Cytoscape.js), Explorer, Flow, MCP Console, API Docs (Swagger)
 - **Service Topology** -- AppDynamics-style service map with blast radius, circular deps, bottleneck detection
 - **CLI with 15 commands** -- analyze, index, enrich, serve, stats, graph, query, find, cypher, flow, topology, bundle, cache, plugins, version
@@ -61,7 +61,7 @@ java -jar target/code-iq-*-cli.jar serve /path/to/repo
 - **Bundle & distribute** -- package graph DB + source + interactive HTML into a ZIP
 - **100% deterministic** -- same input, same output, every time
 - **Incremental analysis** -- H2-backed file hash cache, only re-analyzes changed files
-- **1,440 tests** passing
+- **3,219 tests** passing
 
 ## Three-Command Architecture
 
@@ -196,7 +196,7 @@ code-iq serve /path/to/repo
     |         |        |
     v         v        v
  REST API   MCP     React UI
- (34 ep)   (31 tools) (6 pages)
+ (37 ep)   (34 tools) (6 pages)
 ```
 
 ## Server
@@ -234,13 +234,16 @@ Modern React 18 + TypeScript + Tailwind CSS interface:
 - `/api/topology/path` -- find path between services
 
 ### MCP Server (`/mcp`)
-31 tools via Spring AI streamable HTTP for AI-powered code triage:
+34 tools via Spring AI streamable HTTP for AI-powered code triage:
 
 **Core (21 tools):**
 `get_stats`, `get_detailed_stats`, `query_nodes`, `query_edges`, `get_node_neighbors`, `get_ego_graph`, `find_cycles`, `find_shortest_path`, `find_consumers`, `find_producers`, `find_callers`, `find_dependencies`, `find_dependents`, `find_dead_code`, `generate_flow`, `run_cypher`, `find_component_by_file`, `trace_impact`, `find_related_endpoints`, `search_graph`, `read_file`
 
 **Topology (10 tools):**
 `get_topology`, `service_detail`, `service_dependencies`, `service_dependents`, `blast_radius`, `find_path`, `find_bottlenecks`, `find_circular_deps`, `find_dead_services`, `find_node`
+
+**Intelligence (3 tools):**
+`get_evidence_pack`, `get_artifact_metadata`, `get_capabilities`
 
 ## Service Topology
 
@@ -342,7 +345,7 @@ cd code-iq
 # Build
 mvn clean package
 
-# Run tests (1,440 tests)
+# Run tests (3,219 tests)
 mvn test
 
 # Analyze this repo

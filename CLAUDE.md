@@ -96,7 +96,7 @@ io.github.randomcodespace.iq
   |-- grammar/                     # ANTLR parser factory + generated parsers
   |-- graph/                       # GraphStore (Neo4j facade), GraphRepository (SDN, writes only)
   |-- health/                      # GraphHealthIndicator (Spring Actuator)
-  |-- mcp/                         # McpTools (34 @McpTool methods, read-only)
+  |-- mcp/                         # McpTools (34 @McpTool methods, read-only, includes intelligence tools)
   |-- model/                       # CodeNode, CodeEdge, NodeKind (32), EdgeKind (27)
   |-- intelligence/               # Intelligence enrichment (Phase 2-5)
   |   |-- lexical/                # LexicalEnricher, LexicalQueryService, DocCommentExtractor, SnippetStore
@@ -250,11 +250,22 @@ code-iq serve /path/to/repo          # needs enrich if using index
 | `AbstractJavaParserDetector` | Java AST via JavaParser (Spring, JPA, etc.) |
 | `AbstractAntlrDetector` | ANTLR grammar-based (TS, Python, Go, C#, Rust, C++) |
 | `AbstractStructuredDetector` | Structured file parsing (YAML, JSON, TOML, etc.) |
+| `AbstractPythonAntlrDetector` | Python ANTLR detectors (shared parse, getBaseClassesText, extractClassBody) |
+| `AbstractPythonDbDetector` | Python ORM detectors (adds ensureDbNode/addDbEdge via DetectorDbHelper) |
+| `AbstractTypeScriptDetector` | TypeScript regex detectors (shared getSupportedLanguages, detect→detectWithRegex) |
+| `AbstractJavaMessagingDetector` | Java messaging detectors (shared CLASS_RE, extractClassName, addMessagingEdge) |
+
+### Shared Detector Helpers
+| Class | Purpose |
+|-------|---------|
+| `DetectorDbHelper` | Static ensureDbNode/addDbEdge for any detector emitting DATABASE_CONNECTION nodes |
+| `FrontendDetectorHelper` | Static createComponentNode/lineAt for Angular, React, Vue detectors |
+| `StructuresDetectorHelper` | Static addImportEdge/createStructureNode for Scala/Kotlin structures |
 
 ## Testing
 
 ```bash
-# Run all tests (~1440 tests)
+# Run all tests (~3219 tests)
 mvn test
 
 # Run a specific test class
@@ -352,6 +363,7 @@ mvn dependency-check:check
 - Neo4j properties round-trip via `prop_*` prefix (written by `bulkSave`, read by `nodeFromNeo4j`)
 - Jackson `FAIL_ON_UNKNOWN_PROPERTIES` disabled globally for MCP protocol compatibility
 - UTF-8 encoding everywhere (explicit `StandardCharsets.UTF_8`)
+- Property key constants: `private static final String PROP_FRAMEWORK = "framework"` — extract when a string literal appears 3+ times in a file
 
 ## Configuration
 
@@ -384,6 +396,14 @@ Placed in the codebase root, loaded by `ProjectConfigLoader` before analysis.
 - **ANTLR generated sources**: Generated during `mvn generate-sources` from `.g4` files. Do not edit.
 - **`@ActiveProfiles("test")`**: Required on any `@SpringBootTest` to avoid Neo4j startup conflicts.
 - **Dead code detection**: Must filter by semantic edges only (calls, imports, depends_on). Exclude structural edges (contains, defines) and entry points (endpoints, config files).
+- **H2 reserved words**: `key`, `value`, `order` are reserved in H2 SQL. Use `meta_key`, `meta_value` etc. in CREATE TABLE statements.
+- **Cache versioning**: `AnalysisCache` has a `CACHE_VERSION` constant (currently 2). Bump it when changing hash algorithms or schema to auto-clear stale caches.
+- **FileHasher uses SHA-256**: Changed from MD5. Hash output is 64 hex chars (not 32). Tests must expect 64-char hashes.
+- **SnakeYAML parses `on` as Boolean.TRUE**: In YAML files, bare `on` key becomes `Boolean.TRUE`. Use `String.valueOf(key)` comparisons, not `Boolean.TRUE.equals(key)` (SonarCloud S2159).
+- **Regex possessive quantifiers**: Use `*+` instead of `*` for nested quantifiers like `([^"\\]*(?:\\.[^"\\]*)*)` → `([^"\\]*+(?:\\.[^"\\]*+)*+)` to prevent stack overflow (SonarCloud S5998).
+- **Parallel agent conflicts**: Don't dispatch multiple agents editing the same files concurrently. Use worktree isolation or sequential execution.
+- **SonarCloud project key**: `RandomCodeSpace_code-iq`, org: `randomcodespace`
+- **CI workflow**: Single `ci-java.yml` runs build + SonarCloud analysis. No cross-platform builds needed (JVM).
 
 ## Updating This File
 
