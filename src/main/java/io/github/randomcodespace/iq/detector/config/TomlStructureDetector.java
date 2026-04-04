@@ -14,6 +14,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+
 import io.github.randomcodespace.iq.detector.DetectorInfo;
 import io.github.randomcodespace.iq.detector.ParserType;
 
@@ -52,13 +53,7 @@ public class TomlStructureDetector extends AbstractStructuredDetector {
         List<CodeEdge> edges = new ArrayList<>();
 
         // CONFIG_FILE node for the file itself
-        CodeNode fileNode = new CodeNode(fileId, NodeKind.CONFIG_FILE, fp);
-        fileNode.setFqn(fp);
-        fileNode.setModule(ctx.moduleName());
-        fileNode.setFilePath(fp);
-        fileNode.setLineStart(1);
-        fileNode.setProperties(Map.of("format", "toml"));
-        nodes.add(fileNode);
+        nodes.add(buildFileNode(ctx, "toml"));
 
         Object parsedData = ctx.parsedData();
         if (parsedData == null) {

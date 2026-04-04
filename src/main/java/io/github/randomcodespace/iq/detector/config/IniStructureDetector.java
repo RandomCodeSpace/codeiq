@@ -52,13 +52,7 @@ public class IniStructureDetector extends AbstractStructuredDetector {
         List<CodeEdge> edges = new ArrayList<>();
 
         // CONFIG_FILE node for the file itself
-        CodeNode fileNode = new CodeNode(fileId, NodeKind.CONFIG_FILE, fp);
-        fileNode.setFqn(fp);
-        fileNode.setModule(ctx.moduleName());
-        fileNode.setFilePath(fp);
-        fileNode.setLineStart(1);
-        fileNode.setProperties(Map.of("format", "ini"));
-        nodes.add(fileNode);
+        nodes.add(buildFileNode(ctx, "ini"));
 
         Object parsedData = ctx.parsedData();
         if (parsedData == null) {

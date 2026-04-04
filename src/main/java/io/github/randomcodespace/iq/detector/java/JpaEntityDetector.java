@@ -9,6 +9,7 @@ import com.github.javaparser.ast.expr.MemberValuePair;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
 import com.github.javaparser.ast.type.Type;
 import io.github.randomcodespace.iq.detector.DetectorContext;
+import io.github.randomcodespace.iq.detector.DetectorDbHelper;
 import io.github.randomcodespace.iq.detector.DetectorResult;
 import io.github.randomcodespace.iq.model.CodeEdge;
 import io.github.randomcodespace.iq.model.CodeNode;
@@ -145,7 +146,7 @@ public class JpaEntityDetector extends AbstractJavaParserDetector {
             node.setAnnotations(new ArrayList<>(List.of("@Entity")));
             node.setProperties(properties);
             nodes.add(node);
-            addDbEdge(entityId, ctx.registry(), nodes, edges);
+            DetectorDbHelper.addDbEdge(entityId, ctx.registry(), nodes, edges);
 
             // Extract relationship edges from fields
             for (FieldDeclaration field : classDecl.getFields()) {
@@ -278,7 +279,7 @@ public class JpaEntityDetector extends AbstractJavaParserDetector {
         node.setAnnotations(new ArrayList<>(List.of("@Entity")));
         node.setProperties(properties);
         nodes.add(node);
-        addDbEdge(entityId, ctx.registry(), nodes, edges);
+        DetectorDbHelper.addDbEdge(entityId, ctx.registry(), nodes, edges);
 
         for (int i = 0; i < lines.length; i++) {
             Matcher relMatch = RELATIONSHIP_REGEX.matcher(lines[i]);
@@ -325,45 +326,4 @@ public class JpaEntityDetector extends AbstractJavaParserDetector {
         return DetectorResult.of(nodes, edges);
     }
 
-    // ==================== InfrastructureRegistry helpers ====================
-
-    private static String ensureDbNode(
-            io.github.randomcodespace.iq.analyzer.InfrastructureRegistry registry,
-            List<CodeNode> nodes) {
-        String dbNodeId;
-        if (registry != null && !registry.getDatabases().isEmpty()) {
-            io.github.randomcodespace.iq.analyzer.InfraEndpoint db =
-                    registry.getDatabases().values().iterator().next();
-            dbNodeId = "infra:" + db.id();
-            if (nodes.stream().noneMatch(n -> dbNodeId.equals(n.getId()))) {
-                CodeNode dbNode = new CodeNode(dbNodeId, NodeKind.DATABASE_CONNECTION,
-                        db.name() + " (" + db.type() + ")");
-                dbNode.getProperties().put("type", db.type());
-                if (db.connectionUrl() != null) dbNode.getProperties().put("url", db.connectionUrl());
-                nodes.add(dbNode);
-            }
-        } else {
-            dbNodeId = "database:unknown";
-            if (nodes.stream().noneMatch(n -> dbNodeId.equals(n.getId()))) {
-                nodes.add(new CodeNode(dbNodeId, NodeKind.DATABASE_CONNECTION, "Database"));
-            }
-        }
-        return dbNodeId;
-    }
-
-    private static void addDbEdge(String sourceId,
-            io.github.randomcodespace.iq.analyzer.InfrastructureRegistry registry,
-            List<CodeNode> nodes, List<CodeEdge> edges) {
-        String dbNodeId = ensureDbNode(registry, nodes);
-        CodeNode targetRef = nodes.stream()
-                .filter(n -> dbNodeId.equals(n.getId()))
-                .findFirst()
-                .orElseGet(() -> new CodeNode(dbNodeId, NodeKind.DATABASE_CONNECTION, "Database"));
-        CodeEdge edge = new CodeEdge();
-        edge.setId(sourceId + "->connects_to->" + dbNodeId);
-        edge.setKind(EdgeKind.CONNECTS_TO);
-        edge.setSourceId(sourceId);
-        edge.setTarget(targetRef);
-        edges.add(edge);
-    }
 }
