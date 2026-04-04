@@ -25,7 +25,7 @@ class VersionCommandTest {
         when(detector.getSupportedLanguages()).thenReturn(Set.of("java", "python"));
 
         var registry = new DetectorRegistry(List.of(detector));
-        var cmd = new VersionCommand(registry);
+        var cmd = new VersionCommand(registry, null);
 
         var out = new ByteArrayOutputStream();
         System.setOut(new PrintStream(out, true, StandardCharsets.UTF_8));
@@ -36,7 +36,7 @@ class VersionCommandTest {
         System.setOut(System.out);
 
         assertEquals(0, exitCode);
-        assertTrue(output.contains("OSSCodeIQ"), "Should contain product name");
+        assertTrue(output.contains("Code IQ"), "Should contain product name");
         assertTrue(output.contains("Detectors"), "Should mention detectors");
         assertTrue(output.contains("Languages"), "Should mention languages");
         assertTrue(output.contains("Java"), "Should mention Java runtime");
@@ -45,7 +45,7 @@ class VersionCommandTest {
     @Test
     void exitCodeIsZero() {
         var registry = new DetectorRegistry(List.of());
-        var cmd = new VersionCommand(registry);
+        var cmd = new VersionCommand(registry, null);
 
         var out = new ByteArrayOutputStream();
         System.setOut(new PrintStream(out, true, StandardCharsets.UTF_8));

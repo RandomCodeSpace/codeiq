@@ -12,7 +12,7 @@ import picocli.CommandLine.IFactory;
 import java.util.Arrays;
 
 /**
- * Main application entry point for OSSCodeIQ.
+ * Main application entry point for Code IQ.
  * <p>
  * Uses Picocli with Spring Boot integration for CLI command routing.
  * Profile selection:

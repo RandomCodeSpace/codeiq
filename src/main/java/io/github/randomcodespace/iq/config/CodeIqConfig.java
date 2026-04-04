@@ -19,7 +19,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 /**
- * Configuration properties for OSSCodeIQ, bound to the "codeiq" prefix.
+ * Configuration properties for Code IQ, bound to the "codeiq" prefix.
  */
 @Configuration
 @ConfigurationProperties(prefix = "codeiq")

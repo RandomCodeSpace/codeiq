@@ -12,7 +12,7 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * An edge (relationship) in the OSSCodeIQ knowledge graph.
+ * An edge (relationship) in the Code IQ knowledge graph.
  */
 @RelationshipProperties
 public class CodeEdge {

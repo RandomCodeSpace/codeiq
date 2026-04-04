@@ -59,7 +59,7 @@ test.describe('Layout shell', () => {
   });
 
   test('logo and app title are visible', async ({ page }) => {
-    await expect(page.getByText('OSSCodeIQ')).toBeVisible();
+    await expect(page.getByText('Code IQ')).toBeVisible();
   });
 });
 

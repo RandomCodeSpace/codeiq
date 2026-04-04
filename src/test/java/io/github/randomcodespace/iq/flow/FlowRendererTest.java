@@ -157,7 +157,7 @@ class FlowRendererTest {
 
         String html = FlowRenderer.renderHtml(views, stats, "TestProject");
         assertTrue(html.contains("<!DOCTYPE html>"), "Should contain HTML doctype");
-        assertTrue(html.contains("OSSCodeIQ"), "Should contain OSSCodeIQ branding");
+        assertTrue(html.contains("Code IQ"), "Should contain Code IQ branding");
         // Vendor JS should be inlined (placeholders replaced)
         assertFalse(html.contains("{{VENDOR_CYTOSCAPE}}"), "Cytoscape placeholder should be replaced");
         assertFalse(html.contains("{{VENDOR_DAGRE}}"), "Dagre placeholder should be replaced");

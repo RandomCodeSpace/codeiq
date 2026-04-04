@@ -1,7 +1,7 @@
 package io.github.randomcodespace.iq.model;
 
 /**
- * Types of edges (relationships) in the OSSCodeIQ graph.
+ * Types of edges (relationships) in the Code IQ graph.
  * Mirrors the 27 edge kinds from the Python implementation.
  */
 public enum EdgeKind {

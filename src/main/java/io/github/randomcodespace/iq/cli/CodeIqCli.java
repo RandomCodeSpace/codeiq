@@ -5,7 +5,7 @@ import picocli.CommandLine;
 import picocli.CommandLine.Command;
 
 /**
- * Top-level CLI entry point for OSSCodeIQ.
+ * Top-level CLI entry point for Code IQ.
  * Delegates to subcommands for actual work.
  */
 @Component

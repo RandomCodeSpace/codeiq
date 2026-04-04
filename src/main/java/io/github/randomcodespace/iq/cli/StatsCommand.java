@@ -141,7 +141,7 @@ public class StatsCommand implements Callable<Integer> {
         String projectName = path.toAbsolutePath().normalize().getFileName().toString();
 
         out.println();
-        CliOutput.print(out, "@|bold \uD83D\uDCCA OSSCodeIQ Stats \u2014 " + projectName + "|@");
+        CliOutput.print(out, "@|bold \uD83D\uDCCA Code IQ Stats \u2014 " + projectName + "|@");
         out.println();
 
         // Graph
@@ -278,7 +278,7 @@ public class StatsCommand implements Callable<Integer> {
     int outputMarkdown(Map<String, Object> stats) {
         NumberFormat nf = NumberFormat.getIntegerInstance(Locale.US);
 
-        out.println("# OSSCodeIQ Stats");
+        out.println("# Code IQ Stats");
         out.println();
 
         if (stats.containsKey("graph")) {

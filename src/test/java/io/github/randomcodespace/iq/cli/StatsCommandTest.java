@@ -167,7 +167,7 @@ class StatsCommandTest {
 
         assertEquals(0, exitCode);
         String output = capture.toString(StandardCharsets.UTF_8);
-        assertTrue(output.contains("# OSSCodeIQ Stats"), "Should have markdown header");
+        assertTrue(output.contains("# Code IQ Stats"), "Should have markdown header");
         assertTrue(output.contains("## Graph"), "Should have Graph section");
         assertTrue(output.contains("| Metric |"), "Should have table headers");
     }

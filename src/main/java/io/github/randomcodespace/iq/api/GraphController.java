@@ -26,7 +26,7 @@ import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
- * REST API controller matching the Python OSSCodeIQ API paths.
+ * REST API controller matching the Python Code IQ API paths.
  */
 @RestController
 @RequestMapping("/api")

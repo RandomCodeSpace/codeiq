@@ -166,7 +166,7 @@ class PluginsCommandTest {
 
         String output = capture.toString(StandardCharsets.UTF_8);
         assertEquals(0, exitCode);
-        assertTrue(output.contains("# OSSCodeIQ Detector Reference"), "Should have title");
+        assertTrue(output.contains("# Code IQ Detector Reference"), "Should have title");
         assertTrue(output.contains("test-det"), "Should list detector");
     }
 

@@ -16,7 +16,7 @@ import java.util.Map;
 import java.util.Objects;
 
 /**
- * A node in the OSSCodeIQ knowledge graph.
+ * A node in the Code IQ knowledge graph.
  * Stored as a Neo4j node with label "CodeNode".
  */
 @Node("CodeNode")

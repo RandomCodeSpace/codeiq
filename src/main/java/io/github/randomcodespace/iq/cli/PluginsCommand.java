@@ -402,7 +402,7 @@ public class PluginsCommand implements Runnable {
 
             // Generate YAML config
             StringBuilder yaml = new StringBuilder();
-            yaml.append("# Auto-generated OSSCodeIQ configuration\n");
+            yaml.append("# Auto-generated Code IQ configuration\n");
             yaml.append("# Optimized for this project's detected languages\n\n");
 
             yaml.append("languages:\n");
@@ -461,7 +461,7 @@ public class PluginsCommand implements Runnable {
 
         private int generateMarkdown() {
             var sb = new StringBuilder();
-            sb.append("# OSSCodeIQ Detector Reference\n\n");
+            sb.append("# Code IQ Detector Reference\n\n");
             sb.append("Total detectors: ").append(registry.count()).append("\n\n");
 
             Map<String, List<Detector>> byCategory = registry.byCategory();
