@@ -85,4 +85,138 @@ class CeleryTaskDetectorTest {
         DetectorContext ctx = DetectorTestUtils.contextFor("tasks.py", "python", code);
         DetectorTestUtils.assertDeterministic(detector, ctx);
     }
+
+    @Test
+    void detectsSharedTask() {
+        String code = """
+                @shared_task
+                def cleanup():
+                    pass
+                """;
+        DetectorContext ctx = DetectorTestUtils.contextFor("tasks.py", "python", code);
+        DetectorResult result = detector.detect(ctx);
+
+        assertEquals(2, result.nodes().size());
+        var queueNode = result.nodes().stream()
+                .filter(n -> n.getKind() == NodeKind.QUEUE).findFirst().orElseThrow();
+        assertEquals("celery", queueNode.getProperties().get("broker"));
+    }
+
+    @Test
+    void taskQueueNodeHasTaskNameProperty() {
+        String code = """
+                @app.task
+                def process(data):
+                    pass
+                """;
+        DetectorContext ctx = DetectorTestUtils.contextFor("tasks.py", "python", code);
+        DetectorResult result = detector.detect(ctx);
+
+        var queueNode = result.nodes().stream()
+                .filter(n -> n.getKind() == NodeKind.QUEUE).findFirst().orElseThrow();
+        assertEquals("process", queueNode.getProperties().get("task_name"));
+        assertEquals("process", queueNode.getProperties().get("function"));
+    }
+
+    @Test
+    void taskMethodNodeHasFqn() {
+        String code = """
+                @app.task
+                def my_task():
+                    pass
+                """;
+        DetectorContext ctx = DetectorTestUtils.contextFor("tasks.py", "python", code);
+        DetectorResult result = detector.detect(ctx);
+
+        var methodNode = result.nodes().stream()
+                .filter(n -> n.getKind() == NodeKind.METHOD).findFirst().orElseThrow();
+        assertNotNull(methodNode.getFqn());
+        assertTrue(methodNode.getFqn().contains("my_task"));
+    }
+
+    @Test
+    void consumesEdgeGoesFromMethodToQueue() {
+        String code = """
+                @app.task
+                def my_task():
+                    pass
+                """;
+        DetectorContext ctx = DetectorTestUtils.contextFor("tasks.py", "python", code);
+        DetectorResult result = detector.detect(ctx);
+
+        var consumesEdge = result.edges().stream()
+                .filter(e -> e.getKind() == EdgeKind.CONSUMES).findFirst().orElseThrow();
+        assertNotNull(consumesEdge.getSourceId());
+        assertTrue(consumesEdge.getSourceId().startsWith("method:"));
+    }
+
+    @Test
+    void detectsApplyAsync() {
+        String code = """
+                send_email.apply_async(args=["user@test.com"], countdown=60)
+                """;
+        DetectorContext ctx = DetectorTestUtils.contextFor("views.py", "python", code);
+        DetectorResult result = detector.detect(ctx);
+
+        assertEquals(1, result.edges().size());
+        assertEquals(EdgeKind.PRODUCES, result.edges().get(0).getKind());
+    }
+
+    @Test
+    void detectsSignatureCall() {
+        String code = """
+                task_sig = my_task.s(arg1)
+                """;
+        DetectorContext ctx = DetectorTestUtils.contextFor("views.py", "python", code);
+        DetectorResult result = detector.detect(ctx);
+
+        assertEquals(1, result.edges().size());
+        assertEquals(EdgeKind.PRODUCES, result.edges().get(0).getKind());
+    }
+
+    @Test
+    void multipleTaskDefinitions() {
+        String code = """
+                @app.task
+                def task_a():
+                    pass
+
+                @shared_task
+                def task_b():
+                    pass
+                """;
+        DetectorContext ctx = DetectorTestUtils.contextFor("tasks.py", "python", code);
+        DetectorResult result = detector.detect(ctx);
+
+        long queueCount = result.nodes().stream()
+                .filter(n -> n.getKind() == NodeKind.QUEUE).count();
+        long methodCount = result.nodes().stream()
+                .filter(n -> n.getKind() == NodeKind.METHOD).count();
+        assertEquals(2, queueCount);
+        assertEquals(2, methodCount);
+    }
+
+    @Test
+    void noMatchOnEmptyContent() {
+        DetectorContext ctx = DetectorTestUtils.contextFor("python", "");
+        DetectorResult result = detector.detect(ctx);
+
+        assertEquals(0, result.nodes().size());
+        assertEquals(0, result.edges().size());
+    }
+
+    @Test
+    void explicitTaskNameOverridesFunctionName() {
+        String code = """
+                @app.task(name='myapp.tasks.send_notification')
+                def notify_user(user_id):
+                    pass
+                """;
+        DetectorContext ctx = DetectorTestUtils.contextFor("tasks.py", "python", code);
+        DetectorResult result = detector.detect(ctx);
+
+        var queueNode = result.nodes().stream()
+                .filter(n -> n.getKind() == NodeKind.QUEUE).findFirst().orElseThrow();
+        assertEquals("celery:myapp.tasks.send_notification", queueNode.getLabel());
+    }
 }

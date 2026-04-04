@@ -99,4 +99,149 @@ class DjangoAuthDetectorTest {
         DetectorContext ctx = DetectorTestUtils.contextFor("python", code);
         DetectorTestUtils.assertDeterministic(detector, ctx);
     }
+
+    @Test
+    void detectsPermissionRequiredMixin() {
+        String code = """
+                class AdminView(PermissionRequiredMixin, View):
+                    permission_required = 'app.can_admin'
+                """;
+        DetectorContext ctx = DetectorTestUtils.contextFor("python", code);
+        DetectorResult result = detector.detect(ctx);
+
+        assertEquals(1, result.nodes().size());
+        assertEquals("PermissionRequiredMixin", result.nodes().get(0).getProperties().get("mixin"));
+        assertEquals("AdminView", result.nodes().get(0).getProperties().get("class_name"));
+    }
+
+    @Test
+    void detectsUserPassesTestMixin() {
+        String code = """
+                class StaffView(UserPassesTestMixin, View):
+                    def test_func(self):
+                        return self.request.user.is_staff
+                """;
+        DetectorContext ctx = DetectorTestUtils.contextFor("python", code);
+        DetectorResult result = detector.detect(ctx);
+
+        assertEquals(1, result.nodes().size());
+        assertEquals("UserPassesTestMixin", result.nodes().get(0).getProperties().get("mixin"));
+    }
+
+    @Test
+    void loginRequiredHasAuthType() {
+        String code = """
+                @login_required
+                def secure_view(request):
+                    pass
+                """;
+        DetectorContext ctx = DetectorTestUtils.contextFor("python", code);
+        DetectorResult result = detector.detect(ctx);
+
+        assertEquals("django", result.nodes().get(0).getProperties().get("auth_type"));
+        assertEquals(true, result.nodes().get(0).getProperties().get("auth_required"));
+    }
+
+    @Test
+    void loginRequiredHasAnnotations() {
+        String code = """
+                @login_required
+                def secured(request):
+                    pass
+                """;
+        DetectorContext ctx = DetectorTestUtils.contextFor("python", code);
+        DetectorResult result = detector.detect(ctx);
+
+        var node = result.nodes().get(0);
+        assertTrue(node.getAnnotations().contains("@login_required"));
+    }
+
+    @Test
+    void permissionRequiredHasPermissionsProperty() {
+        String code = """
+                @permission_required("myapp.view_report")
+                def report_view(request):
+                    pass
+                """;
+        DetectorContext ctx = DetectorTestUtils.contextFor("python", code);
+        DetectorResult result = detector.detect(ctx);
+
+        @SuppressWarnings("unchecked")
+        List<String> perms = (List<String>) result.nodes().get(0).getProperties().get("permissions");
+        assertNotNull(perms);
+        assertFalse(perms.isEmpty());
+        assertEquals("myapp.view_report", perms.get(0));
+    }
+
+    @Test
+    void userPassesTestHasTestFunctionProperty() {
+        String code = """
+                @user_passes_test(lambda u: u.is_active)
+                def restricted_view(request):
+                    pass
+                """;
+        DetectorContext ctx = DetectorTestUtils.contextFor("python", code);
+        DetectorResult result = detector.detect(ctx);
+
+        // test_function should be set from arg
+        assertNotNull(result.nodes().get(0).getProperties().get("test_function"));
+    }
+
+    @Test
+    void mixinAnnotationFormat() {
+        String code = """
+                class SecureList(LoginRequiredMixin, ListView):
+                    model = Item
+                """;
+        DetectorContext ctx = DetectorTestUtils.contextFor("python", code);
+        DetectorResult result = detector.detect(ctx);
+
+        var node = result.nodes().get(0);
+        assertTrue(node.getAnnotations().stream().anyMatch(a -> a.contains("LoginRequiredMixin")));
+    }
+
+    @Test
+    void noMatchOnEmptyContent() {
+        DetectorContext ctx = DetectorTestUtils.contextFor("python", "");
+        DetectorResult result = detector.detect(ctx);
+
+        assertEquals(0, result.nodes().size());
+    }
+
+    @Test
+    void multipleDecoratorsCapturedSeparately() {
+        String code = """
+                @login_required
+                def view_a(request):
+                    pass
+
+                @login_required
+                def view_b(request):
+                    pass
+                """;
+        DetectorContext ctx = DetectorTestUtils.contextFor("python", code);
+        DetectorResult result = detector.detect(ctx);
+
+        assertEquals(2, result.nodes().size());
+    }
+
+    @Test
+    void allAuthTypeIsDjango() {
+        String code = """
+                @login_required
+                def v1(request): pass
+
+                @permission_required("x.y")
+                def v2(request): pass
+
+                @user_passes_test(lambda u: True)
+                def v3(request): pass
+                """;
+        DetectorContext ctx = DetectorTestUtils.contextFor("python", code);
+        DetectorResult result = detector.detect(ctx);
+
+        assertEquals(3, result.nodes().size());
+        assertTrue(result.nodes().stream()
+                .allMatch(n -> "django".equals(n.getProperties().get("auth_type"))));
+    }
 }
