@@ -49,13 +49,7 @@ public class JsonStructureDetector extends AbstractStructuredDetector {
         List<CodeEdge> edges = new ArrayList<>();
 
         // CONFIG_FILE node for the file itself
-        CodeNode fileNode = new CodeNode(fileId, NodeKind.CONFIG_FILE, fp);
-        fileNode.setFqn(fp);
-        fileNode.setModule(ctx.moduleName());
-        fileNode.setFilePath(fp);
-        fileNode.setLineStart(1);
-        fileNode.setProperties(Map.of("format", "json"));
-        nodes.add(fileNode);
+        nodes.add(buildFileNode(ctx, "json"));
 
         // Extract data from parsed_data
         Object parsedData = ctx.parsedData();
@@ -71,20 +65,7 @@ public class JsonStructureDetector extends AbstractStructuredDetector {
         }
 
         for (String key : data.keySet()) {
-            String keyId = "json:" + fp + ":" + key;
-
-            CodeNode keyNode = new CodeNode(keyId, NodeKind.CONFIG_KEY, key);
-            keyNode.setFqn(fp + ":" + key);
-            keyNode.setModule(ctx.moduleName());
-            keyNode.setFilePath(fp);
-            nodes.add(keyNode);
-
-            CodeEdge edge = new CodeEdge();
-            edge.setId(fileId + "->" + keyId);
-            edge.setKind(EdgeKind.CONTAINS);
-            edge.setSourceId(fileId);
-            edge.setTarget(new CodeNode(keyId, null, null));
-            edges.add(edge);
+            addKeyNode(fileId, fp, key, "json", ctx, nodes, edges);
         }
 
         return DetectorResult.of(nodes, edges);

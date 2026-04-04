@@ -1,6 +1,12 @@
 package io.github.randomcodespace.iq.detector;
 
+import io.github.randomcodespace.iq.model.CodeEdge;
+import io.github.randomcodespace.iq.model.CodeNode;
+import io.github.randomcodespace.iq.model.EdgeKind;
+import io.github.randomcodespace.iq.model.NodeKind;
+
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
@@ -86,5 +92,41 @@ public abstract class AbstractStructuredDetector implements Detector {
             }
         }
         return defaultValue;
+    }
+
+    /**
+     * Build a CONFIG_FILE node for the given context and format.
+     * The returned node is NOT added to any list — callers must do that themselves.
+     */
+    protected CodeNode buildFileNode(DetectorContext ctx, String format) {
+        String fp = ctx.filePath();
+        String fileId = format + ":" + fp;
+        CodeNode fileNode = new CodeNode(fileId, NodeKind.CONFIG_FILE, fp);
+        fileNode.setFqn(fp);
+        fileNode.setModule(ctx.moduleName());
+        fileNode.setFilePath(fp);
+        fileNode.setLineStart(1);
+        fileNode.setProperties(new HashMap<>(Map.of("format", format)));
+        return fileNode;
+    }
+
+    /**
+     * Build a CONFIG_KEY node and a CONTAINS edge from {@code fileId} to it,
+     * appending both to the supplied lists.
+     */
+    protected void addKeyNode(String fileId, String fp, String key, String format,
+            DetectorContext ctx, List<CodeNode> nodes, List<CodeEdge> edges) {
+        String keyId = format + ":" + fp + ":" + key;
+        CodeNode keyNode = new CodeNode(keyId, NodeKind.CONFIG_KEY, key);
+        keyNode.setFqn(fp + ":" + key);
+        keyNode.setModule(ctx.moduleName());
+        keyNode.setFilePath(fp);
+        nodes.add(keyNode);
+        CodeEdge edge = new CodeEdge();
+        edge.setId(fileId + "->" + keyId);
+        edge.setKind(EdgeKind.CONTAINS);
+        edge.setSourceId(fileId);
+        edge.setTarget(new CodeNode(keyId, null, null));
+        edges.add(edge);
     }
 }

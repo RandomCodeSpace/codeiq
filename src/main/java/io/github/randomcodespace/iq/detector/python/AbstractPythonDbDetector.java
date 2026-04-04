@@ -1,11 +1,9 @@
 package io.github.randomcodespace.iq.detector.python;
 
-import io.github.randomcodespace.iq.analyzer.InfraEndpoint;
 import io.github.randomcodespace.iq.analyzer.InfrastructureRegistry;
+import io.github.randomcodespace.iq.detector.DetectorDbHelper;
 import io.github.randomcodespace.iq.model.CodeEdge;
 import io.github.randomcodespace.iq.model.CodeNode;
-import io.github.randomcodespace.iq.model.EdgeKind;
-import io.github.randomcodespace.iq.model.NodeKind;
 
 import java.util.List;
 
@@ -26,24 +24,7 @@ public abstract class AbstractPythonDbDetector extends AbstractPythonAntlrDetect
      * @return the database node ID
      */
     protected static String ensureDbNode(InfrastructureRegistry registry, List<CodeNode> nodes) {
-        String dbNodeId;
-        if (registry != null && !registry.getDatabases().isEmpty()) {
-            InfraEndpoint db = registry.getDatabases().values().iterator().next();
-            dbNodeId = "infra:" + db.id();
-            if (nodes.stream().noneMatch(n -> dbNodeId.equals(n.getId()))) {
-                CodeNode dbNode = new CodeNode(dbNodeId, NodeKind.DATABASE_CONNECTION,
-                        db.name() + " (" + db.type() + ")");
-                dbNode.getProperties().put("type", db.type());
-                if (db.connectionUrl() != null) dbNode.getProperties().put("url", db.connectionUrl());
-                nodes.add(dbNode);
-            }
-        } else {
-            dbNodeId = "database:unknown";
-            if (nodes.stream().noneMatch(n -> dbNodeId.equals(n.getId()))) {
-                nodes.add(new CodeNode(dbNodeId, NodeKind.DATABASE_CONNECTION, "Database"));
-            }
-        }
-        return dbNodeId;
+        return DetectorDbHelper.ensureDbNode(registry, nodes);
     }
 
     /**
@@ -56,16 +37,6 @@ public abstract class AbstractPythonDbDetector extends AbstractPythonAntlrDetect
      */
     protected static void addDbEdge(String sourceId, InfrastructureRegistry registry,
             List<CodeNode> nodes, List<CodeEdge> edges) {
-        String dbNodeId = ensureDbNode(registry, nodes);
-        CodeNode targetRef = nodes.stream()
-                .filter(n -> dbNodeId.equals(n.getId()))
-                .findFirst()
-                .orElseGet(() -> new CodeNode(dbNodeId, NodeKind.DATABASE_CONNECTION, "Database"));
-        CodeEdge edge = new CodeEdge();
-        edge.setId(sourceId + "->connects_to->" + dbNodeId);
-        edge.setKind(EdgeKind.CONNECTS_TO);
-        edge.setSourceId(sourceId);
-        edge.setTarget(targetRef);
-        edges.add(edge);
+        DetectorDbHelper.addDbEdge(sourceId, registry, nodes, edges);
     }
 }

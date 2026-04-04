@@ -12,7 +12,6 @@ import picocli.CommandLine.Parameters;
 import java.nio.file.Path;
 import java.text.NumberFormat;
 import java.util.Locale;
-import java.util.Map;
 import java.util.concurrent.Callable;
 
 /**
@@ -127,35 +126,9 @@ public class IndexCommand implements Callable<Integer> {
                 + nf.format(result.nodeCount()) + " nodes, "
                 + nf.format(result.edgeCount()) + " edges in " + timeStr);
         System.out.println();
-        CliOutput.info("  Files:   " + nf.format(result.totalFiles()) + " discovered, "
-                + nf.format(result.filesAnalyzed()) + " analyzed");
-        CliOutput.cyan("  Nodes:   " + nf.format(result.nodeCount()));
-        CliOutput.cyan("  Edges:   " + nf.format(result.edgeCount()));
-        CliOutput.info("  Time:    " + timeStr);
+        CliOutput.printAnalysisStats(result, nf);
         CliOutput.info("  Store:   H2 (.code-intelligence/analysis-cache)");
-
-        if (!result.nodeBreakdown().isEmpty()) {
-            System.out.println();
-            StringBuilder topNodes = new StringBuilder("  Top node kinds: ");
-            result.nodeBreakdown().entrySet().stream()
-                    .sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
-                    .limit(10)
-                    .forEach(e -> topNodes.append(e.getKey()).append(" (")
-                            .append(nf.format(e.getValue())).append("), "));
-            if (topNodes.length() > 2) topNodes.setLength(topNodes.length() - 2);
-            CliOutput.info(topNodes.toString());
-        }
-
-        if (!result.languageBreakdown().isEmpty()) {
-            StringBuilder langs = new StringBuilder("  Languages: ");
-            result.languageBreakdown().entrySet().stream()
-                    .sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
-                    .limit(10)
-                    .forEach(e -> langs.append(e.getKey()).append(" (")
-                            .append(nf.format(e.getValue())).append("), "));
-            if (langs.length() > 2) langs.setLength(langs.length() - 2);
-            CliOutput.info(langs.toString());
-        }
+        CliOutput.printBreakdowns(result, nf);
 
         System.out.println();
         CliOutput.info("  Next step: code-iq enrich " + root);

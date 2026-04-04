@@ -1,8 +1,11 @@
 package io.github.randomcodespace.iq.cli;
 
+import io.github.randomcodespace.iq.analyzer.AnalysisResult;
 import picocli.CommandLine;
 
 import java.io.PrintStream;
+import java.text.NumberFormat;
+import java.util.Map;
 
 /**
  * Utility class for rich ANSI-colored CLI output.
@@ -74,6 +77,50 @@ final class CliOutput {
      */
     static String format(String ansiFormatted) {
         return ANSI.string(ansiFormatted);
+    }
+
+    /**
+     * Print files/nodes/edges/time summary lines shared by analyze and index commands.
+     * Callers are responsible for printing the preceding success banner and any
+     * command-specific extra lines (e.g. "Store: H2…").
+     */
+    static void printAnalysisStats(AnalysisResult result, NumberFormat nf) {
+        long secs = result.elapsed().toSeconds();
+        String timeStr = secs > 0 ? secs + "s" : result.elapsed().toMillis() + "ms";
+        info("  Files:   " + nf.format(result.totalFiles()) + " discovered, "
+                + nf.format(result.filesAnalyzed()) + " analyzed");
+        cyan("  Nodes:   " + nf.format(result.nodeCount()));
+        cyan("  Edges:   " + nf.format(result.edgeCount()));
+        info("  Time:    " + timeStr);
+    }
+
+    /**
+     * Print node-kind and language breakdown lines shared by analyze and index commands.
+     * Prints a blank line before the node breakdown when it is non-empty.
+     */
+    static void printBreakdowns(AnalysisResult result, NumberFormat nf) {
+        if (!result.nodeBreakdown().isEmpty()) {
+            System.out.println();
+            StringBuilder topNodes = new StringBuilder("  Top node kinds: ");
+            result.nodeBreakdown().entrySet().stream()
+                    .sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
+                    .limit(10)
+                    .forEach(e -> topNodes.append(e.getKey()).append(" (")
+                            .append(nf.format(e.getValue())).append("), "));
+            if (topNodes.length() > 2) topNodes.setLength(topNodes.length() - 2);
+            info(topNodes.toString());
+        }
+
+        if (!result.languageBreakdown().isEmpty()) {
+            StringBuilder langs = new StringBuilder("  Languages: ");
+            result.languageBreakdown().entrySet().stream()
+                    .sorted(Map.Entry.<String, Integer>comparingByValue().reversed())
+                    .limit(10)
+                    .forEach(e -> langs.append(e.getKey()).append(" (")
+                            .append(nf.format(e.getValue())).append("), "));
+            if (langs.length() > 2) langs.setLength(langs.length() - 2);
+            info(langs.toString());
+        }
     }
 
     /**
