@@ -1300,7 +1300,7 @@ public class Analyzer {
             if (moduleName != null && (node.getModule() == null || node.getModule().isEmpty())) {
                 node.setModule(moduleName);
             }
-            node.getProperties().put("file_type", fileTypeStr);
+            ensureMutableProperties(node).put("file_type", fileTypeStr);
         }
 
         return DetectorResult.of(allNodes, allEdges);
@@ -1508,7 +1508,7 @@ public class Analyzer {
             if (moduleName != null && (node.getModule() == null || node.getModule().isEmpty())) {
                 node.setModule(moduleName);
             }
-            node.getProperties().put("file_type", fileTypeStr);
+            ensureMutableProperties(node).put("file_type", fileTypeStr);
         }
 
         return DetectorResult.of(allNodes, allEdges);
@@ -1626,6 +1626,24 @@ public class Analyzer {
     /**
      * Read file content and compute snippet. Returns null on error or for binary files.
      */
+    /**
+     * Ensure a node's properties map is mutable. Some nodes are created with
+     * immutable Map.of() which throws UnsupportedOperationException on put().
+     */
+    private static Map<String, Object> ensureMutableProperties(CodeNode node) {
+        Map<String, Object> props = node.getProperties();
+        try {
+            // Test mutability — HashMap/LinkedHashMap will not throw
+            props.put("_test", null);
+            props.remove("_test");
+            return props;
+        } catch (UnsupportedOperationException e) {
+            var mutable = new java.util.LinkedHashMap<>(props);
+            node.setProperties(mutable);
+            return mutable;
+        }
+    }
+
     private static String computeSnippetFromFile(Path absPath, FileClassifier.FileType fileType) {
         if (fileType == FileClassifier.FileType.BINARY) return null;
         try {
