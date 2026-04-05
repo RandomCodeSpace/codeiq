@@ -83,17 +83,32 @@ public class LanguageEnricher {
             }
         }
 
-        // Collect files that have a matching extractor
+        // Collect files that have a matching extractor.
+        // Skip non-source files (test, generated, minified, binary, text) — they don't need enrichment.
         record FileTask(String filePath, List<CodeNode> fileNodes, LanguageExtractor extractor, String language) {}
         List<FileTask> tasks = new ArrayList<>();
         for (Map.Entry<String, List<CodeNode>> entry : nodesByFile.entrySet()) {
             String filePath = entry.getKey();
+
+            // Skip non-source files based on node properties
+            List<CodeNode> fileNodes = entry.getValue();
+            if (!fileNodes.isEmpty()) {
+                Object fileType = fileNodes.get(0).getProperties().get("file_type");
+                if (fileType != null) {
+                    String ft = fileType.toString();
+                    if ("test".equals(ft) || "generated".equals(ft) || "minified".equals(ft)
+                            || "binary".equals(ft) || "text".equals(ft) || "filtered".equals(ft)) {
+                        continue;
+                    }
+                }
+            }
+
             String language = detectLanguage(filePath);
             if (language == null) continue;
             String resolvedLanguage = LANGUAGE_ALIASES.getOrDefault(language, language);
             LanguageExtractor extractor = extractorByLanguage.get(resolvedLanguage);
             if (extractor == null) continue;
-            tasks.add(new FileTask(filePath, entry.getValue(), extractor, language));
+            tasks.add(new FileTask(filePath, fileNodes, extractor, language));
         }
 
         if (tasks.isEmpty()) {
@@ -152,14 +167,15 @@ public class LanguageEnricher {
                 }));
             }
 
-            // Collect results in deterministic order (alphabetical by file path,
-            // matching the TreeMap iteration order of tasks)
+            // Collect results — no timeout-based skipping (zero data loss).
+            // Files that are slow will complete naturally; ANTLR is already bypassed
+            // for TS/JS and size-guarded for other languages at the factory level.
             for (int i = 0; i < futures.size(); i++) {
                 try {
-                    futures.get(i).get(30, TimeUnit.SECONDS);
+                    futures.get(i).get(5, TimeUnit.MINUTES);
                 } catch (java.util.concurrent.TimeoutException e) {
                     futures.get(i).cancel(true);
-                    log.warn("Language enrichment timed out for {} (30s), skipping", tasks.get(i).filePath());
+                    log.warn("⏱️ Language enrichment timed out for {} (5min safety limit)", tasks.get(i).filePath());
                 } catch (java.util.concurrent.ExecutionException e) {
                     log.warn("Language enrichment failed for {}: {}", tasks.get(i).filePath(), e.getMessage());
                 } catch (InterruptedException e) {
