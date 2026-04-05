@@ -13,6 +13,7 @@ import org.neo4j.graphdb.Transaction;
 
 import java.util.List;
 import java.util.Map;
+import org.mockito.ArgumentCaptor;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
@@ -309,18 +310,24 @@ class GraphStoreExtendedTest {
 
     @Test
     void shouldFindByKindPaginated() {
-        mockNodeResult("n1", "class", "A", "n");
+        Transaction tx = mockNodeResult("n1", "class", "A", "n");
 
         var results = store.findByKindPaginated("class", 0, 10);
         assertEquals(1, results.size());
+        ArgumentCaptor<String> query = ArgumentCaptor.forClass(String.class);
+        verify(tx).execute(query.capture(), anyMap());
+        assertTrue(query.getValue().contains("ORDER BY n.id"));
     }
 
     @Test
     void shouldFindAllPaginated() {
-        mockNodeResult("n1", "class", "A", "n");
+        Transaction tx = mockNodeResult("n1", "class", "A", "n");
 
         var results = store.findAllPaginated(0, 10);
         assertEquals(1, results.size());
+        ArgumentCaptor<String> query = ArgumentCaptor.forClass(String.class);
+        verify(tx).execute(query.capture(), anyMap());
+        assertTrue(query.getValue().contains("ORDER BY n.id"));
     }
 
     @Test

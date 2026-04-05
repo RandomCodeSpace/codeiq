@@ -9,6 +9,7 @@ import java.io.IOException;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -240,5 +241,47 @@ class FileDiscoveryTest {
 
         assertEquals(1, files.size());
         assertEquals("main.go", files.getFirst().path().toString());
+    }
+
+    @Test
+    void gitDiscoveryUsesTrackedFilesOutput() throws Exception {
+        Files.writeString(tempDir.resolve(".gitignore"), "ignored.java\n");
+        Files.writeString(tempDir.resolve("TrackedA.java"), "class TrackedA {}");
+        Files.writeString(tempDir.resolve("TrackedB.java"), "class TrackedB {}");
+        Files.writeString(tempDir.resolve("ignored.java"), "class Ignored {}");
+        Files.writeString(tempDir.resolve("untracked.java"), "class Untracked {}");
+
+        runGit(tempDir, "init");
+        runGit(tempDir, "config", "user.email", "test@example.com");
+        runGit(tempDir, "config", "user.name", "Test User");
+        runGit(tempDir, "add", ".gitignore", "TrackedA.java", "TrackedB.java");
+
+        List<DiscoveredFile> files = discovery.discover(tempDir);
+        List<String> paths = files.stream()
+                .map(f -> f.path().toString())
+                .collect(Collectors.toList());
+
+        assertEquals(List.of("TrackedA.java", "TrackedB.java"), paths);
+    }
+
+    private static void runGit(Path cwd, String... args) throws Exception {
+        Process process = new ProcessBuilder()
+                .command(buildGitCommand(args))
+                .directory(cwd.toFile())
+                .redirectErrorStream(true)
+                .start();
+        int exitCode = process.waitFor();
+        String output;
+        try (var reader = process.inputReader()) {
+            output = reader.lines().collect(Collectors.joining(System.lineSeparator()));
+        }
+        assertEquals(0, exitCode, output);
+    }
+
+    private static List<String> buildGitCommand(String... args) {
+        List<String> command = new java.util.ArrayList<>();
+        command.add("git");
+        command.addAll(List.of(args));
+        return command;
     }
 }

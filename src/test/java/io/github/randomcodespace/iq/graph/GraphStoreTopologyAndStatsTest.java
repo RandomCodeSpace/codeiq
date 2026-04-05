@@ -282,6 +282,7 @@ class GraphStoreTopologyAndStatsTest {
         assertEquals("calls", rows.get(0).get("kind"));
         assertEquals("s1", rows.get(0).get("sourceId"));
         assertEquals("t1", rows.get(0).get("targetId"));
+        verify(tx).execute(contains("ORDER BY r.id"), anyMap());
     }
 
     @Test
@@ -310,6 +311,7 @@ class GraphStoreTopologyAndStatsTest {
         assertEquals(1, rows.size());
         assertEquals("calls", rows.get(0).get("kind"));
         assertEquals("sA", rows.get(0).get("sourceId"));
+        verify(tx).execute(contains("ORDER BY r.id"), anyMap());
     }
 
     @Test

@@ -6,6 +6,7 @@ import io.github.randomcodespace.iq.intelligence.evidence.EvidencePack;
 import io.github.randomcodespace.iq.intelligence.evidence.EvidencePackAssembler;
 import io.github.randomcodespace.iq.intelligence.evidence.EvidencePackRequest;
 import io.github.randomcodespace.iq.intelligence.provenance.ArtifactMetadata;
+import io.github.randomcodespace.iq.intelligence.provenance.ArtifactMetadataProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
@@ -27,6 +28,7 @@ class IntelligenceControllerTest {
     private MockMvc mockMvc;
     private EvidencePackAssembler assembler;
     private ArtifactMetadata metadata;
+    private ArtifactMetadataProvider metadataProvider;
 
     @BeforeEach
     void setUp() {
@@ -35,11 +37,13 @@ class IntelligenceControllerTest {
                 "https://github.com/example/repo", "abc123", Instant.now(),
                 "1", "2", Map.of("code-iq", "1.0"),
                 Map.of(), "deadbeef");
+        metadataProvider = Mockito.mock(ArtifactMetadataProvider.class);
+        when(metadataProvider.current()).thenReturn(metadata);
 
         CodeIqConfig config = new CodeIqConfig();
         config.setRootPath(System.getProperty("java.io.tmpdir"));
 
-        IntelligenceController controller = new IntelligenceController(assembler, metadata, config);
+        IntelligenceController controller = new IntelligenceController(assembler, metadataProvider, config);
         mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
     }
 

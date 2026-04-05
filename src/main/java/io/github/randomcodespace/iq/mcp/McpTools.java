@@ -6,6 +6,7 @@ import io.github.randomcodespace.iq.config.CodeIqConfig;
 import io.github.randomcodespace.iq.intelligence.evidence.EvidencePackAssembler;
 import io.github.randomcodespace.iq.intelligence.evidence.EvidencePackRequest;
 import io.github.randomcodespace.iq.intelligence.provenance.ArtifactMetadata;
+import io.github.randomcodespace.iq.intelligence.provenance.ArtifactMetadataProvider;
 import io.github.randomcodespace.iq.flow.FlowEngine;
 import io.github.randomcodespace.iq.intelligence.query.CapabilityMatrix;
 // Note: No Analyzer import — MCP server is read-only. Analysis is done via CLI only.
@@ -50,7 +51,7 @@ public class McpTools {
     private final TopologyService topologyService;
     private final GraphStore graphStore;
     private final EvidencePackAssembler evidencePackAssembler;
-    private final ArtifactMetadata artifactMetadata;
+    private final ArtifactMetadataProvider artifactMetadataProvider;
 
     public McpTools(QueryService queryService,
                     CodeIqConfig config, ObjectMapper objectMapper,
@@ -58,7 +59,7 @@ public class McpTools {
                     StatsService statsService, TopologyService topologyService,
                     GraphStore graphStore,
                     Optional<EvidencePackAssembler> evidencePackAssembler,
-                    Optional<ArtifactMetadata> artifactMetadata) {
+                    Optional<ArtifactMetadataProvider> artifactMetadataProvider) {
         this.queryService = queryService;
         this.config = config;
         this.objectMapper = objectMapper;
@@ -68,7 +69,7 @@ public class McpTools {
         this.topologyService = topologyService;
         this.graphStore = graphStore;
         this.evidencePackAssembler = evidencePackAssembler.orElse(null);
-        this.artifactMetadata = artifactMetadata.orElse(null);
+        this.artifactMetadataProvider = artifactMetadataProvider.orElse(null);
     }
 
     /**
@@ -522,7 +523,7 @@ public class McpTools {
             EvidencePackRequest request = new EvidencePackRequest(
                     symbol, filePath, maxSnippetLines,
                     Boolean.TRUE.equals(includeReferences));
-            return toJson(evidencePackAssembler.assemble(request, artifactMetadata));
+            return toJson(evidencePackAssembler.assemble(request, currentArtifactMetadata()));
         } catch (Exception e) {
             return toJson(Map.of(PROP_ERROR, e.getMessage()));
         }
@@ -530,6 +531,7 @@ public class McpTools {
 
     @McpTool(name = "get_artifact_metadata", description = "Return artifact metadata: repo identity, commit SHA, build timestamp, extractor versions, capability matrix snapshot, and integrity hash.")
     public String getArtifactMetadata() {
+        ArtifactMetadata artifactMetadata = currentArtifactMetadata();
         if (artifactMetadata == null) {
             return toJson(Map.of(PROP_ERROR, "Artifact metadata unavailable. Run 'enrich' first."));
         }
@@ -552,6 +554,10 @@ public class McpTools {
         } catch (RuntimeException e) {
             return null;
         }
+    }
+
+    private ArtifactMetadata currentArtifactMetadata() {
+        return artifactMetadataProvider != null ? artifactMetadataProvider.current() : null;
     }
 
     private record CacheData(List<CodeNode> nodes, List<CodeEdge> edges) {}

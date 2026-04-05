@@ -7,6 +7,7 @@ import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
 
 import java.io.IOException;
+import java.nio.charset.StandardCharsets;
 import java.nio.file.FileVisitResult;
 import java.nio.file.Files;
 import java.nio.file.Path;
@@ -122,38 +123,17 @@ public class FileDiscovery {
                     .directory(root.toFile())
                     .start();
 
-            String output;
-            try (var is = process.getInputStream()) {
-                output = new String(is.readAllBytes(), java.nio.charset.StandardCharsets.UTF_8);
-            }
-            process.waitFor();
-
             List<DiscoveredFile> result = new ArrayList<>();
-            for (String line : output.split("\n")) {
-                String trimmed = line.trim();
-                if (trimmed.isEmpty()) continue;
-
-                Path relPath = Path.of(trimmed);
-                Path absPath = root.resolve(relPath);
-
-                if (!Files.isRegularFile(absPath)) continue;
-                if (isExcluded(relPath)) continue;
-                if (isExcludedFilename(relPath)) continue;
-
-                String language = DetectorUtils.deriveLanguage(trimmed);
-                if (language == null) continue;
-
-                long size;
-                try {
-                    size = Files.size(absPath);
-                } catch (IOException e) {
-                    continue;
+            try (var reader = process.inputReader(StandardCharsets.UTF_8)) {
+                String line;
+                while ((line = reader.readLine()) != null) {
+                    addGitDiscoveredFile(root, result, line);
                 }
-                long maxSize = CONFIG_LANGUAGES.contains(language)
-                        ? CONFIG_MAX_FILE_SIZE : DEFAULT_MAX_FILE_SIZE;
-                if (size > maxSize) continue;
-
-                result.add(new DiscoveredFile(relPath, language, size));
+            }
+            int exitCode = process.waitFor();
+            if (exitCode != 0) {
+                log.warn("git ls-files exited with code {} -- falling back to filesystem walk", exitCode);
+                return discoverViaWalk(root);
             }
             return result;
 
@@ -165,6 +145,33 @@ public class FileDiscovery {
             log.warn("git ls-files failed, falling back to filesystem walk", e);
             return discoverViaWalk(root);
         }
+    }
+
+    private void addGitDiscoveredFile(Path root, List<DiscoveredFile> result, String line) {
+        String trimmed = line.trim();
+        if (trimmed.isEmpty()) return;
+
+        Path relPath = Path.of(trimmed);
+        Path absPath = root.resolve(relPath);
+
+        if (!Files.isRegularFile(absPath)) return;
+        if (isExcluded(relPath)) return;
+        if (isExcludedFilename(relPath)) return;
+
+        String language = DetectorUtils.deriveLanguage(trimmed);
+        if (language == null) return;
+
+        long size;
+        try {
+            size = Files.size(absPath);
+        } catch (IOException e) {
+            return;
+        }
+        long maxSize = CONFIG_LANGUAGES.contains(language)
+                ? CONFIG_MAX_FILE_SIZE : DEFAULT_MAX_FILE_SIZE;
+        if (size > maxSize) return;
+
+        result.add(new DiscoveredFile(relPath, language, size));
     }
 
     // ------------------------------------------------------------------

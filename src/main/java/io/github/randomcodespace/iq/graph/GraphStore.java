@@ -463,13 +463,13 @@ public class GraphStore implements FlowDataSource {
 
     public List<CodeNode> findByKindPaginated(String kind, int offset, int limit) {
         return queryNodes(
-                "MATCH (n:CodeNode) WHERE n.kind = $kind RETURN n SKIP $offset LIMIT $limit",
+                "MATCH (n:CodeNode) WHERE n.kind = $kind RETURN n ORDER BY n.id SKIP $offset LIMIT $limit",
                 Map.of(PROP_KIND, kind, PROP_OFFSET, offset, PROP_LIMIT, limit));
     }
 
     public List<CodeNode> findAllPaginated(int offset, int limit) {
         return queryNodes(
-                "MATCH (n:CodeNode) RETURN n SKIP $offset LIMIT $limit",
+                "MATCH (n:CodeNode) RETURN n ORDER BY n.id SKIP $offset LIMIT $limit",
                 Map.of(PROP_OFFSET, offset, PROP_LIMIT, limit));
     }
 
@@ -568,7 +568,7 @@ public class GraphStore implements FlowDataSource {
             var result = tx.execute(
                     "MATCH (s:CodeNode)-[r:RELATES_TO]->(t:CodeNode) "
                             + "RETURN r.id AS id, r.kind AS kind, s.id AS sourceId, t.id AS targetId "
-                            + "SKIP $offset LIMIT $limit",
+                            + "ORDER BY r.id SKIP $offset LIMIT $limit",
                     Map.of(PROP_OFFSET, offset, PROP_LIMIT, limit));
             while (result.hasNext()) {
                 var row = result.next();
@@ -589,7 +589,7 @@ public class GraphStore implements FlowDataSource {
             var result = tx.execute(
                     "MATCH (s:CodeNode)-[r:RELATES_TO]->(t:CodeNode) WHERE r.kind = $kind "
                             + "RETURN r.id AS id, r.kind AS kind, s.id AS sourceId, t.id AS targetId "
-                            + "SKIP $offset LIMIT $limit",
+                            + "ORDER BY r.id SKIP $offset LIMIT $limit",
                     Map.of(PROP_KIND, kind, PROP_OFFSET, offset, PROP_LIMIT, limit));
             while (result.hasNext()) {
                 var row = result.next();

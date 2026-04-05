@@ -5,6 +5,7 @@ import io.github.randomcodespace.iq.intelligence.evidence.EvidencePack;
 import io.github.randomcodespace.iq.intelligence.evidence.EvidencePackAssembler;
 import io.github.randomcodespace.iq.intelligence.evidence.EvidencePackRequest;
 import io.github.randomcodespace.iq.intelligence.provenance.ArtifactMetadata;
+import io.github.randomcodespace.iq.intelligence.provenance.ArtifactMetadataProvider;
 import io.github.randomcodespace.iq.intelligence.query.CapabilityMatrix;
 import org.springframework.context.annotation.Profile;
 import org.springframework.http.HttpStatus;
@@ -26,17 +27,17 @@ import java.util.Map;
 public class IntelligenceController {
 
     private final EvidencePackAssembler assembler;
-    private final ArtifactMetadata artifactMetadata;
+    private final ArtifactMetadataProvider artifactMetadataProvider;
     private final CodeIqConfig config;
 
     public IntelligenceController(
             @org.springframework.beans.factory.annotation.Autowired(required = false)
             EvidencePackAssembler assembler,
             @org.springframework.beans.factory.annotation.Autowired(required = false)
-            ArtifactMetadata artifactMetadata,
+            ArtifactMetadataProvider artifactMetadataProvider,
             CodeIqConfig config) {
         this.assembler = assembler;
-        this.artifactMetadata = artifactMetadata;
+        this.artifactMetadataProvider = artifactMetadataProvider;
         this.config = config;
     }
 
@@ -79,7 +80,7 @@ public class IntelligenceController {
         }
 
         EvidencePackRequest request = new EvidencePackRequest(symbol, file, maxSnippetLines, includeRefs);
-        return assembler.assemble(request, artifactMetadata);
+        return assembler.assemble(request, currentArtifactMetadata());
     }
 
     /**
@@ -87,11 +88,11 @@ public class IntelligenceController {
      */
     @GetMapping("/manifest")
     public ArtifactMetadata getManifest() {
-        if (artifactMetadata == null) {
+        if (artifactMetadataProvider == null) {
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
                     "Artifact metadata unavailable. Run 'enrich' first.");
         }
-        return artifactMetadata;
+        return artifactMetadataProvider.current();
     }
 
     /**
@@ -123,5 +124,9 @@ public class IntelligenceController {
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE,
                     "Intelligence service unavailable. Run 'enrich' first.");
         }
+    }
+
+    private ArtifactMetadata currentArtifactMetadata() {
+        return artifactMetadataProvider != null ? artifactMetadataProvider.current() : null;
     }
 }

@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.Set;
+import java.util.Comparator;
 
 /**
  * Assembles {@link EvidencePack} instances from query plans and lexical results.
@@ -68,26 +69,30 @@ public class EvidencePackAssembler {
     public EvidencePack assemble(EvidencePackRequest request, ArtifactMetadata artifactMetadata) {
         int maxLines = resolveMaxLines(request.maxSnippetLines());
         Path rootPath = Path.of(config.getRootPath()).toAbsolutePath().normalize();
+        String symbol = request.symbol() != null && !request.symbol().isBlank()
+                ? request.symbol().strip()
+                : null;
+        String filePath = request.filePath() != null && !request.filePath().isBlank()
+                ? request.filePath().strip()
+                : null;
 
         // Resolve query subject — prefer symbol, fall back to filePath
-        String subject = request.symbol() != null && !request.symbol().isBlank()
-                ? request.symbol().strip()
-                : (request.filePath() != null ? request.filePath().strip() : null);
-
+        String subject = symbol != null ? symbol : filePath;
         if (subject == null) {
             return EvidencePack.empty(artifactMetadata, "No symbol or file path provided.");
         }
 
         // Determine language from filePath when available (for query planner)
-        String language = request.filePath() != null
-                ? inferLanguage(request.filePath())
+        String language = filePath != null
+                ? inferLanguage(filePath)
                 : PROP_UNKNOWN;
 
         // Plan the query
         QueryPlan plan = queryPlanner.plan(QueryType.FIND_SYMBOL, language);
 
-        // Execute lexical lookup
-        List<LexicalResult> lexResults = lexicalQueryService.findByIdentifier(subject);
+        List<LexicalResult> lexResults = symbol != null
+                ? lexicalQueryService.findByIdentifier(symbol)
+                : findByFilePath(filePath);
 
         if (lexResults.isEmpty()) {
             String degradationNote = buildEmptyNote(subject, plan);
@@ -154,6 +159,13 @@ public class EvidencePackAssembler {
                 artifactMetadata,
                 capLevel
         );
+    }
+
+    private List<LexicalResult> findByFilePath(String filePath) {
+        return graphStore.findByFilePath(filePath).stream()
+                .sorted(Comparator.comparing(CodeNode::getId, Comparator.nullsLast(String::compareTo)))
+                .map(node -> LexicalResult.of(node, 1.0f, "file_path"))
+                .toList();
     }
 
     // ------------------------------------------------------------------

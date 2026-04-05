@@ -7,6 +7,7 @@ import io.github.randomcodespace.iq.intelligence.evidence.EvidencePack;
 import io.github.randomcodespace.iq.intelligence.evidence.EvidencePackAssembler;
 import io.github.randomcodespace.iq.intelligence.evidence.EvidencePackRequest;
 import io.github.randomcodespace.iq.intelligence.provenance.ArtifactMetadata;
+import io.github.randomcodespace.iq.intelligence.provenance.ArtifactMetadataProvider;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -31,6 +32,7 @@ class McpToolsEvidenceTest {
     @Mock private io.github.randomcodespace.iq.query.StatsService statsService;
     @Mock private io.github.randomcodespace.iq.query.TopologyService topologyService;
     @Mock private EvidencePackAssembler assembler;
+    @Mock private ArtifactMetadataProvider metadataProvider;
 
     private McpTools mcpTools;
     private ArtifactMetadata metadata;
@@ -45,12 +47,13 @@ class McpToolsEvidenceTest {
                 "https://github.com/example/repo", "sha456", Instant.now(),
                 "1", "2", Map.of("code-iq", "1.0"),
                 Map.of(), "cafebabe");
+        org.mockito.Mockito.lenient().when(metadataProvider.current()).thenReturn(metadata);
 
         mcpTools = new McpTools(
                 queryService, config, objectMapper,
                 Optional.empty(), graphDb,
                 statsService, topologyService, graphStore,
-                Optional.of(assembler), Optional.of(metadata));
+                Optional.of(assembler), Optional.of(metadataProvider));
     }
 
     @Test

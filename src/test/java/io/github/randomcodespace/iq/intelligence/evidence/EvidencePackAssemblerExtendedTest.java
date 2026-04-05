@@ -77,25 +77,44 @@ class EvidencePackAssemblerExtendedTest {
 
     @Test
     void usesFilePathAsSubjectWhenSymbolIsNull() {
-        when(lexicalQueryService.findByIdentifier("src/Foo.java")).thenReturn(List.of());
+        when(graphStore.findByFilePath("src/Foo.java")).thenReturn(List.of());
 
         EvidencePackRequest req = new EvidencePackRequest(null, "src/Foo.java", null, false);
         EvidencePack pack = assembler.assemble(req, metadata);
 
         assertThat(pack.matchedSymbols()).isEmpty();
         assertThat(pack.degradationNotes()).isNotEmpty();
-        verify(lexicalQueryService).findByIdentifier("src/Foo.java");
+        verify(graphStore).findByFilePath("src/Foo.java");
+        verifyNoInteractions(lexicalQueryService);
     }
 
     @Test
     void usesFilePathWhenSymbolIsBlank() {
-        when(lexicalQueryService.findByIdentifier("src/Bar.java")).thenReturn(List.of());
+        when(graphStore.findByFilePath("src/Bar.java")).thenReturn(List.of());
 
         EvidencePackRequest req = new EvidencePackRequest("   ", "src/Bar.java", null, false);
         EvidencePack pack = assembler.assemble(req, metadata);
 
         assertThat(pack.matchedSymbols()).isEmpty();
-        verify(lexicalQueryService).findByIdentifier("src/Bar.java");
+        verify(graphStore).findByFilePath("src/Bar.java");
+        verifyNoInteractions(lexicalQueryService);
+    }
+
+    @Test
+    void symbolTakesPrecedenceOverFilePathLookup() {
+        CodeNode node = new CodeNode("java:Foo.java:class:Foo", NodeKind.CLASS, "Foo");
+        node.setFilePath("src/Foo.java");
+
+        when(lexicalQueryService.findByIdentifier("Foo")).thenReturn(
+                List.of(LexicalResult.of(node, 1.0f, "identifier")));
+        when(snippetStore.extract(any(CodeNode.class), any())).thenReturn(Optional.empty());
+
+        EvidencePackRequest req = new EvidencePackRequest("Foo", "src/Foo.java", null, false);
+        EvidencePack pack = assembler.assemble(req, metadata);
+
+        assertThat(pack.matchedSymbols()).hasSize(1);
+        verify(lexicalQueryService).findByIdentifier("Foo");
+        verify(graphStore, never()).findByFilePath(anyString());
     }
 
     // ---- snippet bounding when snippet exceeds maxLines ---------------
