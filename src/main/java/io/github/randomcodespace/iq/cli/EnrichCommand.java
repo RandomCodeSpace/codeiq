@@ -31,6 +31,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.concurrent.Callable;
 
 /**
@@ -195,7 +196,7 @@ public class EnrichCommand implements Callable<Integer> {
         // 4. Start Neo4j Embedded and bulk-load
         Path graphPath = graphDir != null
                 ? graphDir.toAbsolutePath().normalize().resolve("graph.db")
-                : root.resolve(".osscodeiq/graph.db");
+                : root.resolve(config.getGraph().getPath());
 
         CliOutput.step("[~]", "Bulk-loading into Neo4j at " + graphPath + "...");
         stepStart = Instant.now();
@@ -278,13 +279,48 @@ public class EnrichCommand implements Callable<Integer> {
             }
             CliOutput.info("  Index ready");
 
-            // Bulk-load edges
-            // Use validated edges from flush
-            List<CodeEdge> validEdges = flushed.edges();
-            if (!recoveredEdges.isEmpty()) {
-                var combined = new java.util.ArrayList<>(validEdges);
-                combined.addAll(recoveredEdges);
-                validEdges = combined;
+            // Bulk-load ALL edges (including those with external targets).
+            // Stub nodes are created below for any missing source/target IDs.
+            List<CodeEdge> validEdges = new ArrayList<>(enrichedEdges);
+
+            // Build set of all loaded node IDs for edge validation
+            Set<String> loadedNodeIds = new java.util.HashSet<>(enrichedNodes.size());
+            for (CodeNode n : enrichedNodes) {
+                loadedNodeIds.add(n.getId());
+            }
+
+            // Pre-scan edges for missing targets and create stub nodes
+            Set<String> stubIds = new java.util.LinkedHashSet<>();
+            for (CodeEdge edge : validEdges) {
+                String sourceId = edge.getSourceId();
+                String targetId = edge.getTarget() != null ? edge.getTarget().getId() : null;
+                if (sourceId != null && !loadedNodeIds.contains(sourceId)) stubIds.add(sourceId);
+                if (targetId != null && !loadedNodeIds.contains(targetId)) stubIds.add(targetId);
+            }
+            if (!stubIds.isEmpty()) {
+                CliOutput.info("  Creating " + stubIds.size() + " stub nodes for external references...");
+                var stubBatch = new ArrayList<Map<String, Object>>();
+                for (String stubId : stubIds) {
+                    stubBatch.add(Map.of("id", stubId, "kind", "external", "label", stubId));
+                    loadedNodeIds.add(stubId);
+                    if (stubBatch.size() >= 500) {
+                        try (Transaction tx = db.beginTx()) {
+                            tx.execute("UNWIND $batch AS n MERGE (node:CodeNode {id: n.id}) "
+                                    + "ON CREATE SET node.kind = n.kind, node.label = n.label",
+                                    Map.of("batch", stubBatch));
+                            tx.commit();
+                        }
+                        stubBatch.clear();
+                    }
+                }
+                if (!stubBatch.isEmpty()) {
+                    try (Transaction tx = db.beginTx()) {
+                        tx.execute("UNWIND $batch AS n MERGE (node:CodeNode {id: n.id}) "
+                                + "ON CREATE SET node.kind = n.kind, node.label = n.label",
+                                Map.of("batch", stubBatch));
+                        tx.commit();
+                    }
+                }
             }
 
             // Collect valid edge maps (pre-validate before batching)
