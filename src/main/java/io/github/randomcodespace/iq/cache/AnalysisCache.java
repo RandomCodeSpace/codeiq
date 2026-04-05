@@ -154,12 +154,24 @@ public class AnalysisCache implements Closeable {
         }
         if (!String.valueOf(CACHE_VERSION).equals(storedVersion)) {
             if (storedVersion != null) {
-                log.info("Cache version mismatch (stored={}, current={}) — clearing stale cache",
+                log.info("Cache version mismatch (stored={}, current={}) — dropping and recreating tables",
                         storedVersion, CACHE_VERSION);
-                try (var stmt = conn.createStatement()) {
-                    stmt.execute("DELETE FROM edges");
-                    stmt.execute("DELETE FROM nodes");
-                    stmt.execute("DELETE FROM files");
+            }
+            // DROP and recreate tables to pick up schema changes (new columns, types, etc.)
+            // CREATE TABLE IF NOT EXISTS doesn't add columns to existing tables.
+            try (var stmt = conn.createStatement()) {
+                stmt.execute("DROP TABLE IF EXISTS edges");
+                stmt.execute("DROP TABLE IF EXISTS nodes");
+                stmt.execute("DROP TABLE IF EXISTS files");
+                stmt.execute("DROP TABLE IF EXISTS analysis_runs");
+            }
+            // Recreate with current schema
+            for (String sql : SCHEMA_SQL.split(";")) {
+                String trimmed = sql.trim();
+                if (!trimmed.isEmpty() && !trimmed.toUpperCase().startsWith("CREATE TABLE IF NOT EXISTS CACHE_META")) {
+                    try (var stmt = conn.createStatement()) {
+                        stmt.execute(trimmed);
+                    }
                 }
             }
             try (var stmt = conn.createStatement()) {
