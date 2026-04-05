@@ -47,6 +47,12 @@ playwright-report/
 test-results/
 # Generated explorer CSS (rebuild via: cd src/main/frontend && npm run build:explorer-css)
 src/main/resources/static/css/explorer.css
+# Frontend build output copied into Spring static resources
+src/main/resources/static/assets/CodeGraphView-*.js
+src/main/resources/static/assets/index-*.js
+src/main/resources/static/assets/index-*.css
+src/main/resources/static/assets/vendor-monaco-*.js
+src/main/resources/static/assets/vendor-react-*.js
 
 # Distribution
 *.tar.gz

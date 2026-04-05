@@ -3,6 +3,8 @@ package io.github.randomcodespace.iq.cli;
 import org.junit.jupiter.api.Test;
 import picocli.CommandLine;
 
+import java.nio.file.Path;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 
@@ -72,6 +74,6 @@ class ServeCommandTest {
         var cmdLine = new CommandLine(cmd);
         cmdLine.parseArgs("--no-ui", "/some/repo");
         assertEquals(true, cmd.isNoUi());
-        assertEquals("/some/repo", cmd.getPath().toString());
+        assertEquals(Path.of("/some/repo"), cmd.getPath());
     }
 }
