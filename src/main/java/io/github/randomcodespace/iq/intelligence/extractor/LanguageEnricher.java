@@ -16,6 +16,9 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.TreeMap;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
 
 /**
  * Runs all {@link LanguageExtractor} beans after {@link io.github.randomcodespace.iq.intelligence.lexical.LexicalEnricher}
@@ -80,44 +83,106 @@ public class LanguageEnricher {
             }
         }
 
-        int edgesAdded = 0;
-        int typeHintsAdded = 0;
-
+        // Collect files that have a matching extractor
+        record FileTask(String filePath, List<CodeNode> fileNodes, LanguageExtractor extractor, String language) {}
+        List<FileTask> tasks = new ArrayList<>();
         for (Map.Entry<String, List<CodeNode>> entry : nodesByFile.entrySet()) {
             String filePath = entry.getKey();
-            List<CodeNode> fileNodes = entry.getValue();
-
             String language = detectLanguage(filePath);
             if (language == null) continue;
-
             String resolvedLanguage = LANGUAGE_ALIASES.getOrDefault(language, language);
             LanguageExtractor extractor = extractorByLanguage.get(resolvedLanguage);
             if (extractor == null) continue;
+            tasks.add(new FileTask(filePath, entry.getValue(), extractor, language));
+        }
 
-            String content = readFile(rootPath, filePath);
-            if (content == null) continue;
+        if (tasks.isEmpty()) {
+            log.info("Language enrichment: no files matched any extractor");
+            return;
+        }
 
-            DetectorContext ctx = new DetectorContext(filePath, language, content, nodeRegistry, null);
+        // Process files in parallel with per-file timeout
+        var newEdges = java.util.Collections.synchronizedList(new ArrayList<CodeEdge>());
+        var edgesAdded = new java.util.concurrent.atomic.AtomicInteger(0);
+        var typeHintsAdded = new java.util.concurrent.atomic.AtomicInteger(0);
 
-            for (CodeNode node : fileNodes) {
-                try {
-                    LanguageExtractionResult result = extractor.extract(ctx, node);
-                    edges.addAll(result.callEdges());
-                    edges.addAll(result.symbolReferences());
-                    edgesAdded += result.callEdges().size() + result.symbolReferences().size();
-                    for (Map.Entry<String, String> hint : result.typeHints().entrySet()) {
-                        node.getProperties().put(hint.getKey(), hint.getValue());
-                        typeHintsAdded++;
+        var executor = Executors.newVirtualThreadPerTaskExecutor();
+        try {
+            List<Future<?>> futures = new ArrayList<>(tasks.size());
+            for (FileTask task : tasks) {
+                futures.add(executor.submit(() -> {
+                    if (Thread.interrupted()) {
+                        Thread.currentThread().interrupt();
+                        return null;
                     }
-                } catch (Exception e) {
-                    log.warn("LanguageExtractor {} failed on node {} in {}: {}",
-                            extractor.getClass().getSimpleName(), node.getId(), filePath, e.getMessage());
+                    String content = readFile(rootPath, task.filePath());
+                    if (content == null) return null;
+
+                    // Skip minified files — they hang parsers and contain no useful structure
+                    if (isLikelyMinified(task.filePath(), content)) {
+                        log.debug("Skipping minified file for enrichment: {}", task.filePath());
+                        return null;
+                    }
+
+                    DetectorContext ctx = new DetectorContext(
+                            task.filePath(), task.language(), content, nodeRegistry, null);
+
+                    for (CodeNode node : task.fileNodes()) {
+                        if (Thread.interrupted()) {
+                            Thread.currentThread().interrupt();
+                            break;
+                        }
+                        try {
+                            LanguageExtractionResult result = task.extractor().extract(ctx, node);
+                            newEdges.addAll(result.callEdges());
+                            newEdges.addAll(result.symbolReferences());
+                            edgesAdded.addAndGet(result.callEdges().size() + result.symbolReferences().size());
+                            for (Map.Entry<String, String> hint : result.typeHints().entrySet()) {
+                                node.getProperties().put(hint.getKey(), hint.getValue());
+                                typeHintsAdded.incrementAndGet();
+                            }
+                        } catch (Exception e) {
+                            log.warn("LanguageExtractor {} failed on node {} in {}: {}",
+                                    task.extractor().getClass().getSimpleName(),
+                                    node.getId(), task.filePath(), e.getMessage());
+                        }
+                    }
+                    return null;
+                }));
+            }
+
+            // Collect with per-file timeout
+            for (int i = 0; i < futures.size(); i++) {
+                try {
+                    futures.get(i).get(30, TimeUnit.SECONDS);
+                } catch (java.util.concurrent.TimeoutException e) {
+                    futures.get(i).cancel(true);
+                    log.warn("Language enrichment timed out for {} (30s), skipping", tasks.get(i).filePath());
+                } catch (java.util.concurrent.ExecutionException e) {
+                    log.warn("Language enrichment failed for {}: {}", tasks.get(i).filePath(), e.getMessage());
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    break;
                 }
+            }
+        } finally {
+            executor.shutdown();
+            try {
+                if (!executor.awaitTermination(10, TimeUnit.SECONDS)) {
+                    executor.shutdownNow();
+                    if (!executor.awaitTermination(5, TimeUnit.SECONDS)) {
+                        log.warn("Language enrichment executor did not terminate cleanly");
+                    }
+                }
+            } catch (InterruptedException e) {
+                executor.shutdownNow();
+                Thread.currentThread().interrupt();
             }
         }
 
-        log.info("Language enrichment: {} edges added, {} type hints added across {} extractors",
-                edgesAdded, typeHintsAdded, extractorByLanguage.size());
+        edges.addAll(newEdges);
+        log.info("Language enrichment: {} edges added, {} type hints added across {} extractors ({} files)",
+                edgesAdded.get(), typeHintsAdded.get(), extractorByLanguage.size(), tasks.size());
     }
 
     private Map<String, CodeNode> buildRegistry(List<CodeNode> nodes) {
@@ -142,6 +207,23 @@ public class LanguageEnricher {
             log.debug("Could not read file {}: {}", filePath, e.getMessage());
             return null;
         }
+    }
+
+    /**
+     * Check if a file is likely minified (long lines, large size) to skip enrichment.
+     */
+    private static boolean isLikelyMinified(String filePath, String content) {
+        if (content.length() < 50_000) return false;
+        String name = filePath.contains("/") ? filePath.substring(filePath.lastIndexOf('/') + 1) : filePath;
+        boolean jsOrCss = name.endsWith(".js") || name.endsWith(".mjs") || name.endsWith(".cjs")
+                || name.endsWith(".css") || name.endsWith(".jsx") || name.endsWith(".ts");
+        if (!jsOrCss && !name.endsWith(".min.js") && !name.endsWith(".bundle.js")) return false;
+        int newlines = 0;
+        for (int i = 0; i < content.length(); i++) {
+            if (content.charAt(i) == '\n') newlines++;
+        }
+        if (newlines == 0) newlines = 1;
+        return content.length() / newlines > 1000;
     }
 
     /**
