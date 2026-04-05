@@ -17,6 +17,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -147,11 +148,49 @@ public class GraphStore implements FlowDataSource {
             savedNodeIds.add(node.getId());
         }
 
-        // 5. Save edges using UNWIND for batch inserts
+        // 5. Collect all edges and identify missing target/source nodes
         List<CodeEdge> allEdges = nodes.stream()
                 .flatMap(n -> n.getEdges().stream())
                 .toList();
         int totalEdges = allEdges.size();
+
+        // Pre-scan for stub nodes needed (edges referencing nodes not in the graph)
+        Set<String> stubNodeIds = new LinkedHashSet<>();
+        for (CodeEdge edge : allEdges) {
+            String sourceId = edge.getSourceId();
+            String targetId = edge.getTarget() != null ? edge.getTarget().getId() : null;
+            if (sourceId != null && !savedNodeIds.contains(sourceId)) stubNodeIds.add(sourceId);
+            if (targetId != null && !savedNodeIds.contains(targetId)) stubNodeIds.add(targetId);
+        }
+
+        // Create stub nodes for external references so no edges are lost
+        if (!stubNodeIds.isEmpty()) {
+            log.info("Neo4j: creating {} stub nodes for external edge references", stubNodeIds.size());
+            List<Map<String, Object>> stubBatch = new ArrayList<>();
+            for (String stubId : stubNodeIds) {
+                stubBatch.add(Map.of(PROP_ID, stubId, PROP_KIND, "external", "label", stubId));
+                savedNodeIds.add(stubId);
+                if (stubBatch.size() >= batchSize) {
+                    try (Transaction tx = graphDb.beginTx()) {
+                        tx.execute("UNWIND $batch AS n MERGE (node:CodeNode {id: n.id}) "
+                                + "ON CREATE SET node.kind = n.kind, node.label = n.label",
+                                Map.of("batch", stubBatch));
+                        tx.commit();
+                    }
+                    stubBatch.clear();
+                }
+            }
+            if (!stubBatch.isEmpty()) {
+                try (Transaction tx = graphDb.beginTx()) {
+                    tx.execute("UNWIND $batch AS n MERGE (node:CodeNode {id: n.id}) "
+                            + "ON CREATE SET node.kind = n.kind, node.label = n.label",
+                            Map.of("batch", stubBatch));
+                    tx.commit();
+                }
+            }
+        }
+
+        // 6. Save edges using UNWIND for batch inserts
         log.info("Neo4j: persisting {} edges...", totalEdges);
 
         int created = 0;
@@ -162,8 +201,12 @@ public class GraphStore implements FlowDataSource {
             for (CodeEdge edge : batch) {
                 String sourceId = edge.getSourceId();
                 String targetId = edge.getTarget() != null ? edge.getTarget().getId() : null;
-                if (targetId == null || sourceId == null
-                        || !savedNodeIds.contains(sourceId) || !savedNodeIds.contains(targetId)) {
+                if (targetId == null || sourceId == null) {
+                    skipped++;
+                    continue;
+                }
+                // Stubs were already created above — all IDs should exist now
+                if (!savedNodeIds.contains(sourceId) || !savedNodeIds.contains(targetId)) {
                     skipped++;
                     continue;
                 }
