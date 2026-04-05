@@ -21,7 +21,7 @@
 - JavaParser 3.28.0 (Java AST analysis)
 - ANTLR 4.13.2 (TypeScript/JavaScript, Python, Go, C#, Rust, C++ grammars)
 - Picocli 4.7.7 (CLI framework, integrated with Spring Boot)
-- React 18 + TypeScript + Vite 6 + Tailwind CSS (web UI)
+- React 18 + TypeScript + Vite 6 + Ant Design v5 + ECharts v5 (web UI)
 - H2 (incremental analysis cache)
 
 ## Architecture

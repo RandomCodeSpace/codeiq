@@ -58,7 +58,7 @@ graph TD
     subgraph "3. Serve"
         J --> K[REST API - 37 endpoints]
         J --> L[MCP Server - 34 tools]
-        J --> M[React UI - 6 pages]
+        J --> M[React UI - 4 pages]
     end
 ```
 
@@ -119,7 +119,7 @@ graph LR
 
 | Interface | Description |
 |-----------|-------------|
-| **React UI** (`/`) | Dashboard, Topology (Cytoscape.js), Explorer, Flow diagrams, MCP Console, API Docs |
+| **React UI** (`/`) | Dashboard (stats + charts), Codebase Map (ECharts treemap), Explorer (node browser), MCP Console (tool invocationgrams, MCP Console, API Docs |
 | **REST API** (`/api`) | 37 endpoints -- stats, nodes, edges, topology, triage, search, flow |
 | **MCP Server** (`/mcp`) | 34 tools via Spring AI streamable HTTP for AI-powered code triage |
 
