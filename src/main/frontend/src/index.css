@@ -3,3 +3,12 @@ body {
   padding: 0;
 }
 /* Ant Design handles all theming */
+
+/* MCP tool list: allow multiline descriptions */
+.mcp-tool-menu .ant-menu-item {
+  height: auto !important;
+  line-height: normal !important;
+  padding-top: 4px !important;
+  padding-bottom: 4px !important;
+  white-space: normal !important;
+}

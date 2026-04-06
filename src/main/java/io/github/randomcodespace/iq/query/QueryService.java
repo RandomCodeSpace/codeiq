@@ -355,13 +355,33 @@ public class QueryService {
      * @param maxDepth limit tree depth; null means unlimited
      */
     public Map<String, Object> getFileTree(Integer maxDepth) {
-        return getFileTree(maxDepth, config.getMaxFiles());
+        return getFileTree(maxDepth, config.getMaxFiles(), true);
     }
 
-    @Cacheable(value = "file-tree", key = "#maxDepth + '-' + #maxFiles")
-    public Map<String, Object> getFileTree(Integer maxDepth, int maxFiles) {
+    private static final java.util.Set<String> TEST_DIR_NAMES = java.util.Set.of(
+            "test", "tests", "__tests__", "__test__", "spec", "specs",
+            "test-utils", "testing", "e2e", "integration-tests",
+            "unit-tests", "testdata", "test-data", "fixtures");
+
+    private static final java.util.regex.Pattern TEST_FILE_PATTERN =
+            java.util.regex.Pattern.compile("(?i)(test|spec|_test|_spec)\\.[^.]+$");
+
+    private static boolean isTestPath(String filePath) {
+        String[] parts = filePath.split("/");
+        for (String part : parts) {
+            if (TEST_DIR_NAMES.contains(part.toLowerCase())) return true;
+        }
+        // Check filename pattern (last segment)
+        String fileName = parts[parts.length - 1];
+        return TEST_FILE_PATTERN.matcher(fileName).find();
+    }
+
+    @Cacheable(value = "file-tree", key = "#maxDepth + '-' + #maxFiles + '-' + #excludeTests")
+    public Map<String, Object> getFileTree(Integer maxDepth, int maxFiles, boolean excludeTests) {
         GraphStore.FilePathResult filePathResult = graphStore.getFilePathsWithCounts(maxFiles);
-        List<Map<String, Object>> rows = filePathResult.rows();
+        List<Map<String, Object>> rows = excludeTests
+                ? filePathResult.rows().stream().filter(r -> !isTestPath((String) r.get("filePath"))).toList()
+                : filePathResult.rows();
 
         TreeNode root = new TreeNode("", PROP_DIRECTORY);
         for (Map<String, Object> row : rows) {

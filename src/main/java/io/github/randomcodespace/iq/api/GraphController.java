@@ -205,13 +205,14 @@ public class GraphController {
     @GetMapping("/file-tree")
     public Map<String, Object> getFileTree(
             @RequestParam(required = false) Integer depth,
-            @RequestParam(required = false) Integer maxFiles) {
+            @RequestParam(required = false) Integer maxFiles,
+            @RequestParam(defaultValue = "true") boolean excludeTests) {
         requireQueryService();
         // depth=null means unlimited (full tree for treemap). Otherwise cap at maxDepth.
         Integer cappedDepth = (depth != null) ? Math.min(depth, config.getMaxDepth()) : null;
         // Default unlimited for treemap
         int limit = (maxFiles != null) ? maxFiles : Integer.MAX_VALUE;
-        return queryService.getFileTree(cappedDepth, limit);
+        return queryService.getFileTree(cappedDepth, limit, excludeTests);
     }
 
     @GetMapping("/capabilities")

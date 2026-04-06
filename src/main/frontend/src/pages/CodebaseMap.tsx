@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { Select, Typography, Space, Spin, Alert } from 'antd';
+import { useState, useMemo, useCallback } from 'react';
+import { Typography, Spin, Alert, Drawer } from 'antd';
 import ReactECharts from 'echarts-for-react';
 import { useApi } from '@/hooks/useApi';
 import { api } from '@/lib/api';
@@ -51,16 +51,10 @@ function dominantLang(nodes: FileTreeNode[]): string {
   return Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'other';
 }
 
-/**
- * Collapse single-child directory chains into one node.
- * e.g., src → main → java → io → github becomes "src/main/java/io/github"
- * This avoids 10+ clicks through single-child directories (common in Java packages).
- */
 function collapseTree(nodes: FileTreeNode[]): FileTreeNode[] {
   return nodes.map(n => {
     if (n.type !== 'directory' || !n.children || n.children.length === 0) return n;
 
-    // Collapse: if this directory has exactly 1 child that is also a directory, merge names
     let current = n;
     let collapsedName = n.name;
     while (
@@ -89,14 +83,12 @@ function toEChartsNodes(nodes: FileTreeNode[]): EChartsTreeNode[] {
       const children = toEChartsNodes(n.children);
       if (children.length === 0) continue;
       const lang = dominantLang(n.children);
-      // Directory nodes: NO value — ECharts sums from children for correct proportions
       result.push({
         name: n.name,
         children,
         itemStyle: { color: LANG_COLORS[lang] ?? '#666' },
       });
     } else {
-      // Leaf file node: value = nodeCount (determines rectangle size)
       const lang = inferLang(n.name);
       result.push({
         name: n.name,
@@ -112,24 +104,10 @@ function fileTreeToECharts(nodes: FileTreeNode[]): EChartsTreeNode[] {
   return toEChartsNodes(collapseTree(nodes));
 }
 
-function collectLanguages(nodes: FileTreeNode[]): string[] {
-  const langs = new Set<string>();
-  function walk(items: FileTreeNode[]) {
-    for (const item of items) {
-      if (item.type === 'file') {
-        const lang = inferLang(item.name);
-        if (lang !== 'other') langs.add(lang);
-      }
-      if (item.children) walk(item.children);
-    }
-  }
-  walk(nodes);
-  return Array.from(langs).sort();
-}
-
 export default function CodebaseMap() {
   const { isDark } = useTheme();
-  const [langFilter, setLangFilter] = useState<string | undefined>(undefined);
+  const [fileDrawer, setFileDrawer] = useState<{ path: string; content: string } | null>(null);
+  const [fileLoading, setFileLoading] = useState(false);
 
   const { data: treeData, loading, error } = useApi<FileTreeResponse>(
     () => api.getFileTree(), []
@@ -137,8 +115,31 @@ export default function CodebaseMap() {
 
   const tree = treeData?.tree ?? [];
   const totalFiles = treeData?.total_files ?? 0;
-  const uniqueLangs = useMemo(() => collectLanguages(tree), [tree]);
   const treemapData = useMemo(() => fileTreeToECharts(tree), [tree]);
+
+  // On click: if leaf node (no children), open file in drawer
+  const onClickNode = useCallback(async (params: {
+    data?: { children?: unknown[] };
+    treePathInfo?: Array<{ name: string }>;
+  }) => {
+    if (params.data?.children && (params.data.children as unknown[]).length > 0) return;
+    const pathParts = params.treePathInfo?.map(p => p.name).filter(Boolean) ?? [];
+    if (pathParts.length === 0) return;
+    const filePath = pathParts.join('/');
+    setFileLoading(true);
+    try {
+      const content = await api.readFile(filePath);
+      setFileDrawer({ path: filePath, content });
+    } catch {
+      setFileDrawer({ path: filePath, content: '// Could not load file' });
+    } finally {
+      setFileLoading(false);
+    }
+  }, []);
+
+  const onEvents = useMemo(() => ({
+    click: onClickNode,
+  }), [onClickNode]);
 
   const chartOption = useMemo(() => ({
     tooltip: {
@@ -150,21 +151,32 @@ export default function CodebaseMap() {
     series: [{
       type: 'treemap',
       data: treemapData,
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      width: '100%',
+      height: '100%',
       leafDepth: 2,
       drillDownIcon: '▶ ',
       roam: false,
       nodeClick: 'zoomToNode',
       breadcrumb: {
         show: true,
-        top: 4,
-        left: 4,
+        bottom: 8,
+        left: 'center',
+        height: 28,
         itemStyle: {
-          color: isDark ? '#1a1a1a' : '#f5f5f5',
-          borderColor: isDark ? '#303030' : '#d9d9d9',
+          color: isDark ? '#1f1f1f' : '#fff',
+          borderColor: isDark ? '#444' : '#bbb',
+          borderWidth: 1,
+          shadowBlur: 3,
+          shadowColor: isDark ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0.15)',
         },
         textStyle: {
           color: isDark ? '#e0e0e0' : '#333',
-          fontSize: 13,
+          fontSize: 14,
+          fontWeight: 'bold' as const,
         },
       },
       levels: [
@@ -222,44 +234,61 @@ export default function CodebaseMap() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 96px)', margin: '-16px -24px', padding: '8px 16px 0' }}>
-      <div style={{
-        display: 'flex',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 4,
-        flexShrink: 0,
-      }}>
-        <Space>
-          <Typography.Title level={4} style={{ margin: 0 }}>Codebase Map</Typography.Title>
-          <Typography.Text type="secondary">
-            {totalFiles.toLocaleString()} files · {uniqueLangs.length} languages
-          </Typography.Text>
-        </Space>
-        <Select
-          allowClear
-          placeholder="Filter by language"
-          style={{ width: 180 }}
-          value={langFilter}
-          onChange={setLangFilter}
-          options={uniqueLangs.map(l => ({ label: l.charAt(0).toUpperCase() + l.slice(1), value: l }))}
-        />
-      </div>
-
-      <div style={{ flex: 1, minHeight: 0 }}>
-        {treemapData.length > 0 ? (
+    <div style={{ position: 'relative', height: 'calc(100vh - 64px)', margin: '-16px -24px' }}>
+      {treemapData.length > 0 ? (
+        <>
+          <div style={{
+            position: 'absolute',
+            top: 6,
+            right: 10,
+            zIndex: 10,
+            background: isDark ? 'rgba(10,10,10,0.8)' : 'rgba(255,255,255,0.85)',
+            borderRadius: 4,
+            padding: '2px 10px',
+            fontSize: 12,
+            color: isDark ? '#888' : '#999',
+          }}>
+            {totalFiles.toLocaleString()} files
+          </div>
           <ReactECharts
             option={chartOption}
             style={{ height: '100%', width: '100%' }}
             theme={isDark ? 'dark' : undefined}
             opts={{ renderer: 'canvas' }}
+            onEvents={onEvents}
           />
+        </>
+      ) : (
+        <div style={{ textAlign: 'center', padding: 60 }}>
+          <Typography.Text type="secondary">No file data available. Run index + enrich first.</Typography.Text>
+        </div>
+      )}
+
+      <Drawer
+        title={fileDrawer?.path}
+        placement="right"
+        width="60%"
+        open={!!fileDrawer}
+        onClose={() => setFileDrawer(null)}
+        styles={{ body: { padding: 0 } }}
+      >
+        {fileLoading ? (
+          <div style={{ textAlign: 'center', padding: 40 }}><Spin /></div>
         ) : (
-          <div style={{ textAlign: 'center', padding: 60 }}>
-            <Typography.Text type="secondary">No file data available. Run index + enrich first.</Typography.Text>
-          </div>
+          <pre style={{
+            margin: 0,
+            padding: 16,
+            fontSize: 13,
+            lineHeight: 1.5,
+            overflow: 'auto',
+            height: '100%',
+            background: isDark ? '#0a0a0a' : '#fafafa',
+            color: isDark ? '#d4d4d4' : '#1f1f1f',
+          }}>
+            {fileDrawer?.content}
+          </pre>
         )}
-      </div>
+      </Drawer>
     </div>
   );
 }

@@ -22,6 +22,7 @@ import java.util.Map;
 
 import static org.hamcrest.Matchers.*;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.verify;
@@ -567,7 +568,7 @@ class GraphControllerTest {
                 Map.of("name", "src", "type", "directory", "nodeCount", 10L, "children", List.of()),
                 Map.of("name", "pom.xml", "type", "file", "nodeCount", 1L, "children", List.of())));
         treeResult.put("total_files", 3L);
-        when(queryService.getFileTree(any(), anyInt())).thenReturn(treeResult);
+        when(queryService.getFileTree(any(), anyInt(), anyBoolean())).thenReturn(treeResult);
 
         mockMvc.perform(get("/api/file-tree"))
                 .andExpect(status().isOk())
@@ -585,7 +586,7 @@ class GraphControllerTest {
         Map<String, Object> treeResult = new LinkedHashMap<>();
         treeResult.put("tree", List.of());
         treeResult.put("total_files", 0L);
-        when(queryService.getFileTree(eq(2), anyInt())).thenReturn(treeResult);
+        when(queryService.getFileTree(eq(2), anyInt(), anyBoolean())).thenReturn(treeResult);
 
         mockMvc.perform(get("/api/file-tree").param("depth", "2"))
                 .andExpect(status().isOk())
@@ -597,12 +598,12 @@ class GraphControllerTest {
         Map<String, Object> treeResult = new LinkedHashMap<>();
         treeResult.put("tree", List.of());
         treeResult.put("total_files", 0L);
-        when(queryService.getFileTree(eq(10), anyInt())).thenReturn(treeResult);
+        when(queryService.getFileTree(eq(10), anyInt(), anyBoolean())).thenReturn(treeResult);
 
         mockMvc.perform(get("/api/file-tree").param("depth", "999"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.total_files").value(0));
 
-        verify(queryService).getFileTree(eq(10), anyInt());
+        verify(queryService).getFileTree(eq(10), anyInt(), anyBoolean());
     }
 }

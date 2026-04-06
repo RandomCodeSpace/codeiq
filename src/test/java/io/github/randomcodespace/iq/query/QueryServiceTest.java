@@ -648,7 +648,8 @@ class QueryServiceTest {
                 Map.of("filePath", "src/test/FooTest.java", "nodeCount", 2L),
                 Map.of("filePath", "pom.xml", "nodeCount", 1L)), false));
 
-        Map<String, Object> result = service.getFileTree(null);
+        // excludeTests=false to include all files
+        Map<String, Object> result = service.getFileTree(null, Integer.MAX_VALUE, false);
 
         assertEquals(4L, result.get("total_files"));
         List<Map<String, Object>> tree = (List<Map<String, Object>>) result.get("tree");
