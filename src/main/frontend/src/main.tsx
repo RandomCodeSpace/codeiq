@@ -14,12 +14,12 @@ function ThemedApp() {
         ? [theme.darkAlgorithm]
         : [theme.defaultAlgorithm],
       token: {
-        // Premium deep indigo palette
-        colorPrimary: '#4f46e5',
+        // Clean blue primary — no purple
+        colorPrimary: '#2563eb',
         colorSuccess: '#10b981',
         colorWarning: '#f59e0b',
         colorError: '#ef4444',
-        colorInfo: '#6366f1',
+        colorInfo: '#3b82f6',
         // Typography
         fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
         fontSize: 14,

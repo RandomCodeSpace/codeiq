@@ -62,14 +62,16 @@ function StatCard({ title, value, icon, detail, detailTitle }: StatCardProps) {
       <Card
         hoverable={!!hasDetail}
         onClick={() => hasDetail && setOpen(true)}
-        style={{ cursor: hasDetail ? 'pointer' : 'default' }}
+        style={{ cursor: hasDetail ? 'pointer' : 'default', height: '100%' }}
       >
         <Statistic title={title} value={value} prefix={icon} />
-        {hasDetail && (
-          <Typography.Text type="secondary" style={{ fontSize: 12 }}>
-            Click for breakdown
-          </Typography.Text>
-        )}
+        <div style={{ height: 20, marginTop: 4 }}>
+          {hasDetail && (
+            <Typography.Text type="secondary" style={{ fontSize: 12 }}>
+              Click for breakdown
+            </Typography.Text>
+          )}
+        </div>
       </Card>
       <Modal
         title={detailTitle ?? title}
@@ -112,6 +114,7 @@ function isComputedStats(s: StatsResponse): s is StatsResponse & {
 export default function Dashboard() {
   const { data: stats, loading, error } = useApi(() => api.getStats(), []);
   const { data: kinds } = useApi(() => api.getKinds(), []);
+  const { data: detailed } = useApi(() => api.getDetailedStats('all'), []);
 
   const computed = stats && isComputedStats(stats) ? stats : null;
   const queryStats = stats && !isComputedStats(stats)
@@ -132,6 +135,20 @@ export default function Dashboard() {
   if (kinds?.kinds) {
     for (const k of kinds.kinds) {
       nodeKindBreakdown[k.kind] = k.count;
+    }
+  }
+
+  // Edge kind breakdown from detailed stats
+  const edgeKindBreakdown: Record<string, number> = {};
+  if (detailed && typeof detailed === 'object') {
+    const d = detailed as Record<string, unknown>;
+    const graph = d.graph as Record<string, unknown> | undefined;
+    if (graph?.edges_by_kind && typeof graph.edges_by_kind === 'object') {
+      Object.assign(edgeKindBreakdown, flattenToRecord(graph.edges_by_kind));
+    }
+    // Fallback: try connections section
+    if (Object.keys(edgeKindBreakdown).length === 0 && d.connections) {
+      Object.assign(edgeKindBreakdown, flattenToRecord(d.connections));
     }
   }
 
@@ -162,6 +179,8 @@ export default function Dashboard() {
             title="Edges"
             value={edgeCount.toLocaleString()}
             icon={<BranchesOutlined />}
+            detail={edgeKindBreakdown}
+            detailTitle="Edge Kind Breakdown"
           />
         </Col>
         <Col xs={12} sm={8} md={6}>

@@ -44,7 +44,7 @@ export default function AppLayout() {
       >
         <Typography.Title
           level={4}
-          style={{ color: '#4f46e5', margin: '0 24px 0 0', whiteSpace: 'nowrap', lineHeight: '64px' }}
+          style={{ color: '#2563eb', margin: '0 24px 0 0', whiteSpace: 'nowrap', lineHeight: '64px' }}
         >
           Code IQ
         </Typography.Title>
