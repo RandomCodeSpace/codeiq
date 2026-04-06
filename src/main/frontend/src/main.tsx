@@ -11,8 +11,8 @@ function ThemedApp() {
   return (
     <ConfigProvider theme={{
       algorithm: isDark
-        ? [theme.darkAlgorithm, theme.compactAlgorithm]
-        : [theme.defaultAlgorithm, theme.compactAlgorithm],
+        ? [theme.darkAlgorithm]
+        : [theme.defaultAlgorithm],
       token: {
         // Premium deep indigo palette
         colorPrimary: '#4f46e5',
@@ -22,7 +22,7 @@ function ThemedApp() {
         colorInfo: '#6366f1',
         // Typography
         fontFamily: "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif",
-        fontSize: 13,
+        fontSize: 14,
         // Refined spacing
         borderRadius: 6,
         wireframe: false,

@@ -75,7 +75,7 @@ class ModelCoverageTest {
 
         @Test
         void has32Values() {
-            assertEquals(32, NodeKind.values().length);
+            assertEquals(33, NodeKind.values().length);
         }
 
         @Test

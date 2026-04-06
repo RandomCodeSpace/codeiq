@@ -8,7 +8,7 @@ class NodeKindTest {
 
     @Test
     void shouldHave31Values() {
-        assertEquals(32, NodeKind.values().length, "NodeKind must have exactly 32 types");
+        assertEquals(33, NodeKind.values().length, "NodeKind must have exactly 33 types (includes EXTERNAL)");
     }
 
     @Test

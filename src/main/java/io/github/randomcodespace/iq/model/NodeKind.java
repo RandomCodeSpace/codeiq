@@ -37,7 +37,8 @@ public enum NodeKind {
     GUARD("guard"),
     MIDDLEWARE("middleware"),
     HOOK("hook"),
-    SERVICE("service");
+    SERVICE("service"),
+    EXTERNAL("external");
 
     private final String value;
 
