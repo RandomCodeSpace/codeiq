@@ -6,6 +6,7 @@ import io.github.randomcodespace.iq.model.CodeNode;
 import io.github.randomcodespace.iq.model.EdgeKind;
 import io.github.randomcodespace.iq.model.NodeKind;
 import org.neo4j.graphdb.GraphDatabaseService;
+import org.neo4j.graphdb.Result;
 import org.neo4j.graphdb.Transaction;
 import org.springframework.boot.autoconfigure.condition.ConditionalOnBean;
 import org.springframework.stereotype.Service;
@@ -658,12 +659,18 @@ public class GraphStore implements FlowDataSource {
     public FilePathResult getFilePathsWithCounts(int maxFiles) {
         List<Map<String, Object>> rows = new ArrayList<>();
         try (Transaction tx = graphDb.beginTx()) {
-            var result = tx.execute(
-                    "MATCH (n:CodeNode) WHERE n.filePath IS NOT NULL "
-                            + "RETURN n.filePath AS filePath, count(n) AS nodeCount "
-                            + "ORDER BY n.filePath "
-                            + "LIMIT $limit",
-                    Map.of(PROP_LIMIT, (long) (maxFiles + 1)));
+            // When maxFiles is very large (e.g., Integer.MAX_VALUE for unlimited treemap),
+            // skip the LIMIT clause entirely to avoid integer overflow
+            String query = "MATCH (n:CodeNode) WHERE n.filePath IS NOT NULL "
+                    + "RETURN n.filePath AS filePath, count(n) AS nodeCount "
+                    + "ORDER BY n.filePath";
+            Result result;
+            if (maxFiles < 1_000_000) {
+                result = tx.execute(query + " LIMIT $limit",
+                        Map.of(PROP_LIMIT, (long) (maxFiles + 1)));
+            } else {
+                result = tx.execute(query);
+            }
             while (result.hasNext()) {
                 var row = result.next();
                 Map<String, Object> m = new LinkedHashMap<>();
@@ -866,6 +873,19 @@ public class GraphStore implements FlowDataSource {
                     "MATCH (n:CodeNode) WHERE n.filePath IS NOT NULL AND n.filePath <> '' "
                             + "RETURN count(DISTINCT n.filePath) AS cnt");
             graph.put("files", r3.hasNext() ? ((Number) r3.next().get(PROP_CNT)).longValue() : 0L);
+
+            // Edge kind breakdown
+            var r4 = tx.execute(
+                    "MATCH ()-[r:RELATES_TO]->() "
+                            + "RETURN r.kind AS kind, count(r) AS cnt ORDER BY cnt DESC");
+            Map<String, Long> edgesByKind = new LinkedHashMap<>();
+            while (r4.hasNext()) {
+                var row = r4.next();
+                String kind = (String) row.get(PROP_KIND);
+                long cnt = ((Number) row.get(PROP_CNT)).longValue();
+                if (kind != null) edgesByKind.put(kind, cnt);
+            }
+            graph.put("edges_by_kind", edgesByKind);
         }
         return graph;
     }
