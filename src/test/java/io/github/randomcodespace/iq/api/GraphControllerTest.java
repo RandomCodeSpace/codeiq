@@ -567,7 +567,7 @@ class GraphControllerTest {
                 Map.of("name", "src", "type", "directory", "nodeCount", 10L, "children", List.of()),
                 Map.of("name", "pom.xml", "type", "file", "nodeCount", 1L, "children", List.of())));
         treeResult.put("total_files", 3L);
-        when(queryService.getFileTree(anyInt(), anyInt())).thenReturn(treeResult);
+        when(queryService.getFileTree(any(), anyInt())).thenReturn(treeResult);
 
         mockMvc.perform(get("/api/file-tree"))
                 .andExpect(status().isOk())
