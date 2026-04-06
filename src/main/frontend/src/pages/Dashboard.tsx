@@ -14,6 +14,29 @@ import { useApi } from '@/hooks/useApi';
 import { api } from '@/lib/api';
 import type { StatsResponse } from '@/types/api';
 
+/** Flatten a value into a Record<string, number>. Handles nested objects, numbers, arrays. */
+function flattenToRecord(val: unknown): Record<string, number> {
+  if (!val || typeof val !== 'object') return {};
+  const result: Record<string, number> = {};
+  for (const [k, v] of Object.entries(val as Record<string, unknown>)) {
+    if (typeof v === 'number') {
+      result[k] = v;
+    } else if (typeof v === 'object' && v !== null && !Array.isArray(v)) {
+      // Nested object — flatten one level
+      for (const [k2, v2] of Object.entries(v as Record<string, unknown>)) {
+        if (typeof v2 === 'number') {
+          result[`${k}/${k2}`] = v2;
+        }
+      }
+    }
+  }
+  return result;
+}
+
+function sumValues(rec: Record<string, number>): number {
+  return Object.values(rec).reduce((a, b) => a + b, 0);
+}
+
 interface StatCardProps {
   title: string;
   value: number | string;
@@ -25,8 +48,11 @@ interface StatCardProps {
 function StatCard({ title, value, icon, detail, detailTitle }: StatCardProps) {
   const [open, setOpen] = useState(false);
 
-  const tableData = detail
-    ? Object.entries(detail)
+  // Only allow click if detail has entries and total > 0
+  const hasDetail = detail && Object.keys(detail).length > 0 && sumValues(detail) > 0;
+
+  const tableData = hasDetail
+    ? Object.entries(detail!)
         .sort((a, b) => b[1] - a[1])
         .map(([name, count]) => ({ key: name, name, count }))
     : [];
@@ -34,12 +60,12 @@ function StatCard({ title, value, icon, detail, detailTitle }: StatCardProps) {
   return (
     <>
       <Card
-        hoverable={!!detail}
-        onClick={() => detail && setOpen(true)}
-        style={{ cursor: detail ? 'pointer' : 'default' }}
+        hoverable={!!hasDetail}
+        onClick={() => hasDetail && setOpen(true)}
+        style={{ cursor: hasDetail ? 'pointer' : 'default' }}
       >
         <Statistic title={title} value={value} prefix={icon} />
-        {detail && (
+        {hasDetail && (
           <Typography.Text type="secondary" style={{ fontSize: 12 }}>
             Click for breakdown
           </Typography.Text>
@@ -76,9 +102,9 @@ function isComputedStats(s: StatsResponse): s is StatsResponse & {
   graph: { nodes: number; edges: number; files: number };
   languages: Record<string, number>;
   frameworks: Record<string, number>;
-  connections?: { rest?: Record<string, number> };
-  auth?: Record<string, number>;
-  architecture?: Record<string, number>;
+  connections?: unknown;
+  auth?: unknown;
+  architecture?: unknown;
 } {
   return 'graph' in s;
 }
@@ -95,14 +121,13 @@ export default function Dashboard() {
   const nodeCount = computed?.graph?.nodes ?? queryStats?.node_count ?? 0;
   const edgeCount = computed?.graph?.edges ?? queryStats?.edge_count ?? 0;
   const fileCount = computed?.graph?.files ?? 0;
-  const languages = computed?.languages ?? {};
+  const languages = flattenToRecord(computed?.languages);
   const langCount = Object.keys(languages).length;
-  const frameworks = computed?.frameworks ?? {};
-  const connections = computed?.connections?.rest ?? {};
-  const auth = computed?.auth ?? {};
-  const architecture = computed?.architecture ?? {};
+  const frameworks = flattenToRecord(computed?.frameworks);
+  const connections = flattenToRecord(computed?.connections);
+  const auth = flattenToRecord(computed?.auth);
+  const architecture = flattenToRecord(computed?.architecture);
 
-  // Build node kind breakdown from kinds API
   const nodeKindBreakdown: Record<string, number> = {};
   if (kinds?.kinds) {
     for (const k of kinds.kinds) {
@@ -167,7 +192,7 @@ export default function Dashboard() {
         <Col xs={12} sm={8} md={6}>
           <StatCard
             title="REST Endpoints"
-            value={Object.values(connections).reduce((a, b) => a + b, 0)}
+            value={sumValues(connections)}
             icon={<ApiOutlined />}
             detail={connections}
             detailTitle="REST Endpoints by Method"
@@ -176,7 +201,7 @@ export default function Dashboard() {
         <Col xs={12} sm={8} md={6}>
           <StatCard
             title="Auth Guards"
-            value={Object.values(auth).reduce((a, b) => a + b, 0)}
+            value={sumValues(auth)}
             icon={<SafetyOutlined />}
             detail={auth}
             detailTitle="Auth Patterns"
@@ -193,7 +218,6 @@ export default function Dashboard() {
         </Col>
       </Row>
 
-      {/* Frameworks as tags for quick glance */}
       {Object.keys(frameworks).length > 0 && (
         <Card title="Detected Frameworks" style={{ marginTop: 16 }} size="small">
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>

@@ -28,11 +28,11 @@ function ThemedApp() {
         wireframe: false,
         // Dark mode refinements
         ...(isDark ? {
-          colorBgContainer: '#1a1a2e',
-          colorBgElevated: '#1f1f38',
-          colorBgLayout: '#0f0f1a',
-          colorBorder: '#2d2d4a',
-          colorBorderSecondary: '#252542',
+          colorBgContainer: '#1f1f23',
+          colorBgElevated: '#27272b',
+          colorBgLayout: '#18181b',
+          colorBorder: '#3f3f46',
+          colorBorderSecondary: '#34343a',
         } : {
           colorBgContainer: '#ffffff',
           colorBgElevated: '#ffffff',
@@ -41,8 +41,8 @@ function ThemedApp() {
       },
       components: {
         Table: {
-          headerBg: isDark ? '#1f1f38' : '#fafafa',
-          rowHoverBg: isDark ? '#252542' : '#f0f0ff',
+          headerBg: isDark ? '#27272b' : '#fafafa',
+          rowHoverBg: isDark ? '#2d2d33' : '#f0f0ff',
         },
         Card: {
           paddingLG: 20,

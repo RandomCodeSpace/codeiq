@@ -54,7 +54,7 @@ function countResults(json: unknown): number | null {
 }
 
 export default function McpConsole() {
-  const [selectedTool, setSelectedTool] = useState<McpTool | null>(null);
+  const [selectedTool, setSelectedTool] = useState<McpTool | null>(TOOLS[0] ?? null);
   const [response, setResponse] = useState<string>('');
   const [status, setStatus] = useState<number | null>(null);
   const [duration, setDuration] = useState<number | null>(null);

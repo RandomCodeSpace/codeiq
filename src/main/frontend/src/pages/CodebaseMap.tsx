@@ -202,7 +202,7 @@ export default function CodebaseMap() {
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 80px)' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', height: 'calc(100vh - 96px)', margin: '-16px -24px', padding: '8px 16px 0' }}>
       {/* Top bar: title + filter */}
       <div style={{
         display: 'flex',
