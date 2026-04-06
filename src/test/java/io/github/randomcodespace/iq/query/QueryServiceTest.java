@@ -761,6 +761,48 @@ class QueryServiceTest {
         assertEquals(first.toString(), second.toString());
     }
 
+    @Test
+    @SuppressWarnings("unchecked")
+    void getFileTreeShouldUpgradeFileToDirectoryWhenUsedAsIntermediate() {
+        // Simulates a monorepo where SERVICE nodes have directory-like filePaths
+        // e.g., "packages/api" (SERVICE) AND "packages/api/src/index.ts" (source file)
+        when(graphStore.getFilePathsWithCounts(anyInt())).thenReturn(new GraphStore.FilePathResult(List.of(
+                Map.of("filePath", "packages/api", "nodeCount", 1L),
+                Map.of("filePath", "packages/api/src/index.ts", "nodeCount", 5L),
+                Map.of("filePath", "packages/api/src/users.ts", "nodeCount", 3L),
+                Map.of("filePath", "packages/web/src/App.tsx", "nodeCount", 2L)), false));
+
+        Map<String, Object> result = service.getFileTree(null);
+        List<Map<String, Object>> tree = (List<Map<String, Object>>) result.get("tree");
+
+        // packages should be a directory
+        assertEquals(1, tree.size());
+        Map<String, Object> packages = tree.get(0);
+        assertEquals("packages", packages.get("name"));
+        assertEquals("directory", packages.get("type"));
+
+        List<Map<String, Object>> pkgChildren = (List<Map<String, Object>>) packages.get("children");
+        // api and web directories
+        assertEquals(2, pkgChildren.size());
+
+        // "api" should be upgraded to directory (not file) even though "packages/api" was first
+        Map<String, Object> api = pkgChildren.get(0);
+        assertEquals("api", api.get("name"));
+        assertEquals("directory", api.get("type"));
+
+        // api should have children (src directory), not be empty
+        List<Map<String, Object>> apiChildren = (List<Map<String, Object>>) api.get("children");
+        assertFalse(apiChildren.isEmpty(), "api directory should have children");
+        // nodeCount should aggregate: 1 (api itself) + 5 + 3 = 9
+        assertEquals(9L, api.get("nodeCount"));
+
+        // src should contain index.ts and users.ts
+        Map<String, Object> src = apiChildren.get(0);
+        assertEquals("src", src.get("name"));
+        List<Map<String, Object>> srcChildren = (List<Map<String, Object>>) src.get("children");
+        assertEquals(2, srcChildren.size());
+    }
+
     // --- findRelatedEndpoints ---
 
     @Test

@@ -375,6 +375,12 @@ public class QueryService {
                 boolean isFile = (i == parts.length - 1);
                 String type = isFile ? PROP_FILE : PROP_DIRECTORY;
                 TreeNode child = current.children.computeIfAbsent(part, k -> new TreeNode(k, type));
+                // Upgrade FILE→DIRECTORY if this segment is used as an intermediate path.
+                // This happens when e.g. "packages/api" (SERVICE node, file) exists AND
+                // "packages/api/src/index.ts" (source file) also exists.
+                if (!isFile && PROP_FILE.equals(child.type)) {
+                    child.type = PROP_DIRECTORY;
+                }
                 if (isFile) {
                     child.nodeCount += count;
                 }
@@ -439,7 +445,7 @@ public class QueryService {
 
     private static class TreeNode {
         final String name;
-        final String type;
+        String type; // mutable: FILE may be upgraded to DIRECTORY if later paths use it as an intermediate
         long nodeCount = 0;
         final Map<String, TreeNode> children = new TreeMap<>();
 
