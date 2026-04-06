@@ -12,6 +12,7 @@ const LANG_COLORS: Record<string, string> = {
   yaml: '#cb171e', json: '#555', ruby: '#701516', scala: '#c22d40',
   cpp: '#f34b7d', shell: '#89e051', markdown: '#083fa1', html: '#e34c26',
   css: '#563d7c', sql: '#e38c00', proto: '#60a0b0', dockerfile: '#384d54',
+  other: '#888',
 };
 
 const EXT_TO_LANG: Record<string, string> = {
@@ -25,7 +26,7 @@ const EXT_TO_LANG: Record<string, string> = {
 
 interface EChartsTreeNode {
   name: string;
-  value: number;
+  value?: number;
   children?: EChartsTreeNode[];
   itemStyle?: { color: string };
 }
@@ -35,40 +36,47 @@ function inferLang(name: string): string {
   return EXT_TO_LANG[ext] ?? 'other';
 }
 
-function fileTreeToECharts(nodes: FileTreeNode[]): EChartsTreeNode[] {
-  return nodes
-    .filter(n => n.nodeCount > 0 || (n.children && n.children.length > 0))
-    .map(n => {
-      if (n.type === 'directory' && n.children && n.children.length > 0) {
-        const children = fileTreeToECharts(n.children);
-        // Dominant language from children names
-        const langCounts: Record<string, number> = {};
-        function countLangs(items: FileTreeNode[]) {
-          for (const item of items) {
-            if (item.type === 'file') {
-              const lang = inferLang(item.name);
-              langCounts[lang] = (langCounts[lang] ?? 0) + (item.nodeCount || 1);
-            }
-            if (item.children) countLangs(item.children);
-          }
-        }
-        countLangs(n.children);
-        const dominant = Object.entries(langCounts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'other';
-
-        return {
-          name: n.name,
-          value: n.nodeCount,
-          children: children.length > 0 ? children : undefined,
-          itemStyle: { color: LANG_COLORS[dominant] ?? '#666' },
-        };
+function dominantLang(nodes: FileTreeNode[]): string {
+  const counts: Record<string, number> = {};
+  function walk(items: FileTreeNode[]) {
+    for (const item of items) {
+      if (item.type === 'file') {
+        const lang = inferLang(item.name);
+        counts[lang] = (counts[lang] ?? 0) + (item.nodeCount || 1);
       }
+      if (item.children) walk(item.children);
+    }
+  }
+  walk(nodes);
+  return Object.entries(counts).sort((a, b) => b[1] - a[1])[0]?.[0] ?? 'other';
+}
+
+function fileTreeToECharts(nodes: FileTreeNode[]): EChartsTreeNode[] {
+  const result: EChartsTreeNode[] = [];
+  for (const n of nodes) {
+    if (n.nodeCount <= 0 && (!n.children || n.children.length === 0)) continue;
+
+    if (n.type === 'directory' && n.children && n.children.length > 0) {
+      const children = fileTreeToECharts(n.children);
+      if (children.length === 0) continue;
+      const lang = dominantLang(n.children);
+      // Directory nodes: NO value — ECharts sums from children for correct proportions
+      result.push({
+        name: n.name,
+        children,
+        itemStyle: { color: LANG_COLORS[lang] ?? '#666' },
+      });
+    } else {
+      // Leaf file node: value = nodeCount (determines rectangle size)
       const lang = inferLang(n.name);
-      return {
+      result.push({
         name: n.name,
         value: Math.max(n.nodeCount, 1),
         itemStyle: { color: LANG_COLORS[lang] ?? '#666' },
-      };
-    });
+      });
+    }
+  }
+  return result;
 }
 
 function collectLanguages(nodes: FileTreeNode[]): string[] {
@@ -97,68 +105,78 @@ export default function CodebaseMap() {
   const tree = treeData?.tree ?? [];
   const totalFiles = treeData?.total_files ?? 0;
   const uniqueLangs = useMemo(() => collectLanguages(tree), [tree]);
-
-  const treemapData = useMemo(() => {
-    // TODO: apply langFilter if needed
-    return fileTreeToECharts(tree);
-  }, [tree, langFilter]);
+  const treemapData = useMemo(() => fileTreeToECharts(tree), [tree]);
 
   const chartOption = useMemo(() => ({
     tooltip: {
       formatter: (info: { name: string; value: number; treePathInfo?: Array<{ name: string }> }) => {
         const path = info.treePathInfo?.map(p => p.name).filter(Boolean).join('/') ?? info.name;
-        return `<b>${path}</b><br/>Nodes: ${info.value?.toLocaleString()}`;
+        return `<b>${path}</b><br/>Nodes: ${(info.value ?? 0).toLocaleString()}`;
       },
     },
     series: [{
       type: 'treemap',
       data: treemapData,
-      roam: 'move',
-      leafDepth: 2,
-      drillDownIcon: '▶',
+      leafDepth: 1,
+      drillDownIcon: '▶ ',
+      roam: false,
+      nodeClick: 'zoomToNode',
       breadcrumb: {
         show: true,
         top: 4,
         left: 4,
         itemStyle: {
-          color: isDark ? '#2a2a2e' : '#f5f5f5',
-          borderColor: isDark ? '#3f3f46' : '#d9d9d9',
+          color: isDark ? '#1a1a1a' : '#f5f5f5',
+          borderColor: isDark ? '#303030' : '#d9d9d9',
         },
-        textStyle: { color: isDark ? '#e0e0e0' : '#333' },
+        textStyle: {
+          color: isDark ? '#e0e0e0' : '#333',
+          fontSize: 13,
+        },
       },
       levels: [
         {
           itemStyle: {
-            borderColor: isDark ? '#444' : '#ccc',
-            borderWidth: 2,
-            gapWidth: 2,
+            borderColor: isDark ? '#303030' : '#bbb',
+            borderWidth: 3,
+            gapWidth: 3,
           },
           upperLabel: {
             show: true,
-            height: 28,
+            height: 30,
             color: isDark ? '#e0e0e0' : '#333',
-            fontSize: 13,
+            fontSize: 14,
             fontWeight: 'bold' as const,
           },
         },
         {
           itemStyle: {
-            borderColor: isDark ? '#555' : '#ddd',
-            borderWidth: 1,
-            gapWidth: 1,
+            borderColor: isDark ? '#404040' : '#ccc',
+            borderWidth: 2,
+            gapWidth: 2,
           },
-          upperLabel: { show: true, height: 22, fontSize: 12 },
+          upperLabel: {
+            show: true,
+            height: 24,
+            fontSize: 12,
+            color: isDark ? '#ccc' : '#555',
+          },
         },
         {
           itemStyle: {
-            borderColor: isDark ? '#666' : '#eee',
-            borderWidth: 0.5,
-            gapWidth: 0.5,
+            borderColor: isDark ? '#4a4a4a' : '#ddd',
+            borderWidth: 1,
+            gapWidth: 1,
           },
           label: { show: true, fontSize: 11 },
         },
       ],
-      label: { show: true, formatter: '{b}', fontSize: 12 },
+      label: {
+        show: true,
+        formatter: '{b}',
+        fontSize: 12,
+        color: isDark ? '#ddd' : '#333',
+      },
     }],
   }), [treemapData, isDark]);
 
