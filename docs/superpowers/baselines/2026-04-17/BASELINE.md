@@ -222,7 +222,19 @@ Ordered by severity. Each item cites the raw artifact it was derived from.
 
 - **Playwright E2E: 0 passed / 575 failed.** 100% failure rate. Almost certainly environment/config rather than regressions — the audit script runs `npm run test:e2e` without starting the backend (`java -jar ... serve`), so any test that hits `/api/*` will fail. Needs a harness that spins up the server (or mocks it) before running Playwright, or a `webServer` entry in `playwright.config.ts`.
   - Raw: `raw/frontend/playwright.log`, `raw/frontend/playwright-summary.json`.
-  - **RESOLVED (config) / PENDING (system-deps) (2026-04-17, branch `phase-a/fix-playwright-webserver`)**: added a `webServer` block to `src/main/frontend/playwright.config.ts` that boots `java -jar target/code-iq-*-cli.jar serve .seeds/spring-petclinic --port 8080` and gates readiness on `/api/stats` (HTTP 200) — `/actuator/health` is not a reliable readiness signal today, see the GraphHealthIndicator gap. Environment-overridable via `BASE_URL`, `E2E_FIXTURE`, `E2E_PORT`. Verified end-to-end on this machine: the webServer block successfully boots the backend, serves `/api/stats`, and Playwright connects. Chromium browser binary was missing; reinstalled via `npx playwright install chromium` (112 MB). Further blocker: chromium's headless shell is missing 8 shared libs on this host (`libatk-1.0.so.0`, `libatk-bridge-2.0.so.0`, `libXcomposite.so.1`, `libXdamage.so.1`, `libXfixes.so.3`, `libXrandr.so.2`, `libgbm.so.1`, `libatspi.so.0`) — this causes a `browserType.launch: ... exitCode=127` on every test. Fix: one-time `sudo npx playwright install-deps chromium` (requires sudo/password; can't be done non-interactively here). Once deps are installed, re-run the frontend audit to capture the true pass rate. Note: the chromium project alone contains 131 tests, not 575 — the original 575-fail count was the sum across all 7 Playwright projects (chromium/firefox/edge/webkit + 3 responsive breakpoints).
+  - **RESOLVED — config + system-deps + run (2026-04-17, branch `phase-a/fix-playwright-webserver`)**: added a `webServer` block to `src/main/frontend/playwright.config.ts` that boots `java -jar target/code-iq-*-cli.jar serve .seeds/spring-petclinic --port 8080` and gates readiness on `/api/stats` (HTTP 200). Installed system libs via `sudo npx playwright install-deps chromium`. Ran full chromium suite against the live backend (19.2 min wall time).
+
+  **New chromium baseline**: `33 passed / 94 failed / 4 skipped` out of **131 tests**. Huge improvement from "0 passed / 575 failed" (the 575 was the sum across 7 Playwright projects — chromium/firefox/edge/webkit + 3 responsive breakpoints). The 94 chromium failures are **not environmental** — they're real test ↔ UI divergence. Signature histogram of the 22 detailed failure blocks analyzed:
+
+  | Pattern | Interpretation |
+  |---|---|
+  | `expect(locator).toBeVisible() failed` / `element(s) not found` | Selectors targeting UI elements that no longer render (renamed / removed). |
+  | `strict mode violation: getByText(/0/) resolved to 8 elements` | Tests assumed unique stats values; spring-petclinic's 691-node graph produces many zero-valued stat cards. |
+  | `expect(received).toHaveLength(expected)` | List count mismatches (menu items, nav links, stats rows). |
+  | `Error: Button ... has no aria-label` | Real a11y regressions in `accessibility.spec.ts`. |
+  | `locator.focus: Test timeout 30000ms exceeded` | UI interactions hanging on elements that never appear. |
+
+  Test-suite maintenance / fixture generation is a follow-up (not a Phase A blocker). Candidate approaches: (1) rebuild the Ant-Design selectors to match current UI taxonomy; (2) pin a synthetic fixture with known, deterministic stats counts; (3) relax strict-mode selectors to `.first()` where tests genuinely target "any such element". 22 of the 94 failures have full error blocks captured in `raw/frontend/playwright.log`.
 
 ### High
 
