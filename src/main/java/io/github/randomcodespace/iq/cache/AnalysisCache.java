@@ -372,10 +372,16 @@ public class AnalysisCache implements Closeable {
             log.warn("Failed to store cached results for hash {}", contentHash, e);
         } finally {
             try {
-                conn.setAutoCommit(true);
-            } catch (SQLException ignored) {
+                try {
+                    conn.setAutoCommit(true);
+                } catch (SQLException ignored) {
+                    // best-effort restore; the INSERTs have already been committed or rolled back.
+                }
+            } finally {
+                // Guarantee unlock even if conn.setAutoCommit throws a non-SQLException
+                // (RuntimeException / Error). Fixes SpotBugs UL_UNRELEASED_LOCK_EXCEPTION_PATH.
+                rwLock.writeLock().unlock();
             }
-            rwLock.writeLock().unlock();
         }
     }
 
@@ -605,10 +611,16 @@ public class AnalysisCache implements Closeable {
             log.warn("Failed to replace cache with enriched data", e);
         } finally {
             try {
-                conn.setAutoCommit(true);
-            } catch (SQLException ignored) {
+                try {
+                    conn.setAutoCommit(true);
+                } catch (SQLException ignored) {
+                    // best-effort restore; the INSERTs have already been committed or rolled back.
+                }
+            } finally {
+                // Guarantee unlock even if conn.setAutoCommit throws a non-SQLException
+                // (RuntimeException / Error). Fixes SpotBugs UL_UNRELEASED_LOCK_EXCEPTION_PATH.
+                rwLock.writeLock().unlock();
             }
-            rwLock.writeLock().unlock();
         }
     }
 
