@@ -155,19 +155,47 @@ updating any capture script. Raw artifacts under `raw/` are gitignored.
 }
 ```
 
-## OWASP dependency-check
+## Vulnerability scan (OSV-Scanner + GitHub Dependabot)
+
+OWASP dependency-check was replaced with OSV-Scanner + Dependabot because NVD's unauthenticated API rate-limit made full NVD sync impractical (~4 hours to download 345k records at 3%/7min). Both alternatives are free, require no API key, and draw from broader vulnerability databases (OSV aggregates GHSA / RustSec / PyPA / Go vulndb / Maven Central advisories; Dependabot uses GHSA directly).
 
 ```json
 {
-  "status": "FAILED",
-  "reason": "NVD DB update race: UpdateException (H2 lock) + NoDataException during first NVD sync. Re-run after clearing ~/.m2/repository/org/owasp/dependency-check-data/*.lock and optionally wiping the data dir.",
-  "captured_log": "docs/superpowers/baselines/2026-04-17/raw/depcheck.log",
-  "maven_exit_code": 1,
-  "timestamp": "2026-04-17T08:06:05Z",
-  "by_severity": {},
-  "top_25": []
+  "status": "OK",
+  "scanner": "osv-scanner 1.9.2 + github dependabot",
+  "total": 12,
+  "by_severity": {"CRITICAL": 0, "HIGH": 4, "MODERATE": 7, "LOW": 1}
 }
 ```
+
+### Findings (sorted by severity)
+
+| Severity | Source | Package | Installed | Fix in | CVE | Summary |
+|---|---|---|---|---|---|---|
+| HIGH | pom.xml | `org.apache.tomcat.embed:tomcat-embed-core` | 11.0.20 | 11.0.21 | CVE-2026-34483 | Improper encoding/escaping in JsonAccessLogValve |
+| HIGH | pom.xml | `org.apache.tomcat.embed:tomcat-embed-core` | 11.0.20 | 11.0.21 | CVE-2026-34487 | Sensitive info insertion into log file |
+| HIGH | pom.xml | `tools.jackson.core:jackson-core` | 3.1.0 | 3.1.1 | (GHSA-2m67-wjpj-xhg9) | Document length constraint bypass in blocking/async/DataInput parsers |
+| HIGH | package-lock.json | `vite` (dev-only) | 6.4.1 | 6.4.2 | CVE-2026-39363 | Arbitrary file read via dev server WebSocket |
+| MODERATE | pom.xml | `io.modelcontextprotocol.sdk:mcp-core` | 1.1.0 | 1.1.1 | CVE-2026-34237 | Hardcoded wildcard CORS (`Access-Control-Allow-Origin: *`) |
+| MODERATE | pom.xml | `org.apache.logging.log4j:log4j-core` | 2.25.3 | 2.25.4 | CVE-2026-34477 | `verifyHostName` silently ignored in TLS config |
+| MODERATE | pom.xml | `org.apache.logging.log4j:log4j-core` | 2.25.3 | 2.25.4 | CVE-2026-34478 | Log injection in `Rfc5424Layout` |
+| MODERATE | pom.xml | `org.apache.logging.log4j:log4j-core` | 2.25.3 | 2.25.4 | CVE-2026-34480 | Silent log-event loss in XmlLayout (forbidden XML 1.0 chars) |
+| MODERATE | pom.xml | `org.apache.logging.log4j:log4j-layout-template-json` | 2.25.3 | 2.25.4 | CVE-2026-34481 | Improper serialization of non-finite floats in JsonTemplateLayout |
+| MODERATE | pom.xml | `org.apache.tomcat.embed:tomcat-embed-core` | 11.0.20 | 11.0.21 | CVE-2026-34500 | CLIENT_CERT auth does not fail as expected |
+| MODERATE | package-lock.json | `vite` (dev-only) | 6.4.1 | 6.4.2 | CVE-2026-39365 | Path traversal in optimized deps `.map` handling |
+| LOW | pom.xml | `org.apache.shiro:shiro-core` | 2.0.6 | 2.1.0 | CVE-2026-23901 | Observable timing discrepancy |
+
+### Remediation shape
+
+- **Spring Boot 4.0.6+ patch release** bumps tomcat-embed-core to 11.0.21 and typically log4j to 2.25.4 — addresses 7 of 12 (2 HIGH + 5 MODERATE).
+- **Explicit bump `tools.jackson.core:jackson-core` → 3.1.1** in pom.xml — addresses 1 HIGH.
+- **Explicit bump `io.modelcontextprotocol.sdk:mcp-core` → 1.1.1** — addresses 1 MODERATE (wildcard CORS on MCP).
+- **`npm install vite@6.4.2 -D`** in `src/main/frontend/` — addresses 2 (HIGH + MODERATE). Dev-only.
+- **Explicit bump `org.apache.shiro:shiro-core` → 2.1.0** — addresses 1 LOW (timing side-channel on password check).
+
+### Dependabot overlap
+
+GitHub Dependabot on `main` independently flagged **CVE-2026-39363** and **CVE-2026-39365** (both `vite`). OSV-Scanner caught those plus the 10 Maven findings Dependabot did not surface on this repo.
 
 ## Frontend
 
@@ -219,6 +247,7 @@ Ordered by severity. Each item cites the raw artifact it was derived from.
 
 - **OWASP dependency-check failed.** NVD initial sync hit `UpdateException: Unable to obtain exclusive lock on H2 database` followed by `NoDataException: No documents exist`. Maven exit 1 after 40 min. No CVE inventory captured. Must re-run (see §Re-run instructions below) before any security posture claim.
   - Raw: `raw/depcheck.log`, `raw/depcheck-summary.json` (stub, `status=FAILED`).
+  - **RESOLVED via alternative tooling (2026-04-17, branch `phase-a/vuln-scan`)**: replaced OWASP dep-check with OSV-Scanner 1.9.2 + GitHub Dependabot (neither needs an API key; both broader than NVD-direct). Real CVE inventory captured: **12 findings — 0 CRITICAL, 4 HIGH, 7 MODERATE, 1 LOW.** All have known fix versions (minor/patch bumps). HIGH items: 2× tomcat-embed-core→11.0.21, jackson-core→3.1.1, vite→6.4.2 (dev-only). MODERATE items: log4j-core×3, log4j-layout-template-json, mcp-core (hardcoded wildcard CORS), tomcat-embed-core (CLIENT_CERT bypass), vite. LOW: shiro-core timing side-channel. See §Vulnerability scan section above for the full table + remediation shape. Retrying OWASP dep-check would reproduce much the same set and is no longer a release blocker.
 
 - **Playwright E2E: 0 passed / 575 failed.** 100% failure rate. Almost certainly environment/config rather than regressions — the audit script runs `npm run test:e2e` without starting the backend (`java -jar ... serve`), so any test that hits `/api/*` will fail. Needs a harness that spins up the server (or mocks it) before running Playwright, or a `webServer` entry in `playwright.config.ts`.
   - Raw: `raw/frontend/playwright.log`, `raw/frontend/playwright-summary.json`.
