@@ -100,8 +100,6 @@ public class PluginsCommand implements Runnable {
          * or falls back to a sensible default.
          */
         static String categoryDescription(String category, List<Detector> detectors) {
-            // Collect unique frameworks from DetectorInfo if available
-            Set<String> frameworks = new TreeSet<>();
             for (Detector d : detectors) {
                 DetectorInfo info = d.getClass().getAnnotation(DetectorInfo.class);
                 if (info != null && info.description() != null && !info.description().isEmpty()) {
