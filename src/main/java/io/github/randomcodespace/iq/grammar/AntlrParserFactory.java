@@ -113,9 +113,11 @@ public final class AntlrParserFactory {
             return null;
         }
 
-        // Check thread-local cache — same content object means same file
+        // Check thread-local cache. Using .equals() is correct because the parse tree
+        // is a deterministic function of content — equal content yields an equivalent tree.
+        // (Previously used == for identity fast-path; SpotBugs ES_COMPARING_PARAMETER_STRING_WITH_EQ.)
         var cached = PARSE_CACHE.get();
-        if (cached != null && cached.getKey() == content) {
+        if (cached != null && content.equals(cached.getKey())) {
             return cached.getValue();
         }
 

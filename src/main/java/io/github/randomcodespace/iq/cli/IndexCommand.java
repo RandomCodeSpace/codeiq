@@ -85,8 +85,15 @@ public class IndexCommand implements Callable<Integer> {
             if (java.nio.file.Files.exists(cacheDir)) {
                 try {
                     try (var walk = java.nio.file.Files.walk(cacheDir)) {
+                        var logger = org.slf4j.LoggerFactory.getLogger(IndexCommand.class);
                         walk.sorted(java.util.Comparator.reverseOrder())
-                                .forEach(p -> { try { java.nio.file.Files.deleteIfExists(p); } catch (Exception ignored) {} });
+                                .forEach(p -> {
+                                    try {
+                                        java.nio.file.Files.deleteIfExists(p);
+                                    } catch (java.io.IOException ex) {
+                                        logger.debug("Could not delete cache entry {}: {}", p, ex.getMessage());
+                                    }
+                                });
                     }
                     CliOutput.info("  Deleted existing cache at " + cacheDir);
                 } catch (Exception e) {

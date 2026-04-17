@@ -1,5 +1,6 @@
 package io.github.randomcodespace.iq.analyzer;
 
+import java.nio.charset.StandardCharsets;
 import io.github.randomcodespace.iq.analyzer.linker.Linker;
 import io.github.randomcodespace.iq.cache.AnalysisCache;
 import io.github.randomcodespace.iq.cache.FileHasher;
@@ -1608,7 +1609,7 @@ public class Analyzer {
                     .directory(repoPath.toFile())
                     .redirectErrorStream(true);
             Process proc = pb.start();
-            String sha = new String(proc.getInputStream().readAllBytes()).trim();
+            String sha = new String(proc.getInputStream().readAllBytes(), StandardCharsets.UTF_8).trim();
             int exitCode = proc.waitFor();
             if (exitCode == 0 && sha.length() >= 7) {
                 return sha;
