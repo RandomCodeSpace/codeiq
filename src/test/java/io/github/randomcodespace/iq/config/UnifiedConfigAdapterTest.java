@@ -7,7 +7,6 @@ import io.github.randomcodespace.iq.config.unified.McpAuthConfig;
 import io.github.randomcodespace.iq.config.unified.McpConfig;
 import io.github.randomcodespace.iq.config.unified.McpLimitsConfig;
 import io.github.randomcodespace.iq.config.unified.McpToolsConfig;
-import io.github.randomcodespace.iq.config.unified.Neo4jConfig;
 import io.github.randomcodespace.iq.config.unified.ObservabilityConfig;
 import io.github.randomcodespace.iq.config.unified.DetectorsConfig;
 import io.github.randomcodespace.iq.config.unified.ProjectConfig;
@@ -15,7 +14,6 @@ import io.github.randomcodespace.iq.config.unified.ServingConfig;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
-import java.util.Map;
 
 import static org.junit.jupiter.api.Assertions.*;
 
