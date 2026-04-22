@@ -77,6 +77,7 @@ public final class UnifiedConfigLoader {
         return new ProjectConfig(
                 (String) m.get("name"),
                 (String) m.getOrDefault("root", "."),
+                (String) m.get("service_name"),
                 mods);
     }
 
@@ -89,7 +90,11 @@ public final class UnifiedConfigLoader {
                 (Boolean) m.get("incremental"),
                 (String) m.get("cacheDir"),
                 m.get("parallelism") == null ? null : String.valueOf(m.get("parallelism")),
-                requireIntOrNull(m.get("batchSize"), path, "indexing.batchSize"));
+                requireIntOrNull(m.get("batchSize"), path, "indexing.batchSize"),
+                requireIntOrNull(m.get("max_depth"), path, "indexing.maxDepth"),
+                requireIntOrNull(m.get("max_radius"), path, "indexing.maxRadius"),
+                requireIntOrNull(m.get("max_files"), path, "indexing.maxFiles"),
+                requireIntOrNull(m.get("max_snippet_lines"), path, "indexing.maxSnippetLines"));
     }
 
     @SuppressWarnings("unchecked")

@@ -18,10 +18,12 @@ public final class EnvVarOverlay {
 
     public static CodeIqUnifiedConfig from(Map<String, String> env) {
         Integer port = null, batch = null, perToolMs = null, maxResults = null, ratePerMin = null,
-                pageMb = null, heapInit = null, heapMax = null;
+                pageMb = null, heapInit = null, heapMax = null,
+                maxDepth = null, maxRadius = null, maxFiles = null, maxSnippetLines = null;
         Long maxPayload = null;
         Boolean readOnly = null, incremental = null, metrics = null, tracing = null, mcpEnabled = null;
         String cacheDir = null, bindAddr = null, projectName = null, projectRoot = null,
+                projectServiceName = null,
                 neo4jDir = null, mcpTransport = null, mcpBasePath = null, mcpMode = null,
                 mcpTokenEnv = null, logFormat = null, logLevel = null, parallelism = null;
         List<String> languages = List.of(), include = List.of(), exclude = List.of(),
@@ -35,6 +37,7 @@ public final class EnvVarOverlay {
                 switch (key) {
                     case "PROJECT_NAME" -> projectName = v;
                     case "PROJECT_ROOT" -> projectRoot = v;
+                    case "PROJECT_SERVICE_NAME" -> projectServiceName = v;
                     case "INDEXING_LANGUAGES" -> languages = splitCsv(v);
                     case "INDEXING_INCLUDE" -> include = splitCsv(v);
                     case "INDEXING_EXCLUDE" -> exclude = splitCsv(v);
@@ -42,6 +45,10 @@ public final class EnvVarOverlay {
                     case "INDEXING_CACHEDIR" -> cacheDir = v;
                     case "INDEXING_PARALLELISM" -> parallelism = v;
                     case "INDEXING_BATCHSIZE" -> batch = Integer.parseInt(v);
+                    case "INDEXING_MAX_DEPTH" -> maxDepth = Integer.parseInt(v);
+                    case "INDEXING_MAX_RADIUS" -> maxRadius = Integer.parseInt(v);
+                    case "INDEXING_MAX_FILES" -> maxFiles = Integer.parseInt(v);
+                    case "INDEXING_MAX_SNIPPET_LINES" -> maxSnippetLines = Integer.parseInt(v);
                     case "SERVING_PORT" -> port = Integer.parseInt(v);
                     case "SERVING_BINDADDRESS" -> bindAddr = v;
                     case "SERVING_READONLY" -> readOnly = Boolean.parseBoolean(v);
@@ -74,8 +81,9 @@ public final class EnvVarOverlay {
         }
 
         return new CodeIqUnifiedConfig(
-                new ProjectConfig(projectName, projectRoot, List.of()),
-                new IndexingConfig(languages, include, exclude, incremental, cacheDir, parallelism, batch),
+                new ProjectConfig(projectName, projectRoot, projectServiceName, List.of()),
+                new IndexingConfig(languages, include, exclude, incremental, cacheDir, parallelism, batch,
+                        maxDepth, maxRadius, maxFiles, maxSnippetLines),
                 new ServingConfig(port, bindAddr, readOnly,
                         new Neo4jConfig(neo4jDir, pageMb, heapInit, heapMax)),
                 new McpConfig(mcpEnabled, mcpTransport, mcpBasePath,

@@ -13,13 +13,17 @@ public final class ConfigDefaults {
 
     public static CodeIqUnifiedConfig builtIn() {
         return new CodeIqUnifiedConfig(
-                new ProjectConfig(null, ".", List.of()),
+                new ProjectConfig(null, ".", null, List.of()),
                 new IndexingConfig(
                         List.of(), List.of(), List.of(),
                         true,
                         ".code-iq/cache",
                         "auto",
-                        500
+                        500,
+                        10,   // maxDepth — matches application.yml codeiq.max-depth
+                        10,   // maxRadius — matches application.yml codeiq.max-radius
+                        null, // maxFiles — not set in application.yml; CodeIqConfig default wins
+                        null  // maxSnippetLines — not set in application.yml; CodeIqConfig default wins
                 ),
                 new ServingConfig(
                         8080,

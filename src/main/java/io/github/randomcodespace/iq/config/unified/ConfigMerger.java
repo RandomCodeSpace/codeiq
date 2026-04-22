@@ -42,8 +42,9 @@ public final class ConfigMerger {
 
     private ProjectConfig mergeProject(ProjectConfig lo, ProjectConfig hi, Input l, Map<String,ConfigProvenance> p) {
         return new ProjectConfig(
-                take("project.name", lo.name(), hi.name(), l, p),
-                take("project.root", lo.root(), hi.root(), l, p),
+                take("project.name",        lo.name(),        hi.name(),        l, p),
+                take("project.root",        lo.root(),        hi.root(),        l, p),
+                take("project.serviceName", lo.serviceName(), hi.serviceName(), l, p),
                 takeList("project.modules", lo.modules(), hi.modules(), l, p));
     }
 
@@ -52,10 +53,14 @@ public final class ConfigMerger {
                 takeList("indexing.languages", lo.languages(), hi.languages(), l, p),
                 takeList("indexing.include",   lo.include(),   hi.include(),   l, p),
                 takeList("indexing.exclude",   lo.exclude(),   hi.exclude(),   l, p),
-                take("indexing.incremental", lo.incremental(), hi.incremental(), l, p),
-                take("indexing.cacheDir",    lo.cacheDir(),    hi.cacheDir(),    l, p),
-                take("indexing.parallelism", lo.parallelism(), hi.parallelism(), l, p),
-                take("indexing.batchSize",   lo.batchSize(),   hi.batchSize(),   l, p));
+                take("indexing.incremental",     lo.incremental(),     hi.incremental(),     l, p),
+                take("indexing.cacheDir",        lo.cacheDir(),        hi.cacheDir(),        l, p),
+                take("indexing.parallelism",     lo.parallelism(),     hi.parallelism(),     l, p),
+                take("indexing.batchSize",       lo.batchSize(),       hi.batchSize(),       l, p),
+                take("indexing.maxDepth",        lo.maxDepth(),        hi.maxDepth(),        l, p),
+                take("indexing.maxRadius",       lo.maxRadius(),       hi.maxRadius(),       l, p),
+                take("indexing.maxFiles",        lo.maxFiles(),        hi.maxFiles(),        l, p),
+                take("indexing.maxSnippetLines", lo.maxSnippetLines(), hi.maxSnippetLines(), l, p));
     }
 
     private ServingConfig mergeServing(ServingConfig lo, ServingConfig hi, Input l, Map<String,ConfigProvenance> p) {

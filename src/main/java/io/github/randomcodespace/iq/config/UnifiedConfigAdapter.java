@@ -18,14 +18,19 @@ public final class UnifiedConfigAdapter {
 
     private UnifiedConfigAdapter() {}
 
-    public static CodeIqConfig adapt(CodeIqUnifiedConfig u) {
+    public static CodeIqConfig toCodeIqConfig(CodeIqUnifiedConfig u) {
         CodeIqConfig c = new CodeIqConfig();
         if (u == null) {
             return c;
         }
 
-        if (u.project() != null && u.project().root() != null) {
-            c.setRootPath(u.project().root());
+        if (u.project() != null) {
+            if (u.project().root() != null) {
+                c.setRootPath(u.project().root());
+            }
+            if (u.project().serviceName() != null) {
+                c.setServiceName(u.project().serviceName());
+            }
         }
 
         if (u.indexing() != null) {
@@ -34,6 +39,18 @@ public final class UnifiedConfigAdapter {
             }
             if (u.indexing().batchSize() != null) {
                 c.setBatchSize(u.indexing().batchSize());
+            }
+            if (u.indexing().maxDepth() != null) {
+                c.setMaxDepth(u.indexing().maxDepth());
+            }
+            if (u.indexing().maxRadius() != null) {
+                c.setMaxRadius(u.indexing().maxRadius());
+            }
+            if (u.indexing().maxFiles() != null) {
+                c.setMaxFiles(u.indexing().maxFiles());
+            }
+            if (u.indexing().maxSnippetLines() != null) {
+                c.setMaxSnippetLines(u.indexing().maxSnippetLines());
             }
         }
 
