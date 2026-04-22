@@ -1,5 +1,6 @@
 package io.github.randomcodespace.iq.cli;
 
+import io.github.randomcodespace.iq.config.unified.CodeIqUnifiedConfig;
 import io.github.randomcodespace.iq.config.unified.ConfigLoadException;
 import io.github.randomcodespace.iq.config.unified.ConfigProvenance;
 import io.github.randomcodespace.iq.config.unified.ConfigResolver;
@@ -10,6 +11,7 @@ import java.nio.file.Path;
 import java.util.Comparator;
 import java.util.Map;
 import java.util.concurrent.Callable;
+import org.springframework.lang.Nullable;
 import org.springframework.stereotype.Component;
 import picocli.CommandLine.Command;
 import picocli.CommandLine.Option;
@@ -42,6 +44,16 @@ public class ConfigExplainSubcommand implements Callable<Integer> {
 
     private static final Path DEFAULT_PATH = Path.of("codeiq.yml");
 
+    /**
+     * Row layout: {@code FIELD(40) + space + LAYER(12) + space + SOURCE(40) + "  " + VALUE}. The
+     * divider row must span the header portion exactly -- the value column is not padded, so its
+     * width is just the width of the literal header {@code "VALUE"} ({@value #VALUE_COLUMN_WIDTH}).
+     */
+    private static final String ROW_FORMAT = "%-40s %-12s %-40s  %s%n";
+
+    private static final int VALUE_COLUMN_WIDTH = "VALUE".length();
+    private static final int TABLE_WIDTH = 40 + 1 + 12 + 1 + 40 + 2 + VALUE_COLUMN_WIDTH;
+
     @Option(
             names = {"--path", "-p"},
             description = "Path to codeiq.yml (default: ./codeiq.yml)")
@@ -49,7 +61,14 @@ public class ConfigExplainSubcommand implements Callable<Integer> {
 
     private final PrintStream out;
     private final PrintStream err;
-    private Map<String, String> envMap = System.getenv();
+
+    // Nullable on purpose: a Spring-singleton bean must not freeze the env at construction time,
+    // so we resolve System.getenv() lazily inside call(). Tests inject a fixed map via setEnv.
+    @Nullable private Map<String, String> envMap;
+
+    // Nullable: tests may inject a CLI overlay to exercise CLI-wins-over-ENV precedence. Runtime
+    // callers pass the real CLI overlay through this same seam once wired end-to-end.
+    @Nullable private CodeIqUnifiedConfig cliOverlay;
 
     public ConfigExplainSubcommand() {
         this(System.out, System.err);
@@ -64,8 +83,22 @@ public class ConfigExplainSubcommand implements Callable<Integer> {
         this.path = p;
     }
 
-    void setEnv(Map<String, String> e) {
-        this.envMap = e == null ? Map.of() : e;
+    /**
+     * Overrides the env used for overlay resolution. {@code null} means "use the real process
+     * environment" -- {@link #call()} falls back to {@link System#getenv()} at invocation time, so
+     * a Spring singleton bean sees fresh env each call instead of a frozen snapshot.
+     */
+    void setEnv(@Nullable Map<String, String> e) {
+        this.envMap = e;
+    }
+
+    /**
+     * Injects a CLI-layer overlay (highest precedence). {@code null} means no CLI overlay. Exposed
+     * as a package-private hook so tests can assert CLI-wins-over-ENV precedence without booting a
+     * full picocli parse.
+     */
+    void setCliOverlay(@Nullable CodeIqUnifiedConfig overlay) {
+        this.cliOverlay = overlay;
     }
 
     @Override
@@ -82,28 +115,38 @@ public class ConfigExplainSubcommand implements Callable<Integer> {
             err.println("Load error: config file does not exist: " + path);
             return 1;
         }
+        Map<String, String> effectiveEnv = (envMap != null) ? envMap : System.getenv();
         final MergedConfig merged;
         try {
             // ConfigResolver#resolve() invokes UnifiedConfigLoader.load internally; don't
             // double-parse the file here.
-            merged = new ConfigResolver().projectPath(path).env(envMap).resolve();
+            ConfigResolver resolver =
+                    new ConfigResolver().projectPath(path).env(effectiveEnv);
+            if (cliOverlay != null) {
+                resolver = resolver.cliOverlay(cliOverlay, "(cli)");
+            }
+            merged = resolver.resolve();
         } catch (ConfigLoadException e) {
             err.println("Load error: " + e.getMessage());
             return 1;
         }
 
-        out.printf("%-40s %-12s %-40s  %s%n", "FIELD", "LAYER", "SOURCE", "VALUE");
-        out.println("-".repeat(110));
-        // TreeMap keyed on the field path guarantees byte-for-byte deterministic output
-        // across runs regardless of the underlying provenance map's iteration order.
+        out.printf(ROW_FORMAT, "FIELD", "LAYER", "SOURCE", "VALUE");
+        out.println("-".repeat(TABLE_WIDTH));
+        // Stream sorted by field path using Comparator.comparing(Map.Entry::getKey) guarantees
+        // byte-for-byte deterministic output across runs regardless of the underlying
+        // provenance map's iteration order.
         merged.provenance().entrySet().stream()
                 .sorted(Comparator.comparing(Map.Entry::getKey))
                 .forEach(
                         entry -> {
                             ConfigProvenance p = entry.getValue();
                             out.printf(
-                                    "%-40s %-12s %-40s  = %s%n",
-                                    entry.getKey(), p.layer(), p.sourceLabel(), p.value());
+                                    ROW_FORMAT,
+                                    entry.getKey(),
+                                    p.layer(),
+                                    p.sourceLabel(),
+                                    "= " + p.value());
                         });
         return 0;
     }
