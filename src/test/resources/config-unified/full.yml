@@ -1,0 +1,53 @@
+project:
+  name: demo
+  root: .
+  modules:
+    - path: services/api
+      type: maven
+      name: api
+      kind: service
+    - path: libs/shared
+      type: maven
+      kind: library
+indexing:
+  languages: [java, typescript]
+  exclude: ['**/generated/**']
+  incremental: true
+  cacheDir: .code-iq/cache
+  parallelism: auto
+  batchSize: 500
+serving:
+  port: 9090
+  bindAddress: 127.0.0.1
+  readOnly: true
+  neo4j:
+    dir: .code-iq/graph/graph.db
+    pageCacheMb: 512
+    heapInitialMb: 256
+    heapMaxMb: 2048
+mcp:
+  enabled: true
+  transport: http
+  basePath: /mcp
+  auth:
+    mode: none
+  limits:
+    perToolTimeoutMs: 10000
+    maxResults: 200
+    maxPayloadBytes: 1000000
+    ratePerMinute: 120
+  tools:
+    enabled: ['*']
+    disabled: [run_cypher]
+observability:
+  metrics: true
+  tracing: false
+  logFormat: json
+  logLevel: info
+detectors:
+  profiles: [default]
+  overrides:
+    SpringRestDetector:
+      enabled: true
+    QuarkusRestDetector:
+      enabled: false
