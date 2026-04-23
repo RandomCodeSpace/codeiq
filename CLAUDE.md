@@ -75,22 +75,26 @@ io.github.randomcodespace.iq
   |-- cli/                         # Picocli commands: index, enrich, serve, analyze, stats, etc.
   |-- config/                      # Spring config: Neo4jConfig, CodeIqConfig, JacksonConfig
   |-- detector/                    # Detector interface + 97 concrete detectors
-  |   |-- auth/                    # LDAP, certificate, session/header auth
-  |   |-- config/                  # YAML, JSON, TOML, INI, properties, K8s, Helm, GHA, etc.
-  |   |-- cpp/                     # C++ structures
+  |   |-- auth/                    # LDAP, certificate, session/header auth (cross-cutting)
   |   |-- csharp/                  # EF Core, Minimal APIs, C# structures
-  |   |-- docs/                    # Markdown structure
   |   |-- frontend/                # React, Vue, Angular, Svelte, frontend routes
   |   |-- generic/                 # Generic imports
   |   |-- go/                      # Go web, ORM, structures
   |   |-- iac/                     # Terraform, Dockerfile, Bicep
-  |   |-- java/                    # 27 Java detectors (Spring, JPA, Kafka, gRPC, etc.)
-  |   |-- kotlin/                  # Ktor, Kotlin structures
+  |   |-- jvm/                     # JVM-family languages
+  |   |   |-- java/                # 27 Java detectors (Spring, JPA, Kafka, gRPC, etc.)
+  |   |   |-- kotlin/              # Ktor, Kotlin structures
+  |   |   |-- scala/               # Scala structures
+  |   |-- markup/                  # Markdown structure (renamed from docs/)
   |   |-- proto/                   # Proto structures
   |   |-- python/                  # Django, FastAPI, Flask, SQLAlchemy, Celery, etc.
-  |   |-- rust/                    # Actix-web, Rust structures
-  |   |-- scala/                   # Scala structures
-  |   |-- shell/                   # Bash, PowerShell
+  |   |-- script/                  # Scripting languages
+  |   |   |-- shell/               # Bash, PowerShell
+  |   |-- sql/                     # (placeholder — follow-up #48)
+  |   |-- structured/              # YAML, JSON, TOML, INI, properties, K8s, Helm, GHA, etc. (renamed from config/)
+  |   |-- systems/                 # Systems languages
+  |   |   |-- cpp/                 # C++ structures
+  |   |   |-- rust/                # Actix-web, Rust structures
   |   |-- typescript/              # Express, NestJS, Fastify, Prisma, TypeORM, etc.
   |-- flow/                        # FlowEngine, FlowRenderer, FlowViews, FlowModels
   |-- grammar/                     # ANTLR parser factory + generated parsers
