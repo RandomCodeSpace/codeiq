@@ -1,13 +1,22 @@
 package io.github.randomcodespace.iq.config;
 
 import io.github.randomcodespace.iq.config.unified.CodeIqUnifiedConfig;
+import io.github.randomcodespace.iq.config.unified.ConfigLoadException;
+import io.github.randomcodespace.iq.config.unified.ConfigResolver;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.api.io.TempDir;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.ActiveProfiles;
 
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.util.Map;
+
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 /**
  * Verifies Task 11 wiring: the Spring context exposes a {@link CodeIqUnifiedConfig}
@@ -45,5 +54,62 @@ class UnifiedConfigBeansTest {
         assertEquals(10, legacy.getMaxDepth());
         assertEquals(10, legacy.getMaxRadius());
         assertEquals(500, legacy.getBatchSize());
+    }
+
+    /**
+     * Locks in the "startup dies with a useful stack trace" contract: a malformed
+     * {@code codeiq.yml} must surface a {@link ConfigLoadException} whose message
+     * names the offending file path, so a user can find and fix the broken yml.
+     *
+     * <p>Tested at the {@link ConfigResolver} level (not via Spring context restart)
+     * because relocating CWD inside a single {@code @SpringBootTest} run is fragile.
+     * The Spring wiring in {@link UnifiedConfigBeans#codeIqUnifiedConfig()} calls
+     * exactly this resolver, so the guarantee propagates: Spring wraps the
+     * {@code ConfigLoadException} in a {@code BeanCreationException} at startup.
+     */
+    @Test
+    void malformedCodeiqYmlAtStartupSurfacesFileAnchoredError(@TempDir Path tempDir) throws Exception {
+        Path badYml = tempDir.resolve("codeiq.yml");
+        // Unclosed flow mapping -> SnakeYAML parse error.
+        Files.writeString(badYml, "serving:\n  port: [not-a-scalar\n");
+
+        ConfigLoadException ex = assertThrows(
+                ConfigLoadException.class,
+                () -> new ConfigResolver()
+                        .projectPath(badYml)
+                        .env(Map.of())
+                        .resolve());
+
+        String msg = ex.getMessage();
+        assertNotNull(msg, "exception must carry a message");
+        assertTrue(msg.contains(badYml.toString()),
+                "error message must name the offending file path; was: " + msg);
+    }
+
+    /**
+     * Closes the spec-review gap: proves a {@code codeiq.yml} overlay flows through
+     * {@link ConfigResolver} + {@link UnifiedConfigAdapter} into the legacy
+     * {@link CodeIqConfig} getters end-to-end.
+     */
+    @Test
+    void codeiqYmlOverlayFlowsIntoLegacyBean(@TempDir Path tempDir) throws Exception {
+        Path yml = tempDir.resolve("codeiq.yml");
+        // Key casing matches UnifiedConfigLoader: batchSize (camel), max_depth (snake).
+        Files.writeString(yml, "indexing:\n  batchSize: 1234\n  max_depth: 42\n");
+
+        // Point user-global at the same temp dir so the test doesn't pick up the
+        // running user's real ~/.codeiq/config.yml.
+        Path userGlobal = tempDir.resolve("user-global-absent.yml");
+
+        CodeIqUnifiedConfig unifiedFromYml = new ConfigResolver()
+                .userGlobalPath(userGlobal)
+                .projectPath(yml)
+                .env(Map.of())
+                .resolve()
+                .effective();
+
+        CodeIqConfig legacyFromYml = UnifiedConfigAdapter.toCodeIqConfig(unifiedFromYml);
+        assertEquals(1234, legacyFromYml.getBatchSize());
+        assertEquals(42, legacyFromYml.getMaxDepth());
     }
 }

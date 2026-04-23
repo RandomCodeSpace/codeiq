@@ -13,13 +13,27 @@ import org.springframework.context.annotation.Profile;
 import java.nio.file.Path;
 
 /**
- * Spring wiring for the unified configuration.
+ * Produces the unified config tree and the legacy {@link CodeIqConfig} POJO for downstream consumers.
  *
- * <p>Produces the {@link CodeIqUnifiedConfig} bean by running
- * {@link ConfigResolver} once at startup (defaults + user-global yml +
- * project yml + env vars). The legacy {@link CodeIqConfig} bean is derived
- * from the unified tree via {@link UnifiedConfigAdapter#toCodeIqConfig}, so
- * call sites that still depend on the legacy API continue to work unchanged.
+ * <p><b>Config boundary:</b> this class owns all runtime {@code codeiq.*} values (cache dirs, limits,
+ * pipeline tuning, MCP auth, etc.) via {@link CodeIqUnifiedConfig}. A narrow set of Spring-level
+ * keys stay in {@code application.yml} because they drive {@code @ConditionalOnProperty} /
+ * {@code @Value} machinery that reads Spring {@code Environment} directly and is not sourced from
+ * the unified tree:
+ *
+ * <ul>
+ *   <li>{@code codeiq.neo4j.enabled} — gates {@link Neo4jConfig} (profile-conditional).
+ *   <li>{@code codeiq.neo4j.bolt.port} — {@code @Value} default on the bolt port.
+ *   <li>{@code codeiq.cors.allowed-origin-patterns} — {@code @Value} default in {@code CorsConfig}.
+ *   <li>{@code codeiq.ui.enabled} — gates {@code SpaController}.
+ * </ul>
+ *
+ * <p>Everything else was migrated to {@code codeiq.yml} / env / CLI overlays in Phase B.
+ *
+ * <p>The unified bean is produced by running {@link ConfigResolver} once at startup (defaults +
+ * user-global yml + project yml + env vars). The legacy {@link CodeIqConfig} bean is derived from
+ * the unified tree via {@link UnifiedConfigAdapter#toCodeIqConfig}, so call sites that still depend
+ * on the legacy API continue to work unchanged.
  *
  * <p>Path layering (last wins):
  * <pre>
