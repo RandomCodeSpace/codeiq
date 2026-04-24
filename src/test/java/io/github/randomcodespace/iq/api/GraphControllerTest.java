@@ -600,6 +600,55 @@ class GraphControllerTest {
                 .andExpect(content().string("in-repo"));
     }
 
+    @Test
+    void readFileShouldRejectWhenFileExceedsMaxBytes(@TempDir Path tempDir) throws Exception {
+        // 2 KiB file, cap at 1 KiB — expect 413 without line range.
+        byte[] payload = new byte[2048];
+        java.util.Arrays.fill(payload, (byte) 'a');
+        Files.write(tempDir.resolve("big.txt"), payload);
+        CodeIqConfigTestSupport.override(config)
+                .rootPath(tempDir.toAbsolutePath().toString())
+                .maxFileBytes(1024L)
+                .done();
+        var controller = new GraphController(queryService, config);
+        var fileMvc = MockMvcBuilders.standaloneSetup(controller).build();
+
+        fileMvc.perform(get("/api/file").param("path", "big.txt"))
+                .andExpect(status().is(413))
+                .andExpect(content().string(containsString("exceeds max size")));
+    }
+
+    @Test
+    void readFileShouldServeLineRangeUnderCapEvenWhenWholeFileExceedsCap(@TempDir Path tempDir) throws Exception {
+        // Build a file where the whole is larger than the cap but a small line-range fits.
+        StringBuilder big = new StringBuilder();
+        for (int i = 1; i <= 200; i++) big.append("line").append(i).append('\n');
+        Files.writeString(tempDir.resolve("ranged.txt"), big.toString(), StandardCharsets.UTF_8);
+        long cap = 64L; // bytes — whole file is much bigger
+        CodeIqConfigTestSupport.override(config)
+                .rootPath(tempDir.toAbsolutePath().toString())
+                .maxFileBytes(cap)
+                .done();
+        var controller = new GraphController(queryService, config);
+        var fileMvc = MockMvcBuilders.standaloneSetup(controller).build();
+
+        // Small range fits under cap — streamed read should succeed.
+        fileMvc.perform(get("/api/file")
+                        .param("path", "ranged.txt")
+                        .param("startLine", "2")
+                        .param("endLine", "4"))
+                .andExpect(status().isOk())
+                .andExpect(content().string("line2\nline3\nline4"));
+
+        // Large range would exceed cap — streamed read should 413 before buffering further.
+        fileMvc.perform(get("/api/file")
+                        .param("path", "ranged.txt")
+                        .param("startLine", "1")
+                        .param("endLine", "200"))
+                .andExpect(status().is(413))
+                .andExpect(content().string(containsString("exceeds max size")));
+    }
+
     // POST /api/analyze removed — API is read-only
 
     // --- /api/file-tree ---

@@ -17,7 +17,7 @@ class ConfigValidatorTest {
         CodeIqUnifiedConfig bad = new CodeIqUnifiedConfig(
                 ProjectConfig.empty(),
                 IndexingConfig.empty(),
-                new ServingConfig(99999, "0.0.0.0", false, Neo4jConfig.empty()),
+                new ServingConfig(99999, "0.0.0.0", false, null, Neo4jConfig.empty()),
                 McpConfig.empty(), ObservabilityConfig.empty(), DetectorsConfig.empty());
         List<ConfigError> errs = new ConfigValidator().validate(bad);
         assertEquals(1, errs.size());

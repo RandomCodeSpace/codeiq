@@ -66,9 +66,10 @@ public final class ConfigMerger {
 
     private ServingConfig mergeServing(ServingConfig lo, ServingConfig hi, Input l, Map<String,ConfigProvenance> p) {
         return new ServingConfig(
-                take("serving.port",         lo.port(),        hi.port(),        l, p),
-                take("serving.bind_address", lo.bindAddress(), hi.bindAddress(), l, p),
-                take("serving.read_only",    lo.readOnly(),    hi.readOnly(),    l, p),
+                take("serving.port",           lo.port(),         hi.port(),         l, p),
+                take("serving.bind_address",   lo.bindAddress(),  hi.bindAddress(),  l, p),
+                take("serving.read_only",      lo.readOnly(),     hi.readOnly(),     l, p),
+                take("serving.max_file_bytes", lo.maxFileBytes(), hi.maxFileBytes(), l, p),
                 new Neo4jConfig(
                         take("serving.neo4j.dir",             lo.neo4j().dir(),            hi.neo4j().dir(),            l, p),
                         take("serving.neo4j.page_cache_mb",   lo.neo4j().pageCacheMb(),    hi.neo4j().pageCacheMb(),    l, p),

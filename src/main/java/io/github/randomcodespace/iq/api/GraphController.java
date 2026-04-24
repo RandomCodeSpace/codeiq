@@ -17,7 +17,6 @@ import io.github.randomcodespace.iq.intelligence.query.CapabilityMatrix;
 import io.github.randomcodespace.iq.model.NodeKind;
 
 import java.io.IOException;
-import java.nio.charset.StandardCharsets;
 import java.nio.file.Files;
 import java.nio.file.NoSuchFileException;
 import java.nio.file.Path;
@@ -291,23 +290,14 @@ public class GraphController {
             return ResponseEntity.notFound().build();
         }
         try {
-            String content = Files.readString(resolvedReal, StandardCharsets.UTF_8);
-            if (startLine != null || endLine != null) {
-                String[] lines = content.split("\n", -1);
-                int start = (startLine != null ? startLine : 1);
-                int end = (endLine != null ? endLine : lines.length);
-                start = Math.max(1, Math.min(start, lines.length));
-                end = Math.max(start, Math.min(end, lines.length));
-                StringBuilder sb = new StringBuilder();
-                for (int i = start - 1; i < end; i++) {
-                    if (i > start - 1) sb.append('\n');
-                    sb.append(lines[i]);
-                }
-                content = sb.toString();
-            }
+            String content = SafeFileReader.read(resolvedReal, startLine, endLine, config.getMaxFileBytes());
             return ResponseEntity.ok()
                     .contentType(MediaType.TEXT_PLAIN)
                     .body(content);
+        } catch (SafeFileReader.FileTooLargeException tooLarge) {
+            return ResponseEntity.status(HttpStatus.CONTENT_TOO_LARGE)
+                    .contentType(MediaType.TEXT_PLAIN)
+                    .body(tooLarge.getMessage());
         } catch (IOException e) {
             return ResponseEntity.status(500)
                     .contentType(MediaType.TEXT_PLAIN)

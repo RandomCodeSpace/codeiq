@@ -567,4 +567,43 @@ class McpToolsTest {
 
         assertEquals("in-repo", result);
     }
+
+    @Test
+    void readFileShouldRejectWhenFileExceedsMaxBytes(@TempDir Path tempDir) throws IOException {
+        CodeIqConfigTestSupport.override(config)
+                .rootPath(tempDir.toString())
+                .maxFileBytes(1024L)
+                .done();
+        byte[] payload = new byte[2048];
+        java.util.Arrays.fill(payload, (byte) 'a');
+        Files.write(tempDir.resolve("big.txt"), payload);
+
+        String result = mcpTools.readFile("big.txt", null, null);
+        Map<String, Object> parsed = parseJson(result);
+
+        assertNotNull(parsed.get("error"), "Expected error for oversize file");
+        assertTrue(String.valueOf(parsed.get("error")).contains("exceeds max size"),
+                "Expected 'exceeds max size' in error, got: " + parsed.get("error"));
+    }
+
+    @Test
+    void readFileShouldServeLineRangeUnderCapAndRejectOverCap(@TempDir Path tempDir) throws IOException {
+        CodeIqConfigTestSupport.override(config)
+                .rootPath(tempDir.toString())
+                .maxFileBytes(64L) // bytes — whole file won't fit but a narrow range will
+                .done();
+        StringBuilder big = new StringBuilder();
+        for (int i = 1; i <= 200; i++) big.append("line").append(i).append('\n');
+        Files.writeString(tempDir.resolve("ranged.txt"), big.toString());
+
+        // Under cap: narrow range streams through.
+        String ok = mcpTools.readFile("ranged.txt", 2, 4);
+        assertEquals("line2\nline3\nline4", ok);
+
+        // Over cap: wide range is rejected mid-stream.
+        String over = mcpTools.readFile("ranged.txt", 1, 200);
+        Map<String, Object> parsed = parseJson(over);
+        assertNotNull(parsed.get("error"));
+        assertTrue(String.valueOf(parsed.get("error")).contains("exceeds max size"));
+    }
 }

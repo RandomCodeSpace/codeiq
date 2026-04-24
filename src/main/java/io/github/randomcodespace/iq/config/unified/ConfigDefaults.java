@@ -30,6 +30,7 @@ public final class ConfigDefaults {
                         8080,
                         "0.0.0.0",
                         false,
+                        5L * 1024L * 1024L, // maxFileBytes — 5 MiB cap on /api/file + read_file
                         new Neo4jConfig(
                                 ".codeiq/graph/graph.db",
                                 256, 256, 1024

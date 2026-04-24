@@ -54,6 +54,7 @@ serving:
   port: 8080                    # HTTP port for REST + MCP + UI
   bind_address: 0.0.0.0         # interface to bind; 127.0.0.1 for localhost-only
   read_only: false              # must be false in non-prod; CI gate enforces this
+  max_file_bytes: 5242880       # cap on /api/file + MCP read_file (bytes); 5 MiB default — rejects with HTTP 413
   neo4j:
     dir: .codeiq/graph/graph.db    # embedded Neo4j data directory
     page_cache_mb: 256             # Neo4j page cache (MB)

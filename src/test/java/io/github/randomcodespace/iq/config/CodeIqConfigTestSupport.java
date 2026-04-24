@@ -39,6 +39,7 @@ public final class CodeIqConfigTestSupport {
     public CodeIqConfigTestSupport serviceName(String v) { config.setServiceName(v); return this; }
     public CodeIqConfigTestSupport uiEnabled(boolean v){ config.setUiEnabled(v); return this; }
     public CodeIqConfigTestSupport maxSnippetLines(int v) { config.setMaxSnippetLines(v); return this; }
+    public CodeIqConfigTestSupport maxFileBytes(long v) { config.setMaxFileBytes(v); return this; }
 
     public CodeIqConfigTestSupport graph(CodeIqConfig.Graph g) { config.setGraph(g); return this; }
     public CodeIqConfigTestSupport graphPath(String v) {
