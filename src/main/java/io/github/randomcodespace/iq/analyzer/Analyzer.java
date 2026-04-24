@@ -279,7 +279,7 @@ public class Analyzer {
         FileInventory fileInventory = buildFileInventory(files, cache);
 
         // Compute language breakdown
-        Map<String, Integer> languageBreakdown = new HashMap<>();
+        Map<String, Integer> languageBreakdown = new TreeMap<>();
         for (DiscoveredFile f : files) {
             languageBreakdown.merge(f.language(), 1, Integer::sum);
         }
@@ -426,21 +426,21 @@ public class Analyzer {
         }
 
         // 7. Compute node breakdown
-        Map<String, Integer> nodeBreakdown = new HashMap<>();
+        Map<String, Integer> nodeBreakdown = new TreeMap<>();
         for (CodeNode node : allNodes) {
             String kindValue = node.getKind().getValue();
             nodeBreakdown.merge(kindValue, 1, Integer::sum);
         }
 
         // 8. Compute edge breakdown
-        Map<String, Integer> edgeBreakdown = new HashMap<>();
+        Map<String, Integer> edgeBreakdown = new TreeMap<>();
         for (var edge : builder.getEdges()) {
             String kindValue = edge.getKind().getValue();
             edgeBreakdown.merge(kindValue, 1, Integer::sum);
         }
 
         // 7b. Compute framework breakdown from node properties
-        Map<String, Integer> frameworkBreakdown = new HashMap<>();
+        Map<String, Integer> frameworkBreakdown = new TreeMap<>();
         for (CodeNode node : allNodes) {
             Object fw = node.getProperties().get(PROP_FRAMEWORK);
             if (fw != null && !fw.toString().isEmpty()) {
@@ -562,7 +562,7 @@ public class Analyzer {
         report.accept("Found " + totalFiles + " files");
 
         // Compute language breakdown
-        Map<String, Integer> languageBreakdown = new HashMap<>();
+        Map<String, Integer> languageBreakdown = new TreeMap<>();
         for (DiscoveredFile f : files) {
             languageBreakdown.merge(f.language(), 1, Integer::sum);
         }
@@ -576,9 +576,9 @@ public class Analyzer {
         int filesAnalyzed = 0;
         int cacheHits = 0;
         int batchNumber = 0;
-        Map<String, Integer> nodeBreakdown = new HashMap<>();
-        Map<String, Integer> edgeBreakdown = new HashMap<>();
-        Map<String, Integer> frameworkBreakdown = new HashMap<>();
+        Map<String, Integer> nodeBreakdown = new TreeMap<>();
+        Map<String, Integer> edgeBreakdown = new TreeMap<>();
+        Map<String, Integer> frameworkBreakdown = new TreeMap<>();
 
         // Clear previous index data if not incremental
         if (!incremental) {
@@ -853,7 +853,7 @@ public class Analyzer {
         int totalFiles = allFiles.size();
 
         // Compute language breakdown
-        Map<String, Integer> languageBreakdown = new HashMap<>();
+        Map<String, Integer> languageBreakdown = new TreeMap<>();
         for (DiscoveredFile f : allFiles) {
             languageBreakdown.merge(f.language(), 1, Integer::sum);
         }
@@ -876,9 +876,9 @@ public class Analyzer {
         int filesSkipped = 0;
         int cacheHits = 0;
         int batchNumber = 0;
-        Map<String, Integer> nodeBreakdown = new HashMap<>();
-        Map<String, Integer> edgeBreakdown = new HashMap<>();
-        Map<String, Integer> frameworkBreakdown = new HashMap<>();
+        Map<String, Integer> nodeBreakdown = new TreeMap<>();
+        Map<String, Integer> edgeBreakdown = new TreeMap<>();
+        Map<String, Integer> frameworkBreakdown = new TreeMap<>();
 
         // Process modules in sorted order for determinism
         List<String> sortedModuleKeys = new ArrayList<>(modules.keySet());
@@ -1355,8 +1355,11 @@ public class Analyzer {
      * Wrapper around ExecutorService that implements AutoCloseable with a bounded
      * shutdown — prevents the default close() from hanging up to 24 hours on stuck
      * ANTLR threads.
+     *
+     * <p>Package-private so the close/lifecycle behaviour can be regression-tested
+     * directly without spinning the full Analyzer pipeline.
      */
-    private record BoundedExecutor(java.util.concurrent.ExecutorService delegate) implements AutoCloseable {
+    record BoundedExecutor(java.util.concurrent.ExecutorService delegate) implements AutoCloseable {
         <T> Future<T> submit(java.util.concurrent.Callable<T> task) { return delegate.submit(task); }
 
         @Override
