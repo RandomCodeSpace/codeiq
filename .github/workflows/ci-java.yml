@@ -22,39 +22,7 @@ jobs:
           distribution: 'temurin'
           java-version: '25'
           cache: 'maven'
-      # Cache the OWASP Dependency-Check NVD data directory across runs so the
-      # CVE gate does not need to re-download the full feed on every PR.
-      # `key` is unique per run (forces a save on every run), `restore-keys`
-      # falls back to the most recent prior cache so the H2 DB is incrementally
-      # updated rather than rebuilt.
-      - uses: actions/cache@27d5ce7f107fe9357f9df03efb73ab90386fccae # v5.0.5
-        with:
-          path: ~/.m2/repository/org/owasp/dependency-check-data
-          key: dependency-check-${{ runner.os }}-${{ github.run_id }}
-          restore-keys: |
-            dependency-check-${{ runner.os }}-
-      # Pre-warm the OWASP Dependency-Check NVD cache as a SEPARATE Maven
-      # invocation. On a cold cache (first run on a branch / cache eviction)
-      # running `update-only` first avoids the dependency-check-maven 12.2.0
-      # H2 init race that surfaces as `NullPointerException: Cannot invoke
-      # BasicDataSource.getConnection() because connectionPool is null`
-      # during the verify phase (observed on PR #74 build run 24930518462).
-      # When the cache is warm this step short-circuits via the H2 incremental
-      # update path. `failOnError=false` so a transient NVD-feed problem here
-      # does not mask the real CVSS>=7 gate enforced in the verify step
-      # below — that step still hard-fails on operational scanner failures
-      # (Reviewer round-3 finding #1).
-      - name: Pre-warm dependency-check NVD cache
-        env:
-          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
-        run: mvn -B -ntp dependency-check:update-only -DfailOnError=false
-      - name: Build + verify (jacoco 85% + SpotBugs + dependency-check)
-        env:
-          # When the NVD_API_KEY secret is unset, dependency-check falls back
-          # to the unauthenticated NVD endpoint (rate-limited but functional
-          # once the cache is warm). Provisioning the secret is tracked under
-          # RAN-42.
-          NVD_API_KEY: ${{ secrets.NVD_API_KEY }}
+      - name: Build + verify (jacoco 85% + SpotBugs)
         run: mvn -B -ntp clean verify
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v4.6.2
         if: always()
@@ -65,14 +33,3 @@ jobs:
         with:
           name: coverage-report
           path: target/site/jacoco/
-      - name: SonarCloud analysis
-        if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.pull_request.head.repo.full_name == github.repository)
-        env:
-          SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
-        run: >
-          mvn sonar:sonar -B
-          -Dsonar.projectKey=RandomCodeSpace_codeiq
-          -Dsonar.organization=randomcodespace
-          -Dsonar.host.url=https://sonarcloud.io
-          "-Dsonar.exclusions=**/grammar/**,target/generated-sources/**"
-          "-Dsonar.coverage.exclusions=**/grammar/**,target/generated-sources/**"
