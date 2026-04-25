@@ -29,7 +29,7 @@ Run BEFORE creating the tag:
 1. `main` is green: `gh run list --branch main --workflow ci-java.yml --limit 1` → `success`.
 2. SonarCloud Quality Gate: `gh api /repos/RandomCodeSpace/codeiq/actions/runs?branch=main --jq '.workflow_runs[0].conclusion'` and SonarCloud project page both green.
 3. Coverage ≥ 85% (jacoco rule + Sonar new-code ≥ 80% — see [`engineering-standards.md`](engineering-standards.md)).
-4. Dependency audit clean: `mvn dependency-check:check -DfailBuildOnCVSS=7` exits 0; OSV-Scanner workflow latest run green.
+4. Dependency audit clean: `mvn -B -ntp clean verify` exits 0 (the OWASP `dependency-check:check` goal is bound to `verify` and fails the build on CVSS ≥ 7 — see `pom.xml`). Cross-check with the Dependabot security tab for any open advisories.
 5. SpotBugs clean: `mvn spotbugs:check` exits 0.
 6. CHANGELOG entry drafted under `[Unreleased]` and ready to promote.
 7. Working copy of `main` is clean (`git status --porcelain` empty).
@@ -39,33 +39,30 @@ Run BEFORE creating the tag:
 
 ## 3. Cut a release (canonical path)
 
-Driven by `release-java.yml` triggered on a `v*` tag push.
+Driven by `release-java.yml` via **manual `workflow_dispatch`** with a `version` input. The workflow itself bumps `pom.xml`, deploys to Maven Central, then creates and pushes the `vX.Y.Z` tag and the GitHub Release.
 
 ```bash
-# 1. Promote CHANGELOG
+# 1. Promote CHANGELOG on main
 $EDITOR CHANGELOG.md  # move [Unreleased] → [X.Y.Z] - YYYY-MM-DD
-
-# 2. Bump pom.xml version
-mvn versions:set -DnewVersion=X.Y.Z -DgenerateBackupPoms=false
-
-# 3. Commit and push
-git add pom.xml CHANGELOG.md
+git add CHANGELOG.md
 git commit -S -m "chore(release): X.Y.Z"
 git push origin main
 
-# 4. Tag (annotated + ssh-signed) and push
-git tag -s vX.Y.Z -m "codeiq X.Y.Z"
-git push origin vX.Y.Z
+# 2. Trigger the release workflow with the target version
+gh workflow run release-java.yml --ref main -f version=X.Y.Z
+
+# 3. Watch it run (workflow handles versions:set, deploy, tag, GH Release)
+gh run watch $(gh run list --workflow release-java.yml --limit 1 --json databaseId --jq '.[0].databaseId')
 ```
 
 `release-java.yml` then:
-1. Builds with `mvn -B -ntp clean verify` (full test suite + jacoco gate).
-2. Signs artifacts with `MAVEN_GPG_*` secrets.
-3. Publishes to Maven Central via `central-publishing-maven-plugin`.
-4. Uploads `code-iq-X.Y.Z-cli.jar` to a new GitHub Release.
-5. Records SBOM (CycloneDX) and provenance (SLSA) as Release assets.
+1. Sets the pom version to `X.Y.Z` via `mvn versions:set`.
+2. Deploys to Sonatype Central with the `release` profile (`mvn -P release -B clean deploy`) — runs the full quality gate on the way (jacoco 85% + SpotBugs + dependency-check).
+3. Signs artifacts with `MAVEN_GPG_*` secrets.
+4. Creates the annotated tag `vX.Y.Z` and pushes it (the workflow has `contents: write`).
+5. Cuts a GitHub Release from the tag and uploads `code-iq-X.Y.Z-cli.jar`, with auto-generated release notes.
 
-Track it: `gh run watch $(gh run list --workflow release-java.yml --limit 1 --json databaseId --jq '.[0].databaseId')`.
+If you prefer to drive the tag yourself (fork or downstream cut), `release-java.yml`'s `workflow_dispatch` is still the canonical entrypoint — push the tag manually only after the deploy succeeds. Direct tag-push without the workflow does **not** publish.
 
 ---
 

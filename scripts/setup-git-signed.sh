@@ -23,10 +23,30 @@ fi
 
 cd "$repo_root"
 
-# Defaults can be overridden by env vars so the same script works for forks.
-GIT_USER_NAME=${GIT_USER_NAME:-"Amit Kumar"}
-GIT_USER_EMAIL=${GIT_USER_EMAIL:-"ak.nitrr13@gmail.com"}
-GIT_SIGNING_KEY=${GIT_SIGNING_KEY:-"$HOME/.ssh/id_ed25519.pub"}
+# Identity is taken from env vars first, then from the user's GLOBAL git
+# config — never hard-coded to the maintainer. This avoids silently
+# misattributing every contributor's signed commits to the maintainer
+# (Reviewer finding #3).
+GIT_USER_NAME=${GIT_USER_NAME:-$(git config --global --get user.name 2>/dev/null || true)}
+GIT_USER_EMAIL=${GIT_USER_EMAIL:-$(git config --global --get user.email 2>/dev/null || true)}
+GIT_SIGNING_KEY=${GIT_SIGNING_KEY:-$(git config --global --get user.signingkey 2>/dev/null || echo "$HOME/.ssh/id_ed25519.pub")}
+
+if [ -z "$GIT_USER_NAME" ] || [ -z "$GIT_USER_EMAIL" ]; then
+  cat >&2 <<'EOF'
+error: contributor identity not set.
+
+This script does not assume a default identity. Set yours either:
+  1. Globally (recommended):
+       git config --global user.name  "Your Name"
+       git config --global user.email "you@example.com"
+  2. Per-invocation:
+       GIT_USER_NAME="Your Name" GIT_USER_EMAIL="you@example.com" \
+         scripts/setup-git-signed.sh
+
+Then re-run this script. Signed commits will use the identity you set.
+EOF
+  exit 4
+fi
 
 # The signing key path must exist before we wire up signing — otherwise every
 # commit will fail and the local config will be silently broken.

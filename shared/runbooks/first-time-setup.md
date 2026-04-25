@@ -60,9 +60,18 @@ Sanity-check the config:
 ```bash
 git config --local --get user.signingkey   # should print a path ending in .pub
 git config --local --get commit.gpgsign    # should print "true"
-echo test | git commit-tree HEAD^{tree} -m test --gpg-sign \
-  | git verify-commit --raw -                # should report "Good signature"
+
+# Produce a throwaway signed commit object (no refs touched) and verify it.
+sig_commit=$(echo "verify-signing" | git commit-tree HEAD^{tree} -S)
+git verify-commit "$sig_commit"             # expect "Good ... signature"
+git log -1 --pretty=%G? "$sig_commit"       # expect: G
 ```
+
+`git verify-commit` operates on a commit object id, not stdin — capturing the
+output of `git commit-tree -S` first and then verifying that id is the right
+shape. If the verification line errors with "no principal matched", point git
+at an `allowed_signers` file: see `scripts/setup-git-signed.sh` output for the
+canonical template.
 
 ---
 
@@ -79,10 +88,13 @@ This runs the full pipeline: unit tests, integration tests, jacoco coverage gate
 For a faster inner loop while iterating:
 
 ```bash
-mvn -B -ntp -DskipTests test                 # unit + integration, no plugins
-mvn -B -ntp -Dtest=SomeDetectorTest test     # single test
-mvn -B -ntp -DskipTests=true package         # JAR only
+mvn -B -ntp test \
+  -Dspotbugs.skip=true -Ddependency-check.skip=true     # unit + integration, no static analysis / CVE plugins
+mvn -B -ntp -Dtest=SomeDetectorTest test                # single test class
+mvn -B -ntp -DskipTests=true package                    # JAR only, no tests
 ```
+
+The first command **does run tests** — earlier drafts incorrectly passed `-DskipTests` here, which would have skipped them. Use `-Dspotbugs.skip` / `-Ddependency-check.skip` to keep the inner loop fast without dropping test coverage.
 
 Smoke-test the CLI end-to-end against this repo:
 
@@ -129,8 +141,9 @@ gh pr create --fill --base main
 
 Branch protection on `main` requires:
 - A Codex review approval from TechLead (or delegate).
-- CI green: `ci-java.yml`, Sonar Quality Gate, Scorecard workflow, signed-commits status check.
-- All commits in the PR signed.
+- CI green on the PR: `ci-java.yml` (build + jacoco 85% + dependency-check + Sonar), the repo-level CodeQL default-setup checks (`Analyze (java-kotlin)`, `Analyze (javascript-typescript)`, `Analyze (actions)`), Socket Security, SonarCloud Code Analysis.
+- All commits in the PR signed (branch protection rejects unsigned commits — there is no separate "signed-commits" status check).
+- OpenSSF Scorecard runs on push-to-`main` and a weekly cron, **not** on PRs, and is intentionally non-gating per [`engineering-standards.md`](engineering-standards.md) §1.
 
 Force-push to `main` is disabled. Direct pushes are disabled. Squash-merge is the default and only path.
 

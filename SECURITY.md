@@ -57,8 +57,8 @@ Out of scope:
 - [`shared/runbooks/engineering-standards.md`](shared/runbooks/engineering-standards.md) — CVE policy and quality gates.
 - [`shared/runbooks/rollback.md`](shared/runbooks/rollback.md) §6 — secret rotation flow.
 - `.github/workflows/scorecard.yml` — OpenSSF Scorecard supply-chain checks.
-- `.github/workflows/codeql.yml` — code scanning (SARIF in the Security tab).
-- `.github/dependabot.yml` — automated dependency / GHA / Docker bumps.
+- GitHub repo-level **CodeQL default setup** (java-kotlin + javascript-typescript + actions) — code scanning, SARIF in the Security tab. Configured under repo Settings → Code security → Code scanning, not via a workflow file (a workflow-driven `codeql.yml` was tried and removed because GitHub rejects duplicate SARIF uploads when default setup is on for the same language).
+- `.github/dependabot.yml` — automated dependency / GHA / npm bumps.
 
 ## Changelog
 

@@ -410,6 +410,18 @@
                     <!-- Fail build on High/Critical CVEs (CVSS >= 7) per security.md -->
                     <failBuildOnCVSS>7</failBuildOnCVSS>
                 </configuration>
+                <executions>
+                    <!-- Bind dependency-check:check into the verify phase so
+                         `mvn -B -ntp clean verify` enforces the CVSS>=7 gate
+                         (RAN-46 AC #5 / Reviewer finding #1). -->
+                    <execution>
+                        <id>dependency-check-on-verify</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
 
             <plugin>
