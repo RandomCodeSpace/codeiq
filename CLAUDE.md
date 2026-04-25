@@ -429,6 +429,10 @@ bean for code paths that haven't been ported yet.
 - **SonarCloud project key**: `RandomCodeSpace_codeiq`, org: `randomcodespace`
 - **CI workflow**: Single `ci-java.yml` runs build + SonarCloud analysis. No cross-platform builds needed (JVM).
 
+## Deploy
+
+codeiq's deploy surface is **Maven Central + GitHub Releases** (per RAN-46 AC #10 ruling, option a). The single Java JAR (with the React UI bundled inside) is published via two `workflow_dispatch`-only workflows: `.github/workflows/beta-java.yml` (manual beta cut → Sonatype Central beta + GitHub pre-release) and `.github/workflows/release-java.yml` (manual GA cut with a `version` input → the workflow builds a GPG-signed release commit on a detached HEAD, deploys from that exact tree, then creates and pushes a GPG-signed annotated `vX.Y.Z` tag pointing at the release commit + a GitHub Release). There is no static-CDN frontend, no hosted backend, no VPS — codeiq runs on the developer's machine. See [`shared/runbooks/release.md`](shared/runbooks/release.md) and [`shared/runbooks/engineering-standards.md`](shared/runbooks/engineering-standards.md) §7.1.
+
 ## Updating This File
 
 After significant changes (new detectors, new endpoints, architectural decisions, conventions learned), update this CLAUDE.md to reflect the current state. Keep it concise and actionable.

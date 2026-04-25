@@ -62,8 +62,14 @@
                 log4j-core 2.25.3 -> 2.25.4          (CVE-2026-34477 MOD,
                                                       CVE-2026-34478 MOD,
                                                       CVE-2026-34480 MOD)
+                log4j-api 2.25.3 -> 2.25.4           (umbrella-CPE attribution
+                                                      of log4j-core CVEs;
+                                                      bumped to keep the dep
+                                                      tree consistent and to
+                                                      stop the dep-check
+                                                      umbrella match)
                 log4j-layout-template-json 2.25.3 -> 2.25.4  (CVE-2026-34481 MOD)
-                  •both pulled in transitively by Neo4j 2026.02.3.
+                  •all three pulled in transitively by Neo4j 2026.02.3.
                 shiro-core 2.0.6 -> 2.1.0            (CVE-2026-23901 LOW)
                   •pulled in by neo4j-security.
                 mcp-core 1.1.0 -> 1.1.1              (CVE-2026-34237 MOD)
@@ -75,6 +81,11 @@
             <dependency>
                 <groupId>org.apache.logging.log4j</groupId>
                 <artifactId>log4j-core</artifactId>
+                <version>2.25.4</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.logging.log4j</groupId>
+                <artifactId>log4j-api</artifactId>
                 <version>2.25.4</version>
             </dependency>
             <dependency>
@@ -369,10 +380,9 @@
                             <goal>report</goal>
                         </goals>
                     </execution>
-                    <!-- Coverage enforcement removed — SonarCloud quality gate handles this -->
-                    <!--
                     <execution>
                         <id>check</id>
+                        <phase>verify</phase>
                         <goals>
                             <goal>check</goal>
                         </goals>
@@ -391,7 +401,6 @@
                             </rules>
                         </configuration>
                     </execution>
-                    -->
                 </executions>
             </plugin>
 
@@ -401,13 +410,91 @@
                 <version>${spotbugs.version}</version>
                 <configuration>
                     <excludeFilterFile>spotbugs-exclude.xml</excludeFilterFile>
+                    <!-- Hard gate semantics per engineering-standards.md §1:
+                         "Zero High/Critical findings". Threshold High filters
+                         out Medium/Low findings (so the gate doesn't trip on
+                         non-blocking findings); failOnError is the
+                         spotbugs-maven-plugin default for `check`, made
+                         explicit so a future config edit doesn't silently
+                         relax the gate. -->
+                    <threshold>High</threshold>
+                    <failOnError>true</failOnError>
                 </configuration>
+                <executions>
+                    <!-- Reviewer finding fd559a54 (RAN-47, R5-4):
+                         spotbugs-maven-plugin was declared but had no
+                         lifecycle binding, so `mvn verify` (and therefore
+                         CI on every PR) did not actually run SpotBugs.
+                         Bind `check` to the verify phase so the gate
+                         claimed in engineering-standards.md §1 is
+                         actually enforced on every build. -->
+                    <execution>
+                        <id>spotbugs-check-on-verify</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
 
             <plugin>
                 <groupId>org.owasp</groupId>
                 <artifactId>dependency-check-maven</artifactId>
                 <version>${owasp.dependency-check.version}</version>
+                <configuration>
+                    <!-- Hard gate: build fails on High/Critical CVEs (CVSS >= 7)
+                         per security.md AND on operational failures of the
+                         scanner itself. failOnError stays at the default (true)
+                         so a silent NVD-feed degradation does NOT pass as a
+                         green build (Reviewer round-3 finding #1). -->
+                    <failBuildOnCVSS>7</failBuildOnCVSS>
+                    <!-- Stable on-disk cache directory. ci-java.yml caches
+                         this path between runs (actions/cache), which is the
+                         primary mitigation for transient NVD-feed/H2 issues:
+                         after the first successful run on a fresh runner, the
+                         cache holds a pre-populated H2 DB and incremental
+                         updates are short. -->
+                    <dataDirectory>${user.home}/.m2/repository/org/owasp/dependency-check-data</dataDirectory>
+                    <!-- Use NVD_API_KEY when available (drastically reduces
+                         throttle / 5xx rates from the NVD API). The build
+                         falls back to the unauthenticated path when the
+                         secret is unset; that path is rate-limited but works
+                         once the cache is warm. RAN-42 tracks the secret
+                         provisioning + a dedicated nightly NVD-refresh job. -->
+                    <nvdApiKey>${env.NVD_API_KEY}</nvdApiKey>
+                    <!-- NVD-feed resilience knobs. The unauthenticated /
+                         throttled NVD API path occasionally returns transient
+                         5xx / connection resets; without retries the
+                         dependency-check NvdApiProcessor surfaces an NPE
+                         from BasicDataSource.getConnection() because the H2
+                         pool is torn down mid-update (observed on PR #74
+                         build run 24930518462 — cold cache + fresh NVD
+                         download). Bumping retries + delay between calls
+                         keeps the update-only path stable. -->
+                    <nvdMaxRetryCount>10</nvdMaxRetryCount>
+                    <nvdApiDelay>4000</nvdApiDelay>
+                    <!-- CPE-collision false-positive suppressions ONLY.
+                         High/Critical CVEs MUST be fixed, not suppressed
+                         (security.md §5). Each entry is justified, scoped
+                         tightly to the offending CPE, and TechLead-signed.
+                         See file header for the policy. -->
+                    <suppressionFiles>
+                        <suppressionFile>${project.basedir}/dependency-check-suppressions.xml</suppressionFile>
+                    </suppressionFiles>
+                </configuration>
+                <executions>
+                    <!-- Bind dependency-check:check into the verify phase so
+                         `mvn -B -ntp clean verify` enforces the CVSS>=7 gate
+                         (RAN-46 AC #5 / Reviewer finding #1). -->
+                    <execution>
+                        <id>dependency-check-on-verify</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>check</goal>
+                        </goals>
+                    </execution>
+                </executions>
             </plugin>
 
             <plugin>
