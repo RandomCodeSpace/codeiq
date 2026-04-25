@@ -110,3 +110,4 @@ Ground rules:
 - `/home/dev/.claude/rules/*.md` — global engineering rules (parent SSoT).
 - `pom.xml` — quality-gate plugin wiring (`jacoco`, `spotbugs`, `dependency-check`, `central-publishing`).
 - `.github/workflows/` — CI / release / security automations.
+- **CodeQL** — handled by GitHub repo-level **CodeQL default setup** (java-kotlin + javascript-typescript + actions), not a workflow file. A workflow-driven CodeQL was attempted in PR #74 and removed because GitHub rejects duplicate SARIF uploads when default setup is also enabled for the same language. Configuration lives under repo Settings → Code security → Code scanning.

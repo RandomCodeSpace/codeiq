@@ -25,7 +25,7 @@
     "license_file": "LICENSE",
     "build_reproducible": "mvn -B -ntp clean verify",
     "ci_workflow": ".github/workflows/ci-java.yml",
-    "code_scanning": ".github/workflows/codeql.yml",
+    "code_scanning": "GitHub repo setting (CodeQL default setup, java-kotlin + javascript-typescript + actions). Workflow-driven CodeQL was tried in PR #74 but conflicts with default setup at SARIF upload — keeping default setup as the SSoT.",
     "supply_chain_scorecard": ".github/workflows/scorecard.yml",
     "dependency_updates": ".github/dependabot.yml",
     "signed_commits": "scripts/setup-git-signed.sh",
