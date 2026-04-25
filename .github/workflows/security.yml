@@ -32,12 +32,17 @@ jobs:
       # fails when invoked as a job step). Using the preinstalled `gh` CLI
       # avoids any external `curl`/`wget` per /home/dev/.claude/CLAUDE.md.
       - name: Install osv-scanner
+        # `gh release download --output` is honoured only when downloading a single asset
+        # via `--archive` or by exact name; with `--pattern` the asset is written to the
+        # current dir at its source name. Download then move to a stable name.
         run: |
           gh release download "v${OSV_SCANNER_VERSION}" \
             --repo google/osv-scanner \
             --pattern 'osv-scanner_linux_amd64' \
-            --output osv-scanner
+            --clobber
+          mv osv-scanner_linux_amd64 osv-scanner
           chmod +x osv-scanner
+          ./osv-scanner --version
       - name: Run osv-scanner (recursive, skip git history)
         run: ./osv-scanner --recursive --skip-git ./
 
@@ -116,11 +121,15 @@ jobs:
         with:
           node-version: '20'
       - run: |
+          # Test code (fixtures, assertion boilerplate, parametrised cases) is
+          # excluded from duplication policing — same-shape tests for parallel
+          # detectors are a feature, not a refactoring target. jscpd polices
+          # production code: src/main/** + frontend src.
           npx --yes jscpd@4 \
             --threshold 3 \
             --reporters consoleFull \
             --format "java,javascript,typescript" \
-            --ignore "**/target/**,**/node_modules/**,**/grammar/**,**/generated-sources/**,**/dist/**" \
+            --ignore "**/target/**,**/node_modules/**,**/grammar/**,**/generated-sources/**,**/dist/**,**/src/test/**,**/*Test.java,**/*Tests.java,**/*.test.ts,**/*.test.tsx" \
             ./
 
   sbom:
