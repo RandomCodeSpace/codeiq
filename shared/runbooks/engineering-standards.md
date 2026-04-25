@@ -12,15 +12,19 @@ The rule of last resort: **`/home/dev/.claude/rules/*.md` wins.** This file does
 |---|---|---|---|
 | Unit + integration tests | All pass | `mvn verify` (CI + local) | Block merge |
 | JaCoCo coverage | ≥ 85% line (project-wide, post-exclusions) | `jacoco-maven-plugin` rule in `pom.xml` | Block merge |
-| SonarCloud Quality Gate | `Passed` (`Sonar way` profile + 80% new-code coverage) | `ci-java.yml` | Block merge |
-| SpotBugs | Zero High/Critical findings; `spotbugs-exclude.xml` justified per-entry | `mvn spotbugs:check` | Block merge |
-| OWASP Dependency-Check | No High/Critical CVEs (`failBuildOnCVSS=7`); Medium tracked | `mvn -B -ntp clean verify` (the `dependency-check:check` execution is bound to the `verify` phase in `pom.xml`); `ci-java.yml` runs on every PR + push to `main` | Block merge |
+| SpotBugs (Java lint) | Zero High/Critical findings; `spotbugs-exclude.xml` justified per-entry | `mvn spotbugs:check` (bound to `verify`) | Block merge |
+| OSV-Scanner (SCA via OSV.dev / GHSA) | Zero High/Critical CVEs in dependency tree | `.github/workflows/security.yml` | Block merge |
+| Trivy (filesystem + container scan) | Zero High/Critical findings (`severity: HIGH,CRITICAL`, `exit-code: 1`) | `.github/workflows/security.yml` | Block merge |
+| Semgrep (SAST) | Zero ERROR-level findings on `p/security-audit` + `p/owasp-top-ten` + `p/java` | `.github/workflows/security.yml` | Block merge |
+| Gitleaks (secret scan) | Zero findings | `.github/workflows/security.yml` | Block merge |
+| jscpd (duplication) | < 3% on touched code, languages: Java + JS + TS | `.github/workflows/security.yml` | Block merge |
+| SBOM (SPDX + CycloneDX) | Generated and uploaded as build artifact (`anchore/sbom-action`) | `.github/workflows/security.yml` | Surface as artifact; do **not** gate merge |
 | OpenSSF Scorecard | Best-effort; no hard score floor; `Pinned-Dependencies` is a soft target | `scorecard.yml` (push to `main` + weekly) | Surface in security tab; do **not** gate merge |
 | Signed commits | Every commit on `main` must verify | Branch protection + `gh api ... /commits/{sha}/check-runs` | Block merge |
 
 Coverage exclusions are enumerated in `pom.xml` `<jacoco>` config — only generated ANTLR sources, the `application/` Spring Boot main, and pure data records are excluded. Adding to that list requires TechLead sign-off.
 
-**Planned, not yet enforced:** OSV-Scanner as a second-source CVE feed (cross-checks OWASP Dependency-Check against the OSV / GitHub Advisory Database). Tracked under [RAN-42](/RAN/issues/RAN-42); will land as `.github/workflows/osv-scanner.yml` and a row added to the table above. Until then OSV is **not** part of the gate — only OWASP Dependency-Check is.
+**Stack: OSS-CLI only.** Per RAN-46 board ruling (path B): no Sonar, no CodeQL, no NVD-direct tools (OWASP Dependency-Check). The OSS-CLI stack covers SCA (OSV-Scanner via OSV.dev = GHSA + RustSec + PyPA + Go vuln DB + ecosystem feeds), filesystem + container scan (Trivy), SAST (Semgrep), secret detection (Gitleaks), duplication (jscpd), and SBOM emission (`anchore/sbom-action` SPDX + CycloneDX). Cost: $0 — entire stack is OSS-CLI in GitHub Actions, free for public OSS.
 
 ---
 
@@ -67,6 +71,22 @@ Ground rules:
 ---
 
 ## 5. Security
+
+### 5.1 Tooling stack — OSS-CLI ONLY (board ruling, RAN-46 path B)
+
+| Concern | Tool | Where |
+|---|---|---|
+| SCA (vulnerable deps) | **OSV-Scanner** (OSV.dev / GHSA / ecosystem feeds; **not NVD**) | `.github/workflows/security.yml` |
+| Filesystem + container scan | **Trivy** | `.github/workflows/security.yml` |
+| SAST | **Semgrep** (`p/security-audit`, `p/owasp-top-ten`, `p/java`) | `.github/workflows/security.yml` |
+| Secret scan | **Gitleaks** (full git history) | `.github/workflows/security.yml` |
+| Duplication | **jscpd** (Java + JS + TS, threshold < 3%) | `.github/workflows/security.yml` |
+| SBOM | **`anchore/sbom-action`** (SPDX + CycloneDX) | `.github/workflows/security.yml` |
+| Java lint | **SpotBugs** (bound to `mvn verify`) | `pom.xml` |
+
+**Not used (do not re-introduce without an explicit board reversal of the RAN-46 path B ruling):** SonarCloud / SonarQube, CodeQL (default-setup or workflow-driven), OWASP Dependency-Check (or any NVD-direct tool). Rationale: NVD has analysis-backlog and rate-limit reliability problems; OSV / GHSA cover the same ground without those issues. CodeQL is GHAS-paid for non-public repos; we standardise on Semgrep across all repos for consistency.
+
+### 5.2 Code hygiene
 
 - **Inputs** — every public-facing endpoint validates input at the boundary; parameterised queries only; output encoded by default.
 - **Path traversal** — anything that takes a user path goes through the canonical-path check pattern used by `/api/file` (see RAN-8 fix).
@@ -132,6 +152,9 @@ If the product later needs a hosted demo or container surface, that is a **new R
 - `/SECURITY.md` — disclosure policy.
 - `shared/runbooks/release.md`, `rollback.md`, `first-time-setup.md`.
 - `/home/dev/.claude/rules/*.md` — global engineering rules (parent SSoT).
-- `pom.xml` — quality-gate plugin wiring (`jacoco`, `spotbugs`, `dependency-check`, `central-publishing`).
-- `.github/workflows/` — CI / release / security automations.
-- **CodeQL** — handled by GitHub repo-level **CodeQL default setup** (java-kotlin + javascript-typescript + actions), not a workflow file. A workflow-driven CodeQL was attempted in PR #74 and removed because GitHub rejects duplicate SARIF uploads when default setup is also enabled for the same language. Configuration lives under repo Settings → Code security → Code scanning.
+- `pom.xml` — quality-gate plugin wiring (`jacoco`, `spotbugs`, `central-publishing`).
+- `.github/workflows/` — CI / release / security automations:
+  - `ci-java.yml` — `mvn verify` (tests, JaCoCo 85%, SpotBugs).
+  - `security.yml` — OSS-CLI security stack (OSV-Scanner, Trivy, Semgrep, Gitleaks, jscpd, SBOM).
+  - `scorecard.yml` — OpenSSF Scorecard (push + weekly cron, non-gating).
+  - `beta-java.yml`, `release-java.yml` — Maven Central publishing (manual `workflow_dispatch`).

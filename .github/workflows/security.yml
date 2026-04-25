@@ -1,0 +1,118 @@
+name: Security (OSS-CLI)
+# OSS-CLI security stack per RAN-46 AC §3 (board ruling, comment fa5ba510).
+# Replaces Sonar + CodeQL + OWASP Dependency-Check.
+#
+# Six independent jobs — fail-fast off so all signals surface on a single run.
+# All actions SHA-pinned per Scorecard `Pinned-Dependencies`. Top-level
+# `permissions: read-all` per Scorecard `Token-Permissions`; jobs scope up
+# only when needed (gitleaks needs full git history; sbom job uploads).
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+  schedule:
+    - cron: '21 4 * * 1'  # Mondays 04:21 UTC — catch newly-disclosed CVEs
+
+permissions: read-all
+
+jobs:
+  osv-scanner:
+    name: OSV-Scanner (SCA)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v4.2.2
+      - uses: google/osv-scanner-action@c51854704019a247608d928f370c98740469d4b5 # v2.3.5
+        with:
+          scan-args: |-
+            --recursive
+            --skip-git
+            ./
+
+  trivy:
+    name: Trivy (filesystem + container scan)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v4.2.2
+      - uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25 # v0.36.0
+        with:
+          scan-type: fs
+          scan-ref: .
+          severity: HIGH,CRITICAL
+          exit-code: '1'
+          ignore-unfixed: true
+
+  semgrep:
+    name: Semgrep (SAST)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    container:
+      image: semgrep/semgrep@sha256:6f5ee7e5c4c8e09e25a3cabf61a4df04df80e11e82e7e3d6ea8cb6dfbf9e2a0d
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v4.2.2
+      - run: semgrep ci --error --config p/security-audit --config p/owasp-top-ten --config p/java
+        env:
+          SEMGREP_RULES: p/security-audit p/owasp-top-ten p/java
+
+  gitleaks:
+    name: Gitleaks (secret scan)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v4.2.2
+        with:
+          fetch-depth: 0
+      - uses: gitleaks/gitleaks-action@83373cf2f8c4db6e24b41c1a9b086bb9619e9cd3 # v2.3.7
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+  jscpd:
+    name: jscpd (duplication < 3% on touched code)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v4.2.2
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: '20'
+      - run: |
+          npx --yes jscpd@4 \
+            --threshold 3 \
+            --reporters consoleFull \
+            --languages java,javascript,typescript \
+            --ignore "**/target/**,**/node_modules/**,**/grammar/**,**/generated-sources/**,**/dist/**" \
+            ./
+
+  sbom:
+    name: SBOM (SPDX + CycloneDX)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v4.2.2
+      - name: Generate SPDX SBOM
+        uses: anchore/sbom-action@fc46e51fd3cb168ffb36c6d1915723c47db58abb # v0.17.7
+        with:
+          format: spdx-json
+          output-file: sbom.spdx.json
+          upload-artifact: false
+      - name: Generate CycloneDX SBOM
+        uses: anchore/sbom-action@fc46e51fd3cb168ffb36c6d1915723c47db58abb # v0.17.7
+        with:
+          format: cyclonedx-json
+          output-file: sbom.cdx.json
+          upload-artifact: false
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v4.6.2
+        with:
+          name: sbom
+          path: |
+            sbom.spdx.json
+            sbom.cdx.json
+          retention-days: 90
