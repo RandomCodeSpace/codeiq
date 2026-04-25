@@ -22,8 +22,9 @@ If any step fails, stop and follow the troubleshooting note inline — do not "f
 |---|---|---|
 | Java | 25 | Required by `pom.xml` `maven-enforcer-plugin` (`[25,)`). Use Adoptium / Temurin. |
 | Maven | 3.9.x | Newer minor versions are fine; do not use 4.x snapshots. |
-| Git | 2.34+ | Required for ssh-format commit signing (`gpg.format ssh`). |
-| OpenSSH | 8.0+ | Bundles `ssh-keygen -Y verify` used by `commit.gpgsign=true`. |
+| Git | 2.34+ | Required for commit signing in any of the supported formats (`gpg.format` = `ssh`, `openpgp` / `gpg`, or `x509`). |
+| OpenSSH | 8.0+ | Required only for `gpg.format=ssh` (the default; bundles `ssh-keygen -Y verify`). Skip if you sign with OpenPGP or x509. |
+| GnuPG | 2.2+ | Required only for `gpg.format=openpgp` / `gpg`. Skip if you sign with SSH or x509. |
 | Node.js | 20.x LTS | Only needed for the bundled React UI — `mvn package` shells out to it via the frontend Maven plugin. |
 | `gh` CLI | 2.40+ | For PR/release plumbing. |
 
@@ -53,12 +54,19 @@ Apply the repo-local signed-commit config (this is what RAN-46 AC #2 codifies):
 ./scripts/setup-git-signed.sh
 ```
 
-That script is idempotent and is the single SSoT for the per-repo `git config --local` block. It writes `user.name`, `user.email`, `user.signingkey`, `gpg.format=ssh`, `commit.gpgsign=true`, `tag.gpgsign=true` and verifies your public key resolves on disk. If you do not have an `id_ed25519` keypair, generate one (`ssh-keygen -t ed25519 -C "you@example.com"`) and upload the **public** key to your GitHub account under `Settings → SSH and GPG keys → New SSH key → Key type: Signing Key` before re-running.
+That script is idempotent and is the single SSoT for the per-repo `git config --local` block. It writes `user.name`, `user.email`, `user.signingkey`, `gpg.format`, `commit.gpgsign=true`, `tag.gpgsign=true`, then verifies the configured key resolves in your keychain.
+
+The script picks up your preferred signing format from (in order) the `GIT_GPG_FORMAT` env var, your global `git config gpg.format`, or the `ssh` default. Per-format expectations:
+
+- **`ssh` (default)** — `user.signingkey` must be a path on disk to your **public** key (typically `~/.ssh/id_ed25519.pub`). If you do not have an ed25519 keypair, generate one (`ssh-keygen -t ed25519 -C "you@example.com"`) and upload the public key to your GitHub account under `Settings → SSH and GPG keys → New SSH key → Key type: Signing Key` before re-running.
+- **`openpgp` / `gpg`** — `user.signingkey` must be a key id or fingerprint that `gpg --list-secret-keys` knows about. Generate / import the key first (`gpg --full-generate-key`), then `git config --global user.signingkey <KEY_ID>` and `git config --global gpg.format openpgp` before running this script.
+- **`x509`** — `user.signingkey` must be a key id or fingerprint that `gpgsm --list-secret-keys` knows about. Configure x509 signing keys in `gpgsm` first.
 
 Sanity-check the config:
 
 ```bash
-git config --local --get user.signingkey   # should print a path ending in .pub
+git config --local --get user.signingkey   # ssh: a .pub path; openpgp/x509: a key id or fingerprint
+git config --local --get gpg.format        # ssh | openpgp | gpg | x509
 git config --local --get commit.gpgsign    # should print "true"
 
 # Produce a throwaway signed commit object (no refs touched) and verify it.
