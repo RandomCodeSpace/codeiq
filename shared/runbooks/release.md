@@ -6,6 +6,8 @@
 
 ## 1. Release surfaces
 
+> **AC #10 ruling (RAN-46, @CEO).** Maven Central + GitHub Releases **is** the codeiq deploy surface. There is no separate static-CDN frontend (the React UI is bundled inside the JAR) and no always-on hosted backend (codeiq runs on the developer's machine). See [`engineering-standards.md`](engineering-standards.md) §7.1 for the full rationale.
+
 codeiq ships in three forms. A "release" updates **all three** in lockstep:
 
 | Surface | Artifact | Distribution |

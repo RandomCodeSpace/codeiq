@@ -91,6 +91,27 @@ Ground rules:
 - GitHub Actions are pinned by commit SHA in every workflow. Rationale: OpenSSF Scorecard `Pinned-Dependencies` and supply-chain integrity.
 - Container artifacts (when added) build from a minimal/distroless base, are pushed to GHCR with provenance attestations, and are pinned by digest at consumer sites.
 
+### 7.1 Deploy targets (RAN-46 AC #10 ruling — option a)
+
+codeiq's deploy surface is the **Maven Central + GitHub Releases** pipeline. There is intentionally no static-CDN frontend or always-on hosted backend.
+
+Rationale (per @CEO's RAN-46 ruling):
+
+- codeiq ships as a single Java JAR (`code-iq-*-cli.jar`). The React UI is bundled **inside** that JAR and served via Spring Boot's static resource handler — there is no separately deployable frontend.
+- The intended runtime is the developer's own machine (`codeiq index → enrich → serve`). There is no shared SaaS surface that needs a VPS — codeiq's value is scanning *your* code on *your* machine.
+- The literal AC #10 wording ("frontend → static host / CDN; backend → container registry + VPS rollout") was written for a generic product template that does not match codeiq's shape; the deploy surface is the existing release pipeline instead.
+
+The pipeline:
+
+| Cadence | Workflow | Artifact destination |
+|---|---|---|
+| `workflow_dispatch` (beta) | `.github/workflows/beta-java.yml` | Sonatype Central beta + GitHub pre-release |
+| `vX.Y.Z` tag push (GA) | `.github/workflows/release-java.yml` | Sonatype Central GA + GitHub Release |
+
+Hello-world / pipeline proof: `git tag -l 'v0.0.1-beta.*' | wc -l` is non-zero (47+ beta tags as of the AC #10 ruling) and `gh release list` shows the corresponding GitHub pre-releases. AC #10 is satisfied by the existing pipeline; no new deploy scaffold is required.
+
+If the product later needs a hosted demo or container surface, that is a **new RAN-* issue**, not a re-open of RAN-46.
+
 ---
 
 ## 8. Documentation
