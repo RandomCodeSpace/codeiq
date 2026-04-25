@@ -21,7 +21,7 @@ public final class EnvVarOverlay {
                 pageMb = null, heapInit = null, heapMax = null,
                 maxDepth = null, maxRadius = null, maxFiles = null, maxSnippetLines = null,
                 parallelism = null;
-        Long maxPayload = null;
+        Long maxPayload = null, servingMaxFileBytes = null;
         Boolean readOnly = null, incremental = null, metrics = null, tracing = null, mcpEnabled = null;
         String cacheDir = null, bindAddr = null, projectName = null, projectRoot = null,
                 projectServiceName = null,
@@ -56,6 +56,7 @@ public final class EnvVarOverlay {
                     case "SERVING_PORT" -> port = Integer.parseInt(v);
                     case "SERVING_BINDADDRESS" -> bindAddr = v;
                     case "SERVING_READONLY" -> readOnly = Boolean.parseBoolean(v);
+                    case "SERVING_MAXFILEBYTES" -> servingMaxFileBytes = Long.parseLong(v);
                     case "SERVING_NEO4J_DIR" -> neo4jDir = v;
                     case "SERVING_NEO4J_PAGECACHEMB" -> pageMb = Integer.parseInt(v);
                     case "SERVING_NEO4J_HEAPINITIALMB" -> heapInit = Integer.parseInt(v);
@@ -90,7 +91,7 @@ public final class EnvVarOverlay {
                 new ProjectConfig(projectName, projectRoot, projectServiceName, List.of()),
                 new IndexingConfig(languages, include, exclude, incremental, cacheDir, parallelism, batch,
                         maxDepth, maxRadius, maxFiles, maxSnippetLines, parsers),
-                new ServingConfig(port, bindAddr, readOnly,
+                new ServingConfig(port, bindAddr, readOnly, servingMaxFileBytes,
                         new Neo4jConfig(neo4jDir, pageMb, heapInit, heapMax)),
                 new McpConfig(mcpEnabled, mcpTransport, mcpBasePath,
                         new McpAuthConfig(mcpMode, mcpTokenEnv),

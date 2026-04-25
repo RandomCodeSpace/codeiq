@@ -126,6 +126,8 @@ public final class UnifiedConfigLoader {
                 requireIntOrNull(m.get("port"), path, "serving.port"),
                 (String) pick(m, "serving", "bind_address", "bindAddress", path, warned),
                 (Boolean) pick(m, "serving", "read_only", "readOnly", path, warned),
+                requireLongOrNull(pick(m, "serving", "max_file_bytes", "maxFileBytes", path, warned),
+                        path, "serving.max_file_bytes"),
                 n4j);
     }
 

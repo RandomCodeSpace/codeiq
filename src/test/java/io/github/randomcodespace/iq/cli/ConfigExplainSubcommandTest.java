@@ -105,7 +105,7 @@ class ConfigExplainSubcommandTest {
         // Build a CLI overlay that sets serving.port=7777 and leaves every other field null so
         // only the serving.port leaf is attributed to the CLI layer.
         CodeIqUnifiedConfig base = CodeIqUnifiedConfig.empty();
-        ServingConfig cliServing = new ServingConfig(7777, null, null, base.serving().neo4j());
+        ServingConfig cliServing = new ServingConfig(7777, null, null, null, base.serving().neo4j());
         CodeIqUnifiedConfig overlay =
                 new CodeIqUnifiedConfig(
                         base.project(),

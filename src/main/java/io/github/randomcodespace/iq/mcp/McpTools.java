@@ -2,6 +2,7 @@ package io.github.randomcodespace.iq.mcp;
 
 import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import io.github.randomcodespace.iq.api.SafeFileReader;
 import io.github.randomcodespace.iq.config.CodeIqConfig;
 import io.github.randomcodespace.iq.intelligence.evidence.EvidencePackAssembler;
 import io.github.randomcodespace.iq.intelligence.evidence.EvidencePackRequest;
@@ -397,22 +398,9 @@ public class McpTools {
             if (!resolved.startsWith(root)) {
                 return toJson(Map.of(PROP_ERROR, "Path traversal detected"));
             }
-            String content = java.nio.file.Files.readString(resolved, java.nio.charset.StandardCharsets.UTF_8);
-            if (startLine != null || endLine != null) {
-                String[] lines = content.split("\n", -1);
-                int start = (startLine != null ? startLine : 1);
-                int end = (endLine != null ? endLine : lines.length);
-                // Clamp bounds
-                start = Math.max(1, Math.min(start, lines.length));
-                end = Math.max(start, Math.min(end, lines.length));
-                StringBuilder sb = new StringBuilder();
-                for (int i = start - 1; i < end; i++) {
-                    if (i > start - 1) sb.append('\n');
-                    sb.append(lines[i]);
-                }
-                return sb.toString();
-            }
-            return content;
+            return SafeFileReader.read(resolved, startLine, endLine, config.getMaxFileBytes());
+        } catch (SafeFileReader.FileTooLargeException tooLarge) {
+            return toJson(Map.of(PROP_ERROR, tooLarge.getMessage()));
         } catch (Exception e) {
             return toJson(Map.of(PROP_ERROR, "Failed to read file: " + e.getMessage()));
         }

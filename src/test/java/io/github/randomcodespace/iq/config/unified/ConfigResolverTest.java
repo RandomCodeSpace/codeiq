@@ -25,7 +25,7 @@ class ConfigResolverTest {
         // cli: read_only=true (only CLI sets it)
         CodeIqUnifiedConfig cli = new CodeIqUnifiedConfig(
                 ProjectConfig.empty(), IndexingConfig.empty(),
-                new ServingConfig(null, null, true, Neo4jConfig.empty()),
+                new ServingConfig(null, null, true, null, Neo4jConfig.empty()),
                 McpConfig.empty(), ObservabilityConfig.empty(), DetectorsConfig.empty());
 
         MergedConfig merged = new ConfigResolver()

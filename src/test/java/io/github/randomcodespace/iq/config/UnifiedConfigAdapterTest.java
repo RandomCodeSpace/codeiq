@@ -107,7 +107,7 @@ class UnifiedConfigAdapterTest {
         CodeIqUnifiedConfig u = new CodeIqUnifiedConfig(
                 ProjectConfig.empty(),
                 IndexingConfig.empty(),
-                new ServingConfig(null, null, null, null),
+                new ServingConfig(null, null, null, null, null),
                 new McpConfig(null, null, null,
                         McpAuthConfig.empty(),
                         McpLimitsConfig.empty(),
@@ -149,5 +149,42 @@ class UnifiedConfigAdapterTest {
         assertEquals(500, legacy.getMaxFiles());
         assertEquals(12, legacy.getMaxSnippetLines());
         assertEquals("billing", legacy.getServiceName());
+    }
+
+    @Test
+    void maxFileBytesProjectsFromServingConfig() {
+        CodeIqUnifiedConfig u = new CodeIqUnifiedConfig(
+                ProjectConfig.empty(),
+                IndexingConfig.empty(),
+                new ServingConfig(null, null, null, 12345L, null),
+                new McpConfig(null, null, null,
+                        McpAuthConfig.empty(),
+                        McpLimitsConfig.empty(),
+                        McpToolsConfig.empty()),
+                ObservabilityConfig.empty(),
+                DetectorsConfig.empty()
+        );
+
+        CodeIqConfig legacy = UnifiedConfigAdapter.toCodeIqConfig(u);
+        assertEquals(12345L, legacy.getMaxFileBytes());
+    }
+
+    @Test
+    void maxFileBytesFallsBackToCodeIqConfigDefault() {
+        CodeIqUnifiedConfig u = new CodeIqUnifiedConfig(
+                ProjectConfig.empty(),
+                IndexingConfig.empty(),
+                new ServingConfig(null, null, null, null, null),
+                new McpConfig(null, null, null,
+                        McpAuthConfig.empty(),
+                        McpLimitsConfig.empty(),
+                        McpToolsConfig.empty()),
+                ObservabilityConfig.empty(),
+                DetectorsConfig.empty()
+        );
+
+        CodeIqConfig legacy = UnifiedConfigAdapter.toCodeIqConfig(u);
+        // Default from CodeIqConfig: 5 MiB.
+        assertEquals(5L * 1024L * 1024L, legacy.getMaxFileBytes());
     }
 }

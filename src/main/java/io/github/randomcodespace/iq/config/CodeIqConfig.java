@@ -50,6 +50,9 @@ public class CodeIqConfig {
     /** Maximum lines per snippet returned in evidence packs (default 50). */
     private int maxSnippetLines = 50;
 
+    /** Maximum bytes read by the serving layer's /api/file and MCP read_file (default 5 MiB). */
+    private long maxFileBytes = 5L * 1024L * 1024L;
+
     public static class Graph {
         private String path = ".codeiq/graph/graph.db";
 
@@ -151,5 +154,13 @@ public class CodeIqConfig {
 
     void setMaxSnippetLines(int maxSnippetLines) {
         this.maxSnippetLines = Math.max(1, maxSnippetLines);
+    }
+
+    public long getMaxFileBytes() {
+        return maxFileBytes;
+    }
+
+    void setMaxFileBytes(long maxFileBytes) {
+        this.maxFileBytes = Math.max(1L, maxFileBytes);
     }
 }

@@ -58,6 +58,9 @@ public final class UnifiedConfigAdapter {
             if (u.serving().readOnly() != null) {
                 c.setReadOnly(u.serving().readOnly());
             }
+            if (u.serving().maxFileBytes() != null) {
+                c.setMaxFileBytes(u.serving().maxFileBytes());
+            }
             if (u.serving().neo4j() != null && u.serving().neo4j().dir() != null) {
                 CodeIqConfig.Graph graph = new CodeIqConfig.Graph();
                 graph.setPath(u.serving().neo4j().dir());
