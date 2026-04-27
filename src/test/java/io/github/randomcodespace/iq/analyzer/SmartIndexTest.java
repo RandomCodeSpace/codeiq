@@ -66,7 +66,8 @@ class SmartIndexTest {
 
         analyzer = new Analyzer(registry, parser, fileDiscovery, layerClassifier, linkers,
                 new CodeIqConfig(), CodeIqUnifiedConfig.empty(),
-                new ConfigScanner(), new ArchitectureKeywordFilter());
+                new ConfigScanner(), new ArchitectureKeywordFilter(),
+                new io.github.randomcodespace.iq.intelligence.resolver.ResolverRegistry(List.of()));
     }
 
     // -------------------------------------------------------------------------
