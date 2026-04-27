@@ -17,6 +17,11 @@ import io.github.randomcodespace.iq.detector.DetectorResult;
 import io.github.randomcodespace.iq.detector.DetectorUtils;
 import io.github.randomcodespace.iq.grammar.AntlrParserFactory;
 import io.github.randomcodespace.iq.intelligence.RepositoryIdentity;
+import io.github.randomcodespace.iq.intelligence.resolver.EmptyResolved;
+import io.github.randomcodespace.iq.intelligence.resolver.ResolutionException;
+import io.github.randomcodespace.iq.intelligence.resolver.Resolved;
+import io.github.randomcodespace.iq.intelligence.resolver.ResolverRegistry;
+import io.github.randomcodespace.iq.intelligence.resolver.SymbolResolver;
 import io.github.randomcodespace.iq.model.CodeEdge;
 import io.github.randomcodespace.iq.model.CodeNode;
 import io.github.randomcodespace.iq.model.NodeKind;
@@ -89,6 +94,7 @@ public class Analyzer {
     private final CodeIqUnifiedConfig unifiedConfig;
     private final ConfigScanner configScanner;
     private final ArchitectureKeywordFilter keywordFilter;
+    private final ResolverRegistry resolverRegistry;
 
     /**
      * Projection of the injected {@link CodeIqUnifiedConfig} tree into the flat
@@ -127,7 +133,8 @@ public class Analyzer {
             CodeIqConfig config,
             CodeIqUnifiedConfig unifiedConfig,
             ConfigScanner configScanner,
-            ArchitectureKeywordFilter keywordFilter
+            ArchitectureKeywordFilter keywordFilter,
+            ResolverRegistry resolverRegistry
     ) {
         this.registry = registry;
         this.parser = parser;
@@ -138,6 +145,7 @@ public class Analyzer {
         this.unifiedConfig = unifiedConfig;
         this.configScanner = configScanner;
         this.keywordFilter = keywordFilter;
+        this.resolverRegistry = resolverRegistry;
     }
 
     /**
@@ -147,7 +155,11 @@ public class Analyzer {
      * equivalent to the "no {@code codeiq.yml} present" path
      * (no detector filters, no language filter, auto parallelism). Tests that
      * need to exercise filters should use the primary constructor with a
-     * hand-rolled {@link CodeIqUnifiedConfig}.
+     * hand-rolled {@link CodeIqUnifiedConfig}. The {@link ResolverRegistry} is
+     * defaulted to an empty registry — every {@code resolverFor(...)} call
+     * returns the no-op resolver and every {@code resolved()} reads back as
+     * {@link EmptyResolved#INSTANCE}, which is the same observable behaviour as
+     * the pre-resolver pipeline.
      */
     public Analyzer(
             DetectorRegistry registry,
@@ -159,7 +171,49 @@ public class Analyzer {
     ) {
         this(registry, parser, fileDiscovery, layerClassifier, linkers, config,
                 CodeIqUnifiedConfig.empty(),
-                new ConfigScanner(), new ArchitectureKeywordFilter());
+                new ConfigScanner(), new ArchitectureKeywordFilter(),
+                new ResolverRegistry(List.of()));
+    }
+
+    /**
+     * Bootstrap every registered {@link SymbolResolver} against the project
+     * root. Called exactly once per pipeline entry point (run / runBatchedIndex
+     * / runSmartIndex), before any file iteration. Per-resolver failures are
+     * logged inside {@link ResolverRegistry#bootstrap(Path)} and do not abort
+     * the pass — a misbehaving resolver simply returns {@link EmptyResolved}
+     * for its language for the rest of the run.
+     */
+    private void bootstrapResolvers(Path root) {
+        try {
+            resolverRegistry.bootstrap(root);
+        } catch (RuntimeException e) {
+            // ResolverRegistry already swallows per-resolver failures; this catch
+            // is purely defensive in case the registry itself blows up. The
+            // pipeline continues with NOOP resolvers (Optional.of(EmptyResolved)).
+            log.warn("Resolver bootstrap failed for {}: {}", root, e.getMessage());
+        }
+    }
+
+    /**
+     * Resolve symbols for a single file, swallowing {@link ResolutionException}
+     * so one resolver failure can't take down the whole file's detector pass.
+     * Returns {@link EmptyResolved#INSTANCE} on any failure (or when the
+     * resolver itself returns null, defensive).
+     */
+    private Resolved resolveFor(DiscoveredFile file, Object parsedAst) {
+        SymbolResolver resolver = resolverRegistry.resolverFor(file.language());
+        try {
+            Resolved r = resolver.resolve(file, parsedAst);
+            return r != null ? r : EmptyResolved.INSTANCE;
+        } catch (ResolutionException e) {
+            log.debug("resolver {} failed for {}: {}",
+                    resolver.getClass().getSimpleName(), file.path(), e.getMessage());
+            return EmptyResolved.INSTANCE;
+        } catch (RuntimeException e) {
+            log.debug("resolver {} threw unexpectedly for {}: {}",
+                    resolver.getClass().getSimpleName(), file.path(), e.toString());
+            return EmptyResolved.INSTANCE;
+        }
     }
 
     /**
@@ -200,6 +254,8 @@ public class Analyzer {
         Consumer<String> report = onProgress != null ? onProgress : msg -> {};
 
         final Path root = repoPath.toAbsolutePath().normalize();
+
+        bootstrapResolvers(root);
 
         // Open incremental cache if enabled
         AnalysisCache cache = null;
@@ -501,6 +557,8 @@ public class Analyzer {
 
         final Path root = repoPath.toAbsolutePath().normalize();
 
+        bootstrapResolvers(root);
+
         // Always use H2 cache as the primary store during indexing
         Path cachePath = root.resolve(config.getCacheDir()).resolve("analysis-cache.db");
         AnalysisCache cache;
@@ -783,6 +841,8 @@ public class Analyzer {
         Instant start = Instant.now();
         Consumer<String> report = onProgress != null ? onProgress : msg -> {};
         final Path root = repoPath.toAbsolutePath().normalize();
+
+        bootstrapResolvers(root);
 
         Path cachePath = root.resolve(config.getCacheDir()).resolve("analysis-cache.db");
         AnalysisCache cache;
@@ -1295,7 +1355,7 @@ public class Analyzer {
                 parsedData,
                 moduleName,
                 infraRegistry
-        );
+        ).withResolved(resolveFor(file, parsedData));
 
         List<Detector> detectors = detectorRegistry.detectorsForLanguage(file.language());
         if (detectors.isEmpty()) {
@@ -1503,7 +1563,7 @@ public class Analyzer {
                 content,
                 parsedData,
                 moduleName
-        );
+        ).withResolved(resolveFor(file, parsedData));
 
         // Run matching detectors and merge results
         List<Detector> detectors = detectorRegistry.detectorsForLanguage(file.language());
@@ -1593,7 +1653,8 @@ public class Analyzer {
         }
 
         String moduleName = DetectorUtils.deriveModuleName(file.path().toString(), file.language());
-        var ctx = new DetectorContext(file.path().toString(), file.language(), content, null, moduleName);
+        var ctx = new DetectorContext(file.path().toString(), file.language(), content, null, moduleName)
+                .withResolved(resolveFor(file, null));
 
         List<Detector> detectors = detectorRegistry.detectorsForLanguage(file.language());
         var allNodes = new ArrayList<CodeNode>();
