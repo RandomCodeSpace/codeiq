@@ -305,6 +305,66 @@ for that specific tag for the per-commit details.
   flow + token-issuance endpoint, OR server-side template injection) is its
   own design — tracked as a follow-up issue.
 
+- **Production-readiness PR 2 of 5 — resource limits & abuse protection.**
+  Closes audit findings #2, #3, C1 (HIGH) and #10, #11 (MEDIUM).
+  - **Cypher transaction timeout** (audit #2). Neo4j embedded
+    `GraphDatabaseSettings.transaction_timeout = 30s` configured in
+    `Neo4jConfig` — every transaction in the JVM, including `run_cypher`
+    and graph traversals, gets a hard wall-clock cap. Catches runaway
+    variable-length matches before they starve the page cache.
+  - **Result-set cap on `run_cypher`** (audit #2). Hard row cap at
+    `mcp.limits.max_results` (default 500); excess rows dropped, response
+    carries `truncated: true` + `max_results: N`. Defends the JVM heap
+    against `MATCH (a),(b),(c) RETURN a,b,c LIMIT 999999999` blowups.
+  - **MCP `traceImpact` depth cap** (audit #10 corrected, C3). New
+    `mcp.limits.max_depth` field (default 10) wired into
+    `McpTools.traceImpact` via `Math.min`. Defends against
+    `RELATES_TO*1..1000` Cartesian explosions on hub nodes.
+  - **TTL snapshot cache on topology tools** (audit C1). `McpTools.
+    getCachedData()` now backed by a 60-second TTL snapshot. Without it,
+    every concurrent `service_dependencies` / `blast_radius` /
+    `find_path` / `find_bottlenecks` / `find_circular_deps` /
+    `find_dead_services` / `find_node` call paid the full
+    `graphStore.findAll()` cost and double-allocated multi-GB heaps.
+    A bridge fix; the proper refactor (TopologyService → per-tool Cypher)
+    is a tracked follow-up.
+  - **Per-client rate limiter** (audit #3). New `RateLimitFilter` using
+    Bucket4j 8.18.0 (Apache-2.0). Token bucket sized at
+    `mcp.limits.rate_per_minute` (default 300). Keyed by SHA-256 hash of
+    the `Authorization` header (so the token never lives in our key map),
+    falls back to `X-Forwarded-For` (first hop) or `RemoteAddr`. 429
+    response with `Retry-After`, `X-RateLimit-Limit`, `X-RateLimit-Remaining`
+    headers. Registered before `BearerAuthFilter` so unauthenticated
+    brute-force is also throttled.
+  - **`/api/file` content-type sniff** (audit #11 corrected). Added
+    `Files.probeContentType` guard — non-text MIMEs (`.jks`, `.so`,
+    `.png`, native libs) return HTTP 415 with the probed type, instead
+    of being served as garbled `text/plain`. Allowlist: `text/*`,
+    `application/json`, `application/xml`, `application/x-yaml`,
+    `application/javascript`. The byte cap (already enforced by
+    `SafeFileReader`) is unchanged.
+  - **Tomcat slow-client tarpit** (audit #11). `server.tomcat.connection-
+    timeout: 10s`, `max-swallow-size: 1MB` in the serving profile —
+    drops connections that hold a virtual thread + Tomcat connection at
+    1 KB/s.
+  - **CodeQL hardening on the security baseline.** Sanitised request
+    method + URI before logging in `BearerAuthFilter` (CWE-117 / CodeQL
+    `java/log-injection`); removed env-var name from the bearer-token
+    bootstrap log line in `TokenResolver` (CodeQL `java/sensitive-log`);
+    documented the deliberate stateless-bearer rationale on
+    `SecurityConfig.csrf(disable)` (CodeQL `java/spring-disabled-csrf-protection`
+    — no exploit path on a no-cookie surface).
+  - **Tests:** new `RateLimitFilterTest` (10 cases: under/over limit,
+    separate buckets per client, header-hashing, X-Forwarded-For
+    precedence, permit-list, default-rate fallback). Existing 6 test
+    classes updated for the new `McpTools` ctor signature. Full suite:
+    3672 tests / 0 failures / 0 errors.
+
+  **Known follow-up:** TopologyService still walks the full snapshot
+  in-memory after the cache hit — long-term plan is to rewrite each
+  topology tool as a targeted Cypher query so the snapshot isn't needed.
+  The cache is the bridge; the rewrite reduces peak memory.
+
 ## [0.1.0] - 2026-03-28
 
 First general-availability cut. See the

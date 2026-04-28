@@ -88,7 +88,8 @@ public class BearerAuthFilter extends OncePerRequestFilter {
             // CRITICAL: never log the Authorization header value. Method and
             // URI are sanitized with sanitizeForLog (strips \r\n\t — defends
             // against CWE-117 log forging via crafted URIs; CodeQL
-            // java/log-injection).
+            // java/log-injection). A request line like
+            // `GET /\nINFO: granted access HTTP/1.1` can't inject fake log lines.
             log.warn("Auth rejected: {} {} (request_id={})",
                     sanitizeForLog(request.getMethod()),
                     sanitizeForLog(request.getRequestURI()),
@@ -150,9 +151,11 @@ public class BearerAuthFilter extends OncePerRequestFilter {
     /**
      * Strip CR/LF/TAB before sending request-derived data to a log appender.
      * Defends against log forging via crafted URIs (CWE-117 / CodeQL
-     * {@code java/log-injection}). Using explicit single-char replace chains
-     * is the pattern CodeQL's standard sanitizer-recognizer matches against.
-     * Output is also length-capped at 256 chars to prevent log-bomb URIs.
+     * {@code java/log-injection}). Explicit single-char replace chains are
+     * the pattern CodeQL's standard sanitizer-recognizer matches against
+     * — {@code replaceAll("[\p{Cntrl}]", ...)} was not picked up by the
+     * data-flow analysis. Output is also length-capped at 256 chars to
+     * prevent log-bomb URIs.
      */
     static String sanitizeForLog(String s) {
         if (s == null) return "null";

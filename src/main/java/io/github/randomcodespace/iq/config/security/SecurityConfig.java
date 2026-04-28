@@ -39,7 +39,8 @@ public class SecurityConfig {
     public SecurityFilterChain servingFilterChain(
             HttpSecurity http,
             BearerAuthFilter bearerAuthFilter,
-            SecurityHeadersFilter securityHeadersFilter) throws Exception {
+            SecurityHeadersFilter securityHeadersFilter,
+            RateLimitFilter rateLimitFilter) throws Exception {
         http
                 // CSRF disable is INTENTIONAL and safe for this surface:
                 //   - All protected endpoints are stateless REST/MCP (no Set-Cookie issued).
@@ -64,7 +65,16 @@ public class SecurityConfig {
                         .requestMatchers("/error").permitAll()
                         .requestMatchers("/api/**", "/mcp/**", "/actuator/**").authenticated()
                         .anyRequest().denyAll())
+                // Filter chain order (outermost → innermost):
+                //   1. SecurityHeadersFilter — adds defensive response headers always.
+                //   2. RateLimitFilter      — 429 before any auth or DB work; throttles
+                //                             unauthenticated brute-force too.
+                //   3. BearerAuthFilter     — token validation; 401 if missing/wrong.
+                // Each addFilterBefore(X, UsernamePasswordAuthenticationFilter.class) inserts
+                // X immediately before UPAFilter, pushing the previously-inserted filter farther
+                // from the target — so the registration order here IS the chain order.
                 .addFilterBefore(securityHeadersFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(bearerAuthFilter, UsernamePasswordAuthenticationFilter.class)
                 .formLogin(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)

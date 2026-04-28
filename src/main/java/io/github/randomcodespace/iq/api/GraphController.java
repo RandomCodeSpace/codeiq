@@ -298,6 +298,26 @@ public class GraphController {
         if (!Files.isRegularFile(resolvedReal)) {
             return ResponseEntity.notFound().build();
         }
+        // Reject non-text files early. Without this, .jks keystores, .png images,
+        // native .so libraries get served as text/plain with garbled UTF-8 — a
+        // slow client at 1 KB/s holds a virtual thread + Tomcat connection for
+        // 1000s. Audit #11 (revised): SafeFileReader already enforces the byte
+        // cap; the gap is the content-type guard.
+        try {
+            String probedType = Files.probeContentType(resolvedReal);
+            if (probedType != null && !probedType.startsWith("text/")
+                    && !probedType.equals("application/json")
+                    && !probedType.equals("application/xml")
+                    && !probedType.equals("application/x-yaml")
+                    && !probedType.equals("application/javascript")) {
+                return ResponseEntity.status(HttpStatus.UNSUPPORTED_MEDIA_TYPE)
+                        .contentType(MediaType.TEXT_PLAIN)
+                        .body("File is not a text/source type (probed: " + probedType + ")");
+            }
+        } catch (IOException probeFail) {
+            // probeContentType is best-effort; if it fails, fall through to read.
+            // SafeFileReader byte cap still bounds the response size.
+        }
         try {
             String content = SafeFileReader.read(resolvedReal, startLine, endLine, config.getMaxFileBytes());
             return ResponseEntity.ok()

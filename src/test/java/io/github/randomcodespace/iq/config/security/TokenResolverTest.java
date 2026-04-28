@@ -129,7 +129,7 @@ class TokenResolverTest {
                         new Neo4jConfig(null, null, null, null)),
                 new McpConfig(true, "http", "/mcp",
                         auth,
-                        new McpLimitsConfig(15_000, 500, 2_000_000L, 300),
+                        new McpLimitsConfig(15_000, 500, 2_000_000L, 300, 10),
                         new McpToolsConfig(List.of("*"), List.of())),
                 new ObservabilityConfig(true, false, "json", "info"),
                 new DetectorsConfig(List.of("default"), List.of(), List.of(), Map.of()));
