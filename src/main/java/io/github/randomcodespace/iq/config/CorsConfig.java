@@ -46,8 +46,11 @@ public class CorsConfig {
     static final String ALLOWED_HEADERS = "*";
 
     /** Empty default = deny-all (no mappings registered). */
-    @Value("${codeiq.cors.allowed-origin-patterns:}")
-    private String allowedOriginPatterns = "";
+    private final String allowedOriginPatterns;
+
+    public CorsConfig(@Value("${codeiq.cors.allowed-origin-patterns:}") String allowedOriginPatterns) {
+        this.allowedOriginPatterns = allowedOriginPatterns == null ? "" : allowedOriginPatterns;
+    }
 
     @PostConstruct
     void logCorsState() {
