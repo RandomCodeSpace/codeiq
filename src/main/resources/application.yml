@@ -103,6 +103,12 @@ server:
     include-message: never
     include-exception: false
     include-binding-errors: never
+  tomcat:
+    # Slow-client tarpitting — drop a connection that hasn't sent a request line
+    # within 10s, and reject request bodies larger than 1 MB. Defends against
+    # virtual-thread saturation by clients reading 1 KB/s. Audit #11.
+    connection-timeout: 10000
+    max-swallow-size: 1MB
 
 management:
   endpoint:

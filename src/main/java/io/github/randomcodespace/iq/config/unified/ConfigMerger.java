@@ -91,7 +91,8 @@ public final class ConfigMerger {
                         take("mcp.limits.per_tool_timeout_ms", lo.limits().perToolTimeoutMs(), hi.limits().perToolTimeoutMs(), l, p),
                         take("mcp.limits.max_results",         lo.limits().maxResults(),       hi.limits().maxResults(),       l, p),
                         take("mcp.limits.max_payload_bytes",   lo.limits().maxPayloadBytes(),  hi.limits().maxPayloadBytes(),  l, p),
-                        take("mcp.limits.rate_per_minute",     lo.limits().ratePerMinute(),    hi.limits().ratePerMinute(),    l, p)),
+                        take("mcp.limits.rate_per_minute",     lo.limits().ratePerMinute(),    hi.limits().ratePerMinute(),    l, p),
+                        take("mcp.limits.max_depth",           lo.limits().maxDepth(),         hi.limits().maxDepth(),         l, p)),
                 new McpToolsConfig(
                         takeList("mcp.tools.enabled",  lo.tools().enabled(),  hi.tools().enabled(),  l, p),
                         takeList("mcp.tools.disabled", lo.tools().disabled(), hi.tools().disabled(), l, p)));

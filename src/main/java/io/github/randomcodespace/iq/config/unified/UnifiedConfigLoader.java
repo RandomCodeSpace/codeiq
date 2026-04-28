@@ -166,7 +166,9 @@ public final class UnifiedConfigLoader {
                         requireLongOrNull(pick(lim, "mcp.limits", "max_payload_bytes", "maxPayloadBytes", path, warned),
                                 path, "mcp.limits.max_payload_bytes"),
                         requireIntOrNull(pick(lim, "mcp.limits", "rate_per_minute", "ratePerMinute", path, warned),
-                                path, "mcp.limits.rate_per_minute")),
+                                path, "mcp.limits.rate_per_minute"),
+                        requireIntOrNull(pick(lim, "mcp.limits", "max_depth", "maxDepth", path, warned),
+                                path, "mcp.limits.max_depth")),
                 tls == null ? McpToolsConfig.empty() : new McpToolsConfig(
                         asStringList(tls.get("enabled")),
                         asStringList(tls.get("disabled"))));

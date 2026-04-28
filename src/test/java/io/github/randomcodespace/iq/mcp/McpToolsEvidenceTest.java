@@ -53,7 +53,7 @@ class McpToolsEvidenceTest {
                 queryService, config, objectMapper,
                 Optional.empty(), graphDb,
                 statsService, topologyService, graphStore,
-                Optional.of(assembler), Optional.of(metadataProvider));
+                Optional.of(assembler), Optional.of(metadataProvider), null);
     }
 
     @Test
@@ -74,7 +74,7 @@ class McpToolsEvidenceTest {
                 queryService, new CodeIqConfig(), objectMapper,
                 Optional.empty(), graphDb,
                 statsService, topologyService, graphStore,
-                Optional.empty(), Optional.empty());
+                Optional.empty(), Optional.empty(), null);
 
         String result = noAssembler.getEvidencePack("Foo", null, null, null);
         assertThat(result).contains("error");
@@ -93,7 +93,7 @@ class McpToolsEvidenceTest {
                 queryService, new CodeIqConfig(), objectMapper,
                 Optional.empty(), graphDb,
                 statsService, topologyService, graphStore,
-                Optional.empty(), Optional.empty());
+                Optional.empty(), Optional.empty(), null);
 
         String result = noMeta.getArtifactMetadata();
         assertThat(result).contains("error");

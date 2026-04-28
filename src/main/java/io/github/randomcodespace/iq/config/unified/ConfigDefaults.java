@@ -41,7 +41,7 @@ public final class ConfigDefaults {
                         "http",
                         "/mcp",
                         new McpAuthConfig("none", "CODEIQ_MCP_TOKEN", null, null),
-                        new McpLimitsConfig(15_000, 500, 2_000_000L, 300),
+                        new McpLimitsConfig(15_000, 500, 2_000_000L, 300, 10),
                         new McpToolsConfig(List.of("*"), List.of())
                 ),
                 new ObservabilityConfig(true, false, "json", "info"),

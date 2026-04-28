@@ -77,7 +77,8 @@ public class TokenResolver {
             // CodeQL java/sensitive-log: log only the SOURCE category (env vs
             // config) — never the env-var name or token value, since both flow
             // from operator-controlled config which the data-flow analyzer
-            // marks as tainted.
+            // marks as tainted. Two branches with constant log messages = no
+            // tainted variables in the format args at all.
             if (envToken != null) {
                 log.info("MCP auth: bearer token loaded from environment");
             } else {
