@@ -74,8 +74,15 @@ public class TokenResolver {
                                 + "Set " + envName + " env var or codeiq.mcp.auth.token in config.");
             }
             this.expectedTokenBytes = token.getBytes(StandardCharsets.UTF_8);
-            log.info("MCP auth: bearer token loaded from {}",
-                    envToken != null ? "env:" + envName : "config:codeiq.mcp.auth.token");
+            // CodeQL java/sensitive-log: log only the SOURCE category (env vs
+            // config) — never the env-var name or token value, since both flow
+            // from operator-controlled config which the data-flow analyzer
+            // marks as tainted.
+            if (envToken != null) {
+                log.info("MCP auth: bearer token loaded from environment");
+            } else {
+                log.info("MCP auth: bearer token loaded from config file");
+            }
         } else if (MODE_NONE.equals(configuredMode)) {
             if (servingActive() && !allowUnauthenticated) {
                 throw new IllegalStateException(

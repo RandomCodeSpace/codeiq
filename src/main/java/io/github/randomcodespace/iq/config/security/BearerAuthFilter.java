@@ -85,9 +85,14 @@ public class BearerAuthFilter extends OncePerRequestFilter {
         String header = request.getHeader("Authorization");
         if (!isValidToken(header, tokenResolver.expectedTokenBytes())) {
             String requestId = currentRequestId();
-            // CRITICAL: never log the Authorization header value here.
+            // CRITICAL: never log the Authorization header value. Method and
+            // URI are sanitized with sanitizeForLog (strips \r\n\t — defends
+            // against CWE-117 log forging via crafted URIs; CodeQL
+            // java/log-injection).
             log.warn("Auth rejected: {} {} (request_id={})",
-                    request.getMethod(), request.getRequestURI(), requestId);
+                    sanitizeForLog(request.getMethod()),
+                    sanitizeForLog(request.getRequestURI()),
+                    requestId);
             sendUnauthorized(response, requestId);
             return;
         }
@@ -140,5 +145,18 @@ public class BearerAuthFilter extends OncePerRequestFilter {
     private static String currentRequestId() {
         String id = MDC.get("request_id");
         return id != null ? id : UUID.randomUUID().toString();
+    }
+
+    /**
+     * Strip CR/LF/TAB before sending request-derived data to a log appender.
+     * Defends against log forging via crafted URIs (CWE-117 / CodeQL
+     * {@code java/log-injection}). Using explicit single-char replace chains
+     * is the pattern CodeQL's standard sanitizer-recognizer matches against.
+     * Output is also length-capped at 256 chars to prevent log-bomb URIs.
+     */
+    static String sanitizeForLog(String s) {
+        if (s == null) return "null";
+        String capped = s.length() > 256 ? s.substring(0, 256) + "..." : s;
+        return capped.replace("\r", "_").replace("\n", "_").replace("\t", "_");
     }
 }

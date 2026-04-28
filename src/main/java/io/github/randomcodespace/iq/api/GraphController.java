@@ -322,12 +322,17 @@ public class GraphController {
      * detail back to the client — see CodeQL {@code java/error-message-exposure}
      * (CWE-209). The response body carries a generic message + request_id;
      * operators correlate via the WARN log line.
+     *
+     * <p>The user-provided {@code requestedPath} is deliberately NOT included in
+     * the log format string — CodeQL {@code java/log-injection} treats request
+     * params as tainted. The {@code request_id} is enough to correlate to the
+     * access log line, which already has the full URI sanitized.
      */
     private ResponseEntity<String> fileError(HttpStatus status, String code, String publicMessage,
                                              String requestedPath, IOException cause) {
         String requestId = MDC.get("request_id");
-        log.warn("readFile {} (code={}, request_id={}, path={})",
-                cause.getClass().getSimpleName(), code, requestId, requestedPath, cause);
+        log.warn("readFile failed: {} (code={}, request_id={})",
+                cause.getClass().getSimpleName(), code, requestId, cause);
         String body = publicMessage + (requestId != null ? " (request_id=" + requestId + ")" : "");
         return ResponseEntity.status(status)
                 .contentType(MediaType.TEXT_PLAIN)
