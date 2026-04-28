@@ -413,6 +413,65 @@ for that specific tag for the per-commit details.
     exists, format-conforms to `<64-hex>  <path>`, and excludes itself.
     Full suite: 3672 tests / 0 failures / 0 errors.
 
+- **Production-readiness PR 4 of 5 — observability.** Closes the missing-MDC,
+  hot-path-health-probe, MCP-error-leak, and structured-logging gaps.
+  - **`RequestIdFilter` (new).** Populates SLF4J `MDC.request_id` FIRST in
+    the security chain so every downstream filter, controller, MCP tool,
+    and exception handler sees the same correlation ID. Strict allow-list
+    on inbound `X-Request-Id` (8–64 hex/dash/underscore chars) prevents
+    log-forging; bad inputs are replaced with a generated UUID. Echoes
+    the ID back to the client in the `X-Request-Id` response header. MDC
+    is cleared in `finally` to prevent leak across pooled threads (both
+    Tomcat platform and virtual-thread carriers). Pre-PR-4 every
+    `MDC.get("request_id")` call returned null; the four downstream
+    consumers (BearerAuthFilter, RateLimitFilter, GraphController,
+    GlobalExceptionHandler) all generated synthetic UUIDs that never
+    correlated.
+  - **JSON-structured logging** (`logback-spring.xml`). Serving profile
+    switches the encoder from `%msg%n` plaintext to LogstashEncoder
+    (`logstash-logback-encoder` 9.0 — MIT). One JSON event per log line
+    with `ts`, `level`, `logger`, `thread`, `msg`, `stack`, all MDC
+    entries (`request_id`), and a static `application: codeiq` field for
+    multi-pod ingestion. Indexing/CLI profiles keep plaintext to avoid
+    JSON noise leaking into `codeiq index` output.
+  - **`GraphHealthIndicator` 30s TTL cache.** Pre-PR-4 every readiness
+    probe (k8s default ~1Hz) ran a `MATCH (n) RETURN count(n)` Cypher
+    query — wakes the page cache, competes with API traffic.
+    `AtomicReference<CachedHealth>` lock-free cache absorbs the flood;
+    one underlying probe per 30s regardless of caller concurrency.
+    Error response sanitized too: pre-PR-4 the `error` detail
+    surfaced `e.getMessage()` (CodeQL `java/error-message-exposure`,
+    permitAll endpoint = anonymous probers). Now only an `error_class`
+    indicator; full stack is logged at WARN.
+  - **Liveness/readiness groups** (`application.yml`). Pre-PR-4
+    `GraphHealthIndicator` contributed to BOTH probes — a graph-down
+    event would flap the pod (k8s killing it) instead of just routing
+    away. Pinned to readiness only:
+    `liveness: livenessState`, `readiness: readinessState,
+    graphHealthIndicator`.
+  - **Prometheus metrics** (`/actuator/prometheus`). Added
+    `micrometer-registry-prometheus` dep. Exposed under the bearer-
+    authenticated `/actuator/**` rule (NOT permitAll — full metrics
+    tree is reconnaissance data). Application tag `codeiq` for
+    multi-pod scraping. Step interval 10s.
+  - **Structured MCP error envelope.** Pre-PR-4 every MCP tool catch
+    block returned `toJson(Map.of("error", e.getMessage()))` — flat
+    string, no correlation. Refactored to a centralized
+    `errorEnvelope(code, e)` helper that returns
+    `{code, message, request_id, error}` (legacy `error` field
+    preserved for backwards-compat). Codes assigned per failure
+    category: `INTERNAL_ERROR`, `INVALID_INPUT`, `FILE_READ_FAILED`,
+    `SERIALIZATION_FAILED`. Full exception logged server-side with
+    request_id; only sanitized envelope reaches the client. `readFile`
+    no longer concatenates `e.getMessage()` into a string (CWE-209).
+  - **Tests:** new `RequestIdFilterTest` (7 cases — UUID generation,
+    header pass-through, control-char rejection, length bounds, MDC
+    clear-in-finally including throw path). `GraphHealthIndicatorTest`
+    extended with cache-hit assertion (3 calls → 1 underlying
+    `count()`) and updated for sanitized error fields.
+    `McpToolsTest#readFileShouldHandleMissingFile` updated for new
+    envelope contract. Full suite: 3680 tests / 0 failures / 0 errors.
+
 ## [0.1.0] - 2026-03-28
 
 First general-availability cut. See the

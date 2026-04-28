@@ -477,8 +477,16 @@ class McpToolsTest {
         String result = mcpTools.readFile("nonexistent.txt", null, null);
         Map<String, Object> parsed = parseJson(result);
 
-        assertNotNull(parsed.get("error"));
-        assertTrue(parsed.get("error").toString().contains("Failed to read file"));
+        // PR 4 envelope contract: structured `{code, message, request_id, error}`.
+        // The `code` field is the canonical machine-parseable failure category;
+        // `error` is preserved for legacy clients but mirrors the JDK exception's
+        // message (NoSuchFileException text) rather than the old hand-built
+        // "Failed to read file: ..." prefix.
+        assertEquals("FILE_READ_FAILED", parsed.get("code"));
+        assertNotNull(parsed.get("message"));
+        assertTrue(parsed.containsKey("request_id"),
+                "Envelope must include request_id for log correlation (null is OK in tests)");
+        assertNotNull(parsed.get("error"), "Legacy `error` field preserved for backwards-compat");
     }
 
     @Test

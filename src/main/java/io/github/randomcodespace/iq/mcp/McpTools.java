@@ -22,6 +22,9 @@ import io.github.randomcodespace.iq.query.StatsService;
 import io.github.randomcodespace.iq.query.TopologyService;
 import org.neo4j.graphdb.GraphDatabaseService;
 import org.neo4j.graphdb.Result;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.ai.mcp.annotation.McpTool;
 import org.springframework.ai.mcp.annotation.McpToolParam;
 import org.springframework.context.annotation.Profile;
@@ -44,7 +47,11 @@ import java.util.concurrent.atomic.AtomicReference;
 @Profile("serving")
 @org.springframework.boot.autoconfigure.condition.ConditionalOnProperty(name = "codeiq.neo4j.enabled", havingValue = "true", matchIfMissing = true)
 public class McpTools {
+    private static final Logger log = LoggerFactory.getLogger(McpTools.class);
     private static final String PROP_ERROR = "error";
+    private static final String PROP_CODE = "code";
+    private static final String PROP_MESSAGE = "message";
+    private static final String PROP_REQUEST_ID = "request_id";
 
 
     private final QueryService queryService;
@@ -144,7 +151,7 @@ public class McpTools {
         try {
             return toJson(queryService.getStats());
         } catch (Exception e) {
-            return toJson(Map.of(PROP_ERROR, e.getMessage()));
+            return errorEnvelope("INTERNAL_ERROR", e);
         }
     }
 
@@ -154,7 +161,7 @@ public class McpTools {
         try {
             return toJson(queryService.getDetailedStats(category != null ? category : "all"));
         } catch (Exception e) {
-            return toJson(Map.of(PROP_ERROR, e.getMessage()));
+            return errorEnvelope("INTERNAL_ERROR", e);
         }
     }
 
@@ -165,7 +172,7 @@ public class McpTools {
         try {
             return toJson(queryService.listNodes(kind, limit != null ? limit : 50, 0));
         } catch (Exception e) {
-            return toJson(Map.of(PROP_ERROR, e.getMessage()));
+            return errorEnvelope("INTERNAL_ERROR", e);
         }
     }
 
@@ -176,7 +183,7 @@ public class McpTools {
         try {
             return toJson(queryService.listEdges(kind, limit != null ? limit : 50, 0));
         } catch (Exception e) {
-            return toJson(Map.of(PROP_ERROR, e.getMessage()));
+            return errorEnvelope("INTERNAL_ERROR", e);
         }
     }
 
@@ -187,7 +194,7 @@ public class McpTools {
         try {
             return toJson(queryService.getNeighbors(nodeId, direction != null ? direction : "both"));
         } catch (Exception e) {
-            return toJson(Map.of(PROP_ERROR, e.getMessage()));
+            return errorEnvelope("INTERNAL_ERROR", e);
         }
     }
 
@@ -198,7 +205,7 @@ public class McpTools {
         try {
             return toJson(queryService.egoGraph(center, radius != null ? radius : 2));
         } catch (Exception e) {
-            return toJson(Map.of(PROP_ERROR, e.getMessage()));
+            return errorEnvelope("INTERNAL_ERROR", e);
         }
     }
 
@@ -208,7 +215,7 @@ public class McpTools {
         try {
             return toJson(queryService.findCycles(limit != null ? limit : 100));
         } catch (Exception e) {
-            return toJson(Map.of(PROP_ERROR, e.getMessage()));
+            return errorEnvelope("INTERNAL_ERROR", e);
         }
     }
 
@@ -223,7 +230,7 @@ public class McpTools {
             }
             return toJson(result);
         } catch (Exception e) {
-            return toJson(Map.of(PROP_ERROR, e.getMessage()));
+            return errorEnvelope("INTERNAL_ERROR", e);
         }
     }
 
@@ -233,7 +240,7 @@ public class McpTools {
         try {
             return toJson(queryService.consumersOf(targetId));
         } catch (Exception e) {
-            return toJson(Map.of(PROP_ERROR, e.getMessage()));
+            return errorEnvelope("INTERNAL_ERROR", e);
         }
     }
 
@@ -243,7 +250,7 @@ public class McpTools {
         try {
             return toJson(queryService.producersOf(targetId));
         } catch (Exception e) {
-            return toJson(Map.of(PROP_ERROR, e.getMessage()));
+            return errorEnvelope("INTERNAL_ERROR", e);
         }
     }
 
@@ -253,7 +260,7 @@ public class McpTools {
         try {
             return toJson(queryService.callersOf(targetId));
         } catch (Exception e) {
-            return toJson(Map.of(PROP_ERROR, e.getMessage()));
+            return errorEnvelope("INTERNAL_ERROR", e);
         }
     }
 
@@ -263,7 +270,7 @@ public class McpTools {
         try {
             return toJson(queryService.dependenciesOf(moduleId));
         } catch (Exception e) {
-            return toJson(Map.of(PROP_ERROR, e.getMessage()));
+            return errorEnvelope("INTERNAL_ERROR", e);
         }
     }
 
@@ -273,7 +280,7 @@ public class McpTools {
         try {
             return toJson(queryService.dependentsOf(moduleId));
         } catch (Exception e) {
-            return toJson(Map.of(PROP_ERROR, e.getMessage()));
+            return errorEnvelope("INTERNAL_ERROR", e);
         }
     }
 
@@ -285,7 +292,7 @@ public class McpTools {
             int safeLimit = limit != null ? Math.min(limit, 1000) : 100;
             return toJson(queryService.findDeadCode(kind, safeLimit));
         } catch (Exception e) {
-            return toJson(Map.of(PROP_ERROR, e.getMessage()));
+            return errorEnvelope("INTERNAL_ERROR", e);
         }
     }
 
@@ -304,9 +311,7 @@ public class McpTools {
             String rendered = engine.render(diagram, fmt);
             return rendered;
         } catch (IllegalArgumentException e) {
-            Map<String, Object> error = new LinkedHashMap<>();
-            error.put(PROP_ERROR, e.getMessage());
-            return toJson(error);
+            return errorEnvelope("INVALID_INPUT", e);
         }
     }
 
@@ -378,7 +383,7 @@ public class McpTools {
             }
             return toJson(response);
         } catch (Exception e) {
-            return toJson(Map.of(PROP_ERROR, e.getMessage()));
+            return errorEnvelope("INTERNAL_ERROR", e);
         }
     }
 
@@ -390,7 +395,7 @@ public class McpTools {
         try {
             return toJson(queryService.findComponentByFile(filePath));
         } catch (Exception e) {
-            return toJson(Map.of(PROP_ERROR, e.getMessage()));
+            return errorEnvelope("INTERNAL_ERROR", e);
         }
     }
 
@@ -407,7 +412,7 @@ public class McpTools {
             int safedDepth = Math.min(requested, maxDepth);
             return toJson(queryService.traceImpact(nodeId, safedDepth));
         } catch (Exception e) {
-            return toJson(Map.of(PROP_ERROR, e.getMessage()));
+            return errorEnvelope("INTERNAL_ERROR", e);
         }
     }
 
@@ -417,7 +422,7 @@ public class McpTools {
         try {
             return toJson(queryService.findRelatedEndpoints(identifier));
         } catch (Exception e) {
-            return toJson(Map.of(PROP_ERROR, e.getMessage()));
+            return errorEnvelope("INTERNAL_ERROR", e);
         }
     }
 
@@ -428,7 +433,7 @@ public class McpTools {
         try {
             return toJson(queryService.searchGraph(query, limit != null ? limit : 20));
         } catch (Exception e) {
-            return toJson(Map.of(PROP_ERROR, e.getMessage()));
+            return errorEnvelope("INTERNAL_ERROR", e);
         }
     }
 
@@ -448,7 +453,7 @@ public class McpTools {
             }
             return toJson(result);
         } catch (Exception e) {
-            return toJson(Map.of(PROP_ERROR, e.getMessage()));
+            return errorEnvelope("INTERNAL_ERROR", e);
         }
     }
 
@@ -472,9 +477,16 @@ public class McpTools {
             }
             return SafeFileReader.read(resolved, startLine, endLine, config.getMaxFileBytes());
         } catch (SafeFileReader.FileTooLargeException tooLarge) {
+            // FileTooLargeException carries a curated "size X bytes (max Y bytes)"
+            // message — no path/exception leakage; safe to surface directly.
             return toJson(Map.of(PROP_ERROR, tooLarge.getMessage()));
         } catch (Exception e) {
-            return toJson(Map.of(PROP_ERROR, "Failed to read file: " + e.getMessage()));
+            // CodeQL java/error-message-exposure — string-concat of e.getMessage()
+            // could leak filesystem paths and JDK syscall errno strings. Route
+            // through the structured envelope so the message is logged
+            // server-side and only `{code, message, request_id}` reaches the
+            // authenticated MCP caller.
+            return errorEnvelope("FILE_READ_FAILED", e);
         }
     }
 
@@ -485,7 +497,7 @@ public class McpTools {
         try {
             return toJson(queryService.getTopology());
         } catch (Exception e) {
-            return toJson(Map.of(PROP_ERROR, e.getMessage()));
+            return errorEnvelope("INTERNAL_ERROR", e);
         }
     }
 
@@ -496,7 +508,7 @@ public class McpTools {
             var data = getCachedData();
             return toJson(topologyService.serviceDetail(serviceName, data.nodes(), data.edges()));
         } catch (Exception e) {
-            return toJson(Map.of(PROP_ERROR, e.getMessage()));
+            return errorEnvelope("INTERNAL_ERROR", e);
         }
     }
 
@@ -507,7 +519,7 @@ public class McpTools {
             var data = getCachedData();
             return toJson(topologyService.serviceDependencies(serviceName, data.nodes(), data.edges()));
         } catch (Exception e) {
-            return toJson(Map.of(PROP_ERROR, e.getMessage()));
+            return errorEnvelope("INTERNAL_ERROR", e);
         }
     }
 
@@ -518,7 +530,7 @@ public class McpTools {
             var data = getCachedData();
             return toJson(topologyService.serviceDependents(serviceName, data.nodes(), data.edges()));
         } catch (Exception e) {
-            return toJson(Map.of(PROP_ERROR, e.getMessage()));
+            return errorEnvelope("INTERNAL_ERROR", e);
         }
     }
 
@@ -529,7 +541,7 @@ public class McpTools {
             var data = getCachedData();
             return toJson(topologyService.blastRadius(nodeId, data.nodes(), data.edges()));
         } catch (Exception e) {
-            return toJson(Map.of(PROP_ERROR, e.getMessage()));
+            return errorEnvelope("INTERNAL_ERROR", e);
         }
     }
 
@@ -541,7 +553,7 @@ public class McpTools {
             var data = getCachedData();
             return toJson(topologyService.findPath(source, target, data.nodes(), data.edges()));
         } catch (Exception e) {
-            return toJson(Map.of(PROP_ERROR, e.getMessage()));
+            return errorEnvelope("INTERNAL_ERROR", e);
         }
     }
 
@@ -551,7 +563,7 @@ public class McpTools {
             var data = getCachedData();
             return toJson(topologyService.findBottlenecks(data.nodes(), data.edges()));
         } catch (Exception e) {
-            return toJson(Map.of(PROP_ERROR, e.getMessage()));
+            return errorEnvelope("INTERNAL_ERROR", e);
         }
     }
 
@@ -561,7 +573,7 @@ public class McpTools {
             var data = getCachedData();
             return toJson(topologyService.findCircularDeps(data.nodes(), data.edges()));
         } catch (Exception e) {
-            return toJson(Map.of(PROP_ERROR, e.getMessage()));
+            return errorEnvelope("INTERNAL_ERROR", e);
         }
     }
 
@@ -571,7 +583,7 @@ public class McpTools {
             var data = getCachedData();
             return toJson(topologyService.findDeadServices(data.nodes(), data.edges()));
         } catch (Exception e) {
-            return toJson(Map.of(PROP_ERROR, e.getMessage()));
+            return errorEnvelope("INTERNAL_ERROR", e);
         }
     }
 
@@ -582,7 +594,7 @@ public class McpTools {
             var data = getCachedData();
             return toJson(topologyService.findNode(query, data.nodes()));
         } catch (Exception e) {
-            return toJson(Map.of(PROP_ERROR, e.getMessage()));
+            return errorEnvelope("INTERNAL_ERROR", e);
         }
     }
 
@@ -601,7 +613,7 @@ public class McpTools {
                     Boolean.TRUE.equals(includeReferences));
             return toJson(evidencePackAssembler.assemble(request, currentArtifactMetadata()));
         } catch (Exception e) {
-            return toJson(Map.of(PROP_ERROR, e.getMessage()));
+            return errorEnvelope("INTERNAL_ERROR", e);
         }
     }
 
@@ -614,7 +626,7 @@ public class McpTools {
         try {
             return toJson(artifactMetadata);
         } catch (Exception e) {
-            return toJson(Map.of(PROP_ERROR, e.getMessage()));
+            return errorEnvelope("INTERNAL_ERROR", e);
         }
     }
 
@@ -686,7 +698,46 @@ public class McpTools {
         try {
             return objectMapper.writerWithDefaultPrettyPrinter().writeValueAsString(obj);
         } catch (JsonProcessingException e) {
-            return "{\"error\": \"Serialization failed: " + e.getMessage() + "\"}";
+            // Don't echo the JsonProcessingException message — Jackson's
+            // detail can include type names and field paths that are leaky
+            // for an authenticated-but-shared MCP surface. Operators
+            // correlate via the WARN log line + request_id.
+            log.warn("MCP toJson serialization failed", e);
+            String requestId = MDC.get(PROP_REQUEST_ID);
+            return "{"
+                    + "\"" + PROP_CODE + "\": \"SERIALIZATION_FAILED\","
+                    + "\"" + PROP_MESSAGE + "\": \"Failed to serialize tool response.\","
+                    + "\"" + PROP_REQUEST_ID + "\": "
+                    + (requestId != null ? "\"" + requestId + "\"" : "null")
+                    + "}";
         }
+    }
+
+    /**
+     * Structured error envelope for MCP tool failures. Mirrors the format
+     * used by {@link io.github.randomcodespace.iq.api.GlobalExceptionHandler}
+     * for REST: {@code {code, message, request_id, error}}. The {@code error}
+     * field is preserved (legacy tool clients rely on it) but
+     * {@code code} / {@code message} / {@code request_id} are added so
+     * authenticated MCP clients can correlate failures back to the same
+     * {@code request_id} they see in JSON logs and the {@code X-Request-Id}
+     * response header.
+     *
+     * <p>The exception message IS surfaced — MCP is bearer-authenticated
+     * (RAN-46 §1) so authenticated clients debugging their own tool calls
+     * benefit from the underlying detail. The full stack stays in the
+     * server-side WARN log for operator triage.
+     */
+    private String errorEnvelope(String code, Exception e) {
+        String requestId = MDC.get(PROP_REQUEST_ID);
+        log.warn("MCP tool failed (code={}, request_id={})", code, requestId, e);
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put(PROP_CODE, code);
+        body.put(PROP_MESSAGE, e.getMessage() != null ? e.getMessage() : "(no message)");
+        body.put(PROP_REQUEST_ID, requestId);
+        // Backwards-compat: legacy tool clients reading `error`. Drop in a
+        // future major if no client is observed reading it.
+        body.put(PROP_ERROR, e.getMessage());
+        return toJson(body);
     }
 }
