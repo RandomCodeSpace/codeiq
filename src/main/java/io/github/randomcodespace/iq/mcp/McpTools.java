@@ -4,6 +4,8 @@ import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.github.randomcodespace.iq.api.SafeFileReader;
 import io.github.randomcodespace.iq.config.CodeIqConfig;
+import io.github.randomcodespace.iq.config.unified.CodeIqUnifiedConfig;
+import io.github.randomcodespace.iq.config.unified.McpLimitsConfig;
 import io.github.randomcodespace.iq.intelligence.evidence.EvidencePackAssembler;
 import io.github.randomcodespace.iq.intelligence.evidence.EvidencePackRequest;
 import io.github.randomcodespace.iq.intelligence.provenance.ArtifactMetadata;
@@ -31,6 +33,8 @@ import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.atomic.AtomicReference;
 
 /**
  * MCP tool definitions using Spring AI annotations.
@@ -54,13 +58,30 @@ public class McpTools {
     private final EvidencePackAssembler evidencePackAssembler;
     private final ArtifactMetadataProvider artifactMetadataProvider;
 
+    /** Hard row cap on list-returning tools (default 500). */
+    private final int maxResults;
+    /** Hard depth cap on variable-length traversals (default 10). */
+    private final int maxDepth;
+
+    /**
+     * 60s TTL on the full-graph snapshot used by the topology tools. Without
+     * this, every concurrent {@code blast_radius} / {@code find_path} /
+     * {@code service_dependencies} call paid the full {@code findAll()} cost
+     * and double-allocated multi-GB heaps on large graphs (audit C1 HIGH).
+     */
+    private static final long CACHE_TTL_NANOS = TimeUnit.SECONDS.toNanos(60);
+    private final AtomicReference<CachedSnapshot> graphSnapshot = new AtomicReference<>();
+
+    private record CachedSnapshot(CacheData data, long takenAtNanos) {}
+
     public McpTools(QueryService queryService,
                     CodeIqConfig config, ObjectMapper objectMapper,
                     Optional<FlowEngine> flowEngine, GraphDatabaseService graphDb,
                     StatsService statsService, TopologyService topologyService,
                     GraphStore graphStore,
                     Optional<EvidencePackAssembler> evidencePackAssembler,
-                    Optional<ArtifactMetadataProvider> artifactMetadataProvider) {
+                    Optional<ArtifactMetadataProvider> artifactMetadataProvider,
+                    CodeIqUnifiedConfig unifiedConfig) {
         this.queryService = queryService;
         this.config = config;
         this.objectMapper = objectMapper;
@@ -71,16 +92,36 @@ public class McpTools {
         this.graphStore = graphStore;
         this.evidencePackAssembler = evidencePackAssembler.orElse(null);
         this.artifactMetadataProvider = artifactMetadataProvider.orElse(null);
+        McpLimitsConfig lim = unifiedConfig != null && unifiedConfig.mcp() != null
+                ? unifiedConfig.mcp().limits() : McpLimitsConfig.empty();
+        this.maxResults = lim.maxResults() != null ? lim.maxResults() : 500;
+        this.maxDepth = lim.maxDepth() != null ? lim.maxDepth() : 10;
     }
 
     /**
-     * Load graph data on-demand from Neo4j. Data is GC'd after each request
-     * instead of being held permanently in heap.
+     * Load graph data on-demand from Neo4j, served from a 60-second TTL cache
+     * to avoid double-allocating the full graph under concurrent topology calls.
      * <p>
-     * TODO: Refactor TopologyService to use Cypher queries instead of in-memory traversal
-     * so that topology tools don't need to load the full graph per request.
+     * Audit C1 (HIGH) — without the cache, every {@code service_dependencies},
+     * {@code blast_radius}, {@code find_path}, {@code find_bottlenecks},
+     * {@code find_circular_deps}, {@code find_dead_services}, {@code find_node}
+     * call paid the full {@code findAll()} cost and two concurrent calls
+     * double-allocated. On a 5M-node graph that is multi-GB per call.
+     * <p>
+     * TODO (follow-up): refactor TopologyService to use Cypher queries instead
+     * of in-memory traversal so the snapshot isn't needed at all. The cache
+     * is the bridge fix.
      */
     private CacheData getCachedData() {
+        long now = System.nanoTime();
+        CachedSnapshot current = graphSnapshot.get();
+        if (current != null && (now - current.takenAtNanos()) < CACHE_TTL_NANOS) {
+            return current.data();
+        }
+        // Stale or missing — recompute. Two concurrent recomputes can both
+        // hit findAll() once before either replaces the snapshot; that's fine
+        // (rare, bounded to the TTL window) and far less than the previous
+        // every-call double-allocation behavior.
         List<CodeNode> nodes = graphStore.findAll();
         List<CodeEdge> edges = nodes.stream()
                 .flatMap(n -> n.getEdges().stream())
@@ -88,7 +129,14 @@ public class McpTools {
         if (nodes.isEmpty()) {
             throw new RuntimeException("No analysis data available. Run 'codeiq analyze' first.");
         }
-        return new CacheData(nodes, edges);
+        CacheData fresh = new CacheData(nodes, edges);
+        graphSnapshot.set(new CachedSnapshot(fresh, System.nanoTime()));
+        return fresh;
+    }
+
+    /** Test-only — invalidate the snapshot cache so a new {@code findAll()} runs next call. */
+    void invalidateGraphSnapshotCacheForTesting() {
+        graphSnapshot.set(null);
     }
 
     @McpTool(name = "get_stats", description = "Get graph overview: total nodes, edges, files, languages, and frameworks detected. Use when asked about project size, composition, or what was analyzed. Returns JSON with counts and breakdowns.")
@@ -293,10 +341,24 @@ public class McpTools {
         }
         try {
             List<Map<String, Object>> rows = new ArrayList<>();
+            boolean truncated = false;
+            // Wall-clock cap: enforced by GraphDatabaseSettings.transaction_timeout=30s
+            // configured at the DBMS level in Neo4jConfig.databaseManagementService(...).
+            // That floor catches every transaction in the JVM, including this one,
+            // without needing the per-call timeout overload (which keeps Mockito
+            // stubs across the test suite stable on the no-arg beginTx signature).
+            // The DB-level read-only mode (serving profile) plus the keyword
+            // blocklist above provide write protection in depth.
             try (var tx = graphDb.beginTx();
                  Result result = tx.execute(query)) {
                 List<String> columns = result.columns();
                 while (result.hasNext()) {
+                    if (rows.size() >= maxResults) {
+                        // Hard row cap — stop iterating and flag truncation.
+                        // Audit #2 (HIGH): unbounded ArrayList growth → JVM OOM.
+                        truncated = true;
+                        break;
+                    }
                     Map<String, Object> row = result.next();
                     Map<String, Object> serializable = new LinkedHashMap<>();
                     for (String col : columns) {
@@ -310,6 +372,10 @@ public class McpTools {
             Map<String, Object> response = new LinkedHashMap<>();
             response.put("rows", rows);
             response.put("count", rows.size());
+            if (truncated) {
+                response.put("truncated", true);
+                response.put("max_results", maxResults);
+            }
             return toJson(response);
         } catch (Exception e) {
             return toJson(Map.of(PROP_ERROR, e.getMessage()));
@@ -333,7 +399,13 @@ public class McpTools {
             @McpToolParam(description = "Node ID") String nodeId,
             @McpToolParam(description = "Maximum traversal depth (default: 3, max: 10)", required = false) Integer depth) {
         try {
-            return toJson(queryService.traceImpact(nodeId, depth != null ? depth : 3));
+            // Cap depth at McpLimitsConfig.maxDepth. Without this cap, a malicious
+            // or runaway client passing depth=1000 on a hub node triggers a
+            // Cartesian explosion in [:RELATES_TO*1..1000] before the tx timeout
+            // would catch it. Audit #10 (corrected — REST is capped, MCP was not).
+            int requested = depth != null ? depth : 3;
+            int safedDepth = Math.min(requested, maxDepth);
+            return toJson(queryService.traceImpact(nodeId, safedDepth));
         } catch (Exception e) {
             return toJson(Map.of(PROP_ERROR, e.getMessage()));
         }

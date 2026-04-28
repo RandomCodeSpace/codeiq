@@ -225,6 +225,146 @@ for that specific tag for the per-commit details.
   path-B board ruling, they are not to be re-introduced without an explicit
   board reversal — see `shared/runbooks/engineering-standards.md` §5.1.
 
+### Security
+
+- **Production-readiness PR 1 of 5 — security baseline.** First half of the
+  audit findings catalogued under `docs/audits/2026-04-28-serve-path-prod-readiness.md`
+  (+ `-counter.md`). Closes audit findings #1, #7, #13 (HIGH/MEDIUM) and C2 (MEDIUM).
+  - **Bearer-token auth on `/api/**` and `/mcp/**`** (audit #1). Added
+    `spring-boot-starter-security`. New `config/security/SecurityConfig`,
+    `BearerAuthFilter`, `TokenResolver`. Token source priority:
+    `CODEIQ_MCP_TOKEN` env > `codeiq.mcp.auth.token` config > startup failure.
+    Constant-time compare via SHA-256 pre-hash + `MessageDigest.isEqual` —
+    32-byte digests on both sides defeat the length oracle. RFC 7235 §2.1
+    case-insensitive scheme matching (`Bearer`, `bearer`, etc.). Authorization
+    header value never reaches a logger from this code. Permit list:
+    `/`, `/index.html`, `/favicon.ico`, `/assets/**`, `/static/**`, `/error`,
+    `/actuator/health/{liveness,readiness}` — everything else under
+    `/api/**`, `/mcp/**`, `/actuator/**` requires the bearer token.
+  - **Fail-fast on misconfiguration** (audit #14 partial). `mode=bearer` with
+    no token resolved → throws at startup. `mode=none` with active `serving`
+    profile and `allow_unauthenticated` not explicitly set → throws at
+    startup. `mode=mtls` is reserved and explicitly throws "not yet
+    implemented" rather than silently passing through.
+  - **Defensive response headers** (audit #13). New
+    `config/security/SecurityHeadersFilter` sets `X-Content-Type-Options:
+    nosniff`, `X-Frame-Options: DENY`, `Content-Security-Policy: default-src
+    'self'; ... frame-ancestors 'none'`, `Referrer-Policy: no-referrer`,
+    `Permissions-Policy` disabling geolocation/camera/microphone.
+    `Strict-Transport-Security: max-age=31536000; includeSubDomains` is set
+    only when `X-Forwarded-Proto: https` is present (AKS terminates TLS at
+    ingress) — setting HSTS over plain HTTP would lock out misconfigured envs.
+  - **Uniform error envelope** (audit #7). New
+    `api/GlobalExceptionHandler` (`@RestControllerAdvice`,
+    `@Profile("serving")`) maps every uncaught exception to
+    `{"code","message","request_id"}` with the right HTTP status.
+    `IllegalArgumentException` → 400 with surfaced message.
+    `ResponseStatusException` → status code passes through. Anything else →
+    500 with generic message; the actual exception is logged at WARN with
+    the `request_id` so on-call can correlate without leaking stack frames
+    to the client. `application.yml` now sets
+    `server.error.include-stacktrace: never` + `include-message: never` +
+    `include-binding-errors: never` as belt-and-suspenders.
+  - **Default CORS deny-all in serving** (audit #13). `config/CorsConfig`
+    default changed from loopback patterns to empty. Empty means register
+    no mappings → Spring MVC rejects all preflighted cross-origin requests.
+    Operators who genuinely need cross-origin (e.g. dev with a separate
+    Vite server on a different port) explicitly set
+    `codeiq.cors.allowed-origin-patterns`. Logs the resolved state at
+    startup. The React UI at `/` is unaffected — it's served same-origin.
+  - **Swagger UI / api-docs disabled in serving** (counter-audit C2).
+    `springdoc.api-docs.enabled: false` + `springdoc.swagger-ui.enabled: false`
+    in the serving profile of `application.yml`. The OpenAPI schema is
+    reconnaissance data; reachable only when running locally or with the
+    indexing profile.
+  - **`management.endpoints.web.exposure.include` narrowed** to `health,info`
+    in serving (was `health,info,metrics`); `health.show-details: never`.
+    Defense-in-depth alongside the `SecurityFilterChain` `authenticated()`
+    rule on `/actuator/**`.
+  - **Spring Security autoconfig excluded outside serving.** Without the
+    `serving` profile (CLI, tests, IDE runs), Spring Security's default
+    HTTP Basic chain would lock all endpoints — adding the starter would
+    break ~3000 existing tests that pass through MockMvc with no token.
+    `application.yml` excludes `SecurityAutoConfiguration`,
+    `SecurityFilterAutoConfiguration`, `UserDetailsServiceAutoConfiguration`
+    at the default level; the `serving` profile re-enables them by listing
+    only `UserDetailsServiceAutoConfiguration` (so the auto user/password
+    is suppressed but the filter chain is built from `SecurityConfig`).
+  - **Tests:** 31 new unit tests across `BearerAuthFilterTest` (14 cases:
+    missing/wrong/empty/correct/lowercase scheme, length-oracle defense,
+    log-leak audit, `shouldNotFilter` paths, `SecurityContextHolder` cleanup),
+    `TokenResolverTest` (9 cases for mode/profile/env-priority/fail-fast),
+    `SecurityHeadersFilterTest` (5 cases for header presence/HSTS gating),
+    `GlobalExceptionHandlerTest` (3 cases verifying the envelope shape and
+    no stack-trace leak). Full suite: 3453 tests / 0 failures / 0 errors.
+
+  **Known follow-up (not in this PR):** the React UI cannot read env vars,
+  so the SPA shell is unauthenticated to access static assets. API/MCP calls
+  from the UI must inject `Authorization: Bearer <token>` from
+  operator-supplied localStorage. A first-class UI auth bootstrap (login
+  flow + token-issuance endpoint, OR server-side template injection) is its
+  own design — tracked as a follow-up issue.
+
+- **Production-readiness PR 2 of 5 — resource limits & abuse protection.**
+  Closes audit findings #2, #3, C1 (HIGH) and #10, #11 (MEDIUM).
+  - **Cypher transaction timeout** (audit #2). Neo4j embedded
+    `GraphDatabaseSettings.transaction_timeout = 30s` configured in
+    `Neo4jConfig` — every transaction in the JVM, including `run_cypher`
+    and graph traversals, gets a hard wall-clock cap. Catches runaway
+    variable-length matches before they starve the page cache.
+  - **Result-set cap on `run_cypher`** (audit #2). Hard row cap at
+    `mcp.limits.max_results` (default 500); excess rows dropped, response
+    carries `truncated: true` + `max_results: N`. Defends the JVM heap
+    against `MATCH (a),(b),(c) RETURN a,b,c LIMIT 999999999` blowups.
+  - **MCP `traceImpact` depth cap** (audit #10 corrected, C3). New
+    `mcp.limits.max_depth` field (default 10) wired into
+    `McpTools.traceImpact` via `Math.min`. Defends against
+    `RELATES_TO*1..1000` Cartesian explosions on hub nodes.
+  - **TTL snapshot cache on topology tools** (audit C1). `McpTools.
+    getCachedData()` now backed by a 60-second TTL snapshot. Without it,
+    every concurrent `service_dependencies` / `blast_radius` /
+    `find_path` / `find_bottlenecks` / `find_circular_deps` /
+    `find_dead_services` / `find_node` call paid the full
+    `graphStore.findAll()` cost and double-allocated multi-GB heaps.
+    A bridge fix; the proper refactor (TopologyService → per-tool Cypher)
+    is a tracked follow-up.
+  - **Per-client rate limiter** (audit #3). New `RateLimitFilter` using
+    Bucket4j 8.18.0 (Apache-2.0). Token bucket sized at
+    `mcp.limits.rate_per_minute` (default 300). Keyed by SHA-256 hash of
+    the `Authorization` header (so the token never lives in our key map),
+    falls back to `X-Forwarded-For` (first hop) or `RemoteAddr`. 429
+    response with `Retry-After`, `X-RateLimit-Limit`, `X-RateLimit-Remaining`
+    headers. Registered before `BearerAuthFilter` so unauthenticated
+    brute-force is also throttled.
+  - **`/api/file` content-type sniff** (audit #11 corrected). Added
+    `Files.probeContentType` guard — non-text MIMEs (`.jks`, `.so`,
+    `.png`, native libs) return HTTP 415 with the probed type, instead
+    of being served as garbled `text/plain`. Allowlist: `text/*`,
+    `application/json`, `application/xml`, `application/x-yaml`,
+    `application/javascript`. The byte cap (already enforced by
+    `SafeFileReader`) is unchanged.
+  - **Tomcat slow-client tarpit** (audit #11). `server.tomcat.connection-
+    timeout: 10s`, `max-swallow-size: 1MB` in the serving profile —
+    drops connections that hold a virtual thread + Tomcat connection at
+    1 KB/s.
+  - **CodeQL hardening on the security baseline.** Sanitised request
+    method + URI before logging in `BearerAuthFilter` (CWE-117 / CodeQL
+    `java/log-injection`); removed env-var name from the bearer-token
+    bootstrap log line in `TokenResolver` (CodeQL `java/sensitive-log`);
+    documented the deliberate stateless-bearer rationale on
+    `SecurityConfig.csrf(disable)` (CodeQL `java/spring-disabled-csrf-protection`
+    — no exploit path on a no-cookie surface).
+  - **Tests:** new `RateLimitFilterTest` (10 cases: under/over limit,
+    separate buckets per client, header-hashing, X-Forwarded-For
+    precedence, permit-list, default-rate fallback). Existing 6 test
+    classes updated for the new `McpTools` ctor signature. Full suite:
+    3672 tests / 0 failures / 0 errors.
+
+  **Known follow-up:** TopologyService still walks the full snapshot
+  in-memory after the cache hit — long-term plan is to rewrite each
+  topology tool as a targeted Cypher query so the snapshot isn't needed.
+  The cache is the bridge; the rewrite reduces peak memory.
+
 ## [0.1.0] - 2026-03-28
 
 First general-availability cut. See the

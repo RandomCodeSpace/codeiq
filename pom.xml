@@ -155,6 +155,20 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-actuator</artifactId>
         </dependency>
+        <dependency>
+            <groupId>org.springframework.boot</groupId>
+            <artifactId>spring-boot-starter-security</artifactId>
+        </dependency>
+
+        <!-- Bucket4j: in-process token-bucket rate limiter (Apache-2.0).
+             Used by RateLimitFilter to throttle /api and /mcp on a per-token /
+             per-IP key. Single-replica serving = single bucket per key, so no
+             cluster coordination needed. ~80 KB; pure Java, no native deps. -->
+        <dependency>
+            <groupId>com.bucket4j</groupId>
+            <artifactId>bucket4j_jdk17-core</artifactId>
+            <version>8.18.0</version>
+        </dependency>
 
         <!-- Neo4j Embedded (Community Edition) -->
         <dependency>

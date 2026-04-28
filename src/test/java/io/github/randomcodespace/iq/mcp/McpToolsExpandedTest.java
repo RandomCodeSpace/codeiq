@@ -68,7 +68,7 @@ class McpToolsExpandedTest {
                 queryService, config, objectMapper,
                 Optional.empty(), graphDb, statsService,
                 new TopologyService(), graphStore,
-                Optional.empty(), Optional.empty()
+                Optional.empty(), Optional.empty(), null
         );
     }
 

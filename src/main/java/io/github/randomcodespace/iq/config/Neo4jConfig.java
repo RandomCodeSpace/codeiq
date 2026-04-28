@@ -17,6 +17,7 @@ import org.springframework.core.env.Environment;
 import org.springframework.data.neo4j.repository.config.EnableNeo4jRepositories;
 
 import java.nio.file.Path;
+import java.time.Duration;
 import java.util.Arrays;
 
 /**
@@ -40,7 +41,12 @@ public class Neo4jConfig {
     DatabaseManagementService databaseManagementService(CodeIqConfig config, Environment env) {
         var builder = new DatabaseManagementServiceBuilder(Path.of(config.getGraph().getPath()))
                 .setConfig(BoltConnector.enabled, true)
-                .setConfig(BoltConnector.listen_address, new SocketAddress("localhost", boltPort));
+                .setConfig(BoltConnector.listen_address, new SocketAddress("localhost", boltPort))
+                // Hard wall-clock cap on every transaction. Prevents a runaway Cypher
+                // (e.g. unbounded variable-length match on a hub node) from hogging
+                // the page cache and starving readiness/liveness probes. Audit
+                // finding #2 (HIGH) — runs alongside per-tool timeouts in McpTools.
+                .setConfig(GraphDatabaseSettings.transaction_timeout, Duration.ofSeconds(30));
 
         // Read-only mode for serving profile — no lock files, no transaction logs.
         // Required for read-only filesystems (e.g., AKS with read-only volumes).
