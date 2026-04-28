@@ -40,7 +40,8 @@ public class SecurityConfig {
             HttpSecurity http,
             BearerAuthFilter bearerAuthFilter,
             SecurityHeadersFilter securityHeadersFilter,
-            RateLimitFilter rateLimitFilter) throws Exception {
+            RateLimitFilter rateLimitFilter,
+            RequestIdFilter requestIdFilter) throws Exception {
         http
                 // CSRF is suppressed for ALL paths via ignoringRequestMatchers("/**")
                 // (functionally equivalent to .csrf().disable() but avoids the literal
@@ -69,16 +70,22 @@ public class SecurityConfig {
                         .requestMatchers("/api/**", "/mcp/**", "/actuator/**").authenticated()
                         .anyRequest().denyAll())
                 // Filter chain order (outermost → innermost):
-                //   1. SecurityHeadersFilter — adds defensive response headers always.
-                //   2. RateLimitFilter      — 429 before any auth or DB work; throttles
+                //   1. RequestIdFilter      — populates MDC.request_id FIRST so every
+                //                             downstream log line (rate-limit reject,
+                //                             auth-reject, error envelope) carries the
+                //                             same ID and the client gets it back in
+                //                             X-Request-Id.
+                //   2. SecurityHeadersFilter — adds defensive response headers always.
+                //   3. RateLimitFilter      — 429 before any auth or DB work; throttles
                 //                             unauthenticated brute-force too.
-                //   3. BearerAuthFilter     — token validation; 401 if missing/wrong.
+                //   4. BearerAuthFilter     — token validation; 401 if missing/wrong.
                 // Each addFilterBefore(X, UsernamePasswordAuthenticationFilter.class) inserts
                 // X immediately before UPAFilter, pushing the previously-inserted filter farther
                 // from the target — so the registration order here IS the chain order.
                 .addFilterBefore(securityHeadersFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)
                 .addFilterBefore(bearerAuthFilter, UsernamePasswordAuthenticationFilter.class)
+                .addFilterBefore(requestIdFilter, UsernamePasswordAuthenticationFilter.class)
                 .formLogin(AbstractHttpConfigurer::disable)
                 .httpBasic(AbstractHttpConfigurer::disable)
                 .anonymous(AbstractHttpConfigurer::disable);

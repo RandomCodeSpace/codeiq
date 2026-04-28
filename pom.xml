@@ -170,6 +170,24 @@
             <version>8.18.0</version>
         </dependency>
 
+        <!-- Logstash JSON encoder (MIT). Drops a structured JSON line per log
+             event with timestamp, level, logger, thread, message, MDC entries
+             (request_id, etc.), and optional stack trace. Used in the serving
+             profile only — the indexing/CLI profiles keep the human-readable
+             %msg%n encoder. ~250 KB. -->
+        <dependency>
+            <groupId>net.logstash.logback</groupId>
+            <artifactId>logstash-logback-encoder</artifactId>
+            <version>9.0</version>
+        </dependency>
+
+        <!-- Micrometer Prometheus registry. Exposed at /actuator/prometheus
+             behind bearer auth. Spring Boot manages the version via its BOM. -->
+        <dependency>
+            <groupId>io.micrometer</groupId>
+            <artifactId>micrometer-registry-prometheus</artifactId>
+        </dependency>
+
         <!-- Neo4j Embedded (Community Edition) -->
         <dependency>
             <groupId>org.neo4j</groupId>

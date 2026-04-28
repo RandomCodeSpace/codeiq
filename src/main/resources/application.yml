@@ -117,17 +117,39 @@ management:
         enabled: true
       # Health detail (e.g., Neo4j store path, disk usage) is operator-only.
       show-details: never
+      # Liveness = "JVM is up; restart on failure". Readiness = "graph is
+      # loaded; route traffic only when up". By default Spring routes a
+      # custom HealthIndicator into BOTH probes, which would cause a
+      # graph-down event to flap the pod (k8s killing it instead of just
+      # marking it not-ready). Pin GraphHealthIndicator to readiness only.
+      group:
+        liveness:
+          include: livenessState
+        readiness:
+          include: readinessState,graphHealthIndicator
   endpoints:
     web:
       exposure:
-        # Narrow the unauthenticated surface — drop metrics from the default include
-        # (it's still gated by the SecurityFilterChain, but defense-in-depth).
-        include: health,info
+        # Narrow the unauthenticated surface — health,info are unauthenticated
+        # (probe-friendly); prometheus is authenticated via the bearer chain
+        # (`/actuator/prometheus` matches the `/actuator/**` authenticated
+        # rule in SecurityConfig). Don't add `metrics` to the include — the
+        # full /actuator/metrics tree is reconnaissance data.
+        include: health,info,prometheus
   health:
     livenessstate:
       enabled: true
     readinessstate:
       enabled: true
+  metrics:
+    tags:
+      application: codeiq
+  prometheus:
+    metrics:
+      export:
+        # Step interval — Prometheus scrape cadence is set scraper-side; this
+        # only affects how often counters are aggregated for export.
+        step: 10s
 
 springdoc:
   # Disable Swagger UI / api-docs in serving — the OpenAPI schema is reconnaissance
