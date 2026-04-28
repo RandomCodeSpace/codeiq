@@ -1,5 +1,8 @@
 package io.github.randomcodespace.iq.intelligence.resolver.java;
 
+import com.github.javaparser.JavaParser;
+import com.github.javaparser.ParseResult;
+import com.github.javaparser.ParserConfiguration;
 import com.github.javaparser.ast.CompilationUnit;
 import com.github.javaparser.symbolsolver.JavaSymbolSolver;
 import com.github.javaparser.symbolsolver.resolution.typesolvers.CombinedTypeSolver;
@@ -37,8 +40,15 @@ import java.util.Set;
 public class JavaSymbolResolver implements SymbolResolver {
 
     private final JavaSourceRootDiscovery discovery;
-    private CombinedTypeSolver combined;
-    private JavaSymbolSolver solver;
+    // volatile: bootstrap() publishes the solver; resolve() and the public
+    // accessors read it from arbitrary virtual-thread carriers. Without
+    // volatile a reader could see a half-initialized JavaSymbolSolver — a
+    // narrow race that the JLS Thread Start Rule covers for the
+    // executor.submit() path but does NOT cover for callers that read the
+    // public accessors after bootstrap on a different thread. The fence is
+    // cheap; the alternative is a quiet correctness hole.
+    private volatile CombinedTypeSolver combined;
+    private volatile JavaSymbolSolver solver;
 
     public JavaSymbolResolver(JavaSourceRootDiscovery discovery) {
         this.discovery = discovery;
@@ -71,13 +81,42 @@ public class JavaSymbolResolver implements SymbolResolver {
         if (file == null || !"java".equalsIgnoreCase(file.language())) {
             return EmptyResolved.INSTANCE;
         }
-        if (!(parsedAst instanceof CompilationUnit cu)) {
-            return EmptyResolved.INSTANCE;
-        }
         if (this.solver == null) {
             // bootstrap() not called or it failed silently — falling back to
             // EmptyResolved is the safe path. The orchestrator already logs
             // bootstrap failures from ResolverRegistry.
+            return EmptyResolved.INSTANCE;
+        }
+
+        CompilationUnit cu;
+        if (parsedAst instanceof CompilationUnit existing) {
+            // Caller already parsed (Analyzer's structured-language path, or
+            // a detector that pre-parsed). Reuse — no double-parse.
+            cu = existing;
+        } else if (parsedAst instanceof String source) {
+            // Lazy parse: Analyzer passes the raw file content for Java
+            // because the orchestrator-level structured parser doesn't cover
+            // Java. A fresh JavaParser per call is intentional — JavaParser
+            // instances aren't thread-safe and resolve() is invoked from
+            // virtual threads concurrently. Allocation cost is small relative
+            // to the parse itself, and the per-call instance carries the
+            // symbol solver so resolve()s on the resulting AST work.
+            ParserConfiguration cfg = new ParserConfiguration().setSymbolResolver(solver);
+            ParseResult<CompilationUnit> parseResult = new JavaParser(cfg).parse(source);
+            // Strict success check: JavaParser is permissive and may hand
+            // back a partial CompilationUnit even when the source has parse
+            // problems. Resolving against a partial CU silently emits
+            // simple-name-only edges and looks like coverage even though
+            // symbol resolution is broken. Treat any non-success as
+            // "EmptyResolved, fall back to lexical" so the downstream graph
+            // never carries phantom RESOLVED-tier edges from broken parses.
+            if (!parseResult.isSuccessful() || parseResult.getResult().isEmpty()) {
+                return EmptyResolved.INSTANCE;
+            }
+            cu = parseResult.getResult().get();
+        } else {
+            // Neither a CompilationUnit nor a String — caller shape we don't
+            // understand. Defensive fallback rather than a ClassCastException.
             return EmptyResolved.INSTANCE;
         }
         return new JavaResolved(cu, solver);

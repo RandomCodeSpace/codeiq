@@ -82,8 +82,51 @@ for that specific tag for the per-commit details.
   (detectors that explicitly stamp survive untouched). 11 atomic commits
   ship with ~290 new tests covering happy paths, legacy-data fallbacks,
   malformed inputs, determinism, concurrency-safe construction, and singleton
-  invariants. Detector migrations to consume `ctx.resolved()` and the
-  resolver-bootstrap-into-Analyzer hook follow in sub-project 1 Phase 5.
+  invariants.
+
+- **Resolver pipeline wiring + Java pilot detectors** (sub-project 1, plan
+  Phases 4 + 6 — follow-up to the SPI scaffolding above): the resolver
+  is now actually invoked end-to-end and four Java detectors consume
+  `ctx.resolved()` to emit RESOLVED-tier edges with stable
+  fully-qualified-name targets.
+  - `Analyzer` now bootstraps `ResolverRegistry` exactly once per pipeline
+    entry point (`run` / `runBatchedIndex` / `runSmartIndex`) and threads a
+    `Resolved` onto every `DetectorContext` at all three detect call sites
+    (`analyzeFile`, the batched-index variant, the regex-only fallback).
+    Per-file `ResolutionException` + `RuntimeException` are swallowed and
+    fall back to `EmptyResolved.INSTANCE`, so one resolver blow-up cannot
+    take down the whole pass.
+  - `JavaSymbolResolver.resolve()` now lazy-parses raw source `String`
+    content with a fresh symbol-solver-configured `JavaParser` per call —
+    a small per-call allocation that lets `Analyzer` pass the file content
+    directly (the orchestrator-level structured parser doesn't cover Java).
+    Permissive parsing returns `JavaResolved` with a possibly-error-laden
+    `CompilationUnit` rather than refusing — production analysis must keep
+    going across files with syntax errors.
+  - Four detectors migrated to consume `ctx.resolved()` (purely additive —
+    every existing detector test passes unchanged):
+    - **JpaEntityDetector** — `MAPS_TO` edges between entities now carry
+      `target_fqn` and `Confidence.RESOLVED` when the symbol solver can
+      pin the relationship target's FQN (handles `@OneToMany List<Owner>`,
+      `@ManyToOne Owner`, both direct-field and generic-arg cases).
+    - **RepositoryDetector** — Spring Data repo `QUERIES` edges plus the
+      repo node carry the resolved entity FQN (`entity_fqn` /
+      `target_fqn`) when `JpaRepository<User, Long>` resolves.
+    - **SpringRestDetector** — endpoints emit a `MAPS_TO` edge to the
+      `@RequestBody` DTO class when the parameter type resolves, with
+      `parameter_kind=request_body` + `parameter_name` properties for
+      downstream consumers (SPA, MCP).
+    - **ClassHierarchyDetector** — `EXTENDS` / `IMPLEMENTS` edges across
+      classes, interfaces, and enums now stamp `Confidence.RESOLVED` +
+      `target_fqn` when the parent type resolves, collapsing four
+      duplicated in-line edge-emission blocks into a single
+      `addHierarchyEdge` helper as a side-benefit.
+  - Backward compatibility is total: when no resolver is registered or
+    `JavaSymbolResolver.bootstrap` fails, every detector returns the
+    same simple-name-targeted edge shape it shipped before this slice.
+  - 18 new wiring + resolved-mode tests on top of the SPI's ~290 — every
+    migration ships with the plan-required three-mode coverage (resolved,
+    fallback, mixed).
 - **AKS read-only deploy hardening** (sub-project 2): runbook at
   [`shared/runbooks/aks-read-only-deploy.md`](shared/runbooks/aks-read-only-deploy.md),
   JVM-flag-preset launcher at [`scripts/aks-launch.sh`](scripts/aks-launch.sh),
@@ -96,6 +139,62 @@ for that specific tag for the per-commit details.
   the deployment layer plus Spring-Boot-loader / `java.io.tmpdir` /
   `-XX:ErrorFile` / `-XX:HeapDumpPath` overrides. Spec at
   [`docs/specs/2026-04-28-aks-read-only-deploy-design.md`](docs/specs/2026-04-28-aks-read-only-deploy-design.md).
+
+- **Resolver aggressive-testing layers** (sub-project 1, plan Phase 7 —
+  Layers 1, 3, 4, 5, 6, 7, 8, 9): the spec §12 testing matrix lands as
+  six new test classes plus a non-default Maven profile.
+  - **Layer 1** — `JavaSymbolResolverLayer1ExtendedTest` (16 tests):
+    deeply-nested generics, static / non-static inner classes, records,
+    sealed hierarchies, enum-with-abstract-methods, default-method
+    interfaces, abstract classes, annotation types, same simple name in
+    different packages by import, JDK `Optional` / `Stream` / `List` via
+    `ReflectionTypeSolver`, multi-source-root cross-references
+    (`src/main` ↔ `src/test`), wildcard imports, cyclic imports.
+  - **Layer 3** — `JavaSymbolResolverConcurrencyTest` (already shipped
+    in the prior commit): virtual-thread fan-out under `N=200` files /
+    `256` concurrent calls, garbage-input variant.
+  - **Layer 4** — `JavaSymbolResolverPathologicalTest` (3 tests):
+    10K-line class, 1000 imports (most unresolvable), 10-deep generic
+    nesting; per-test `@Timeout` is the regression sentinel against
+    quadratic memoization.
+  - **Layer 5** — `JavaSymbolResolverAdversarialTest` (5 tests):
+    unbalanced braces (strict-success → `EmptyResolved`), mis-tagged
+    Kotlin / random-bytes (no exception, no null), mixed source root
+    with `.java` + `.txt` siblings, empty source root (no Java files
+    anywhere) bootstraps via `ReflectionTypeSolver` alone.
+  - **Layer 6** — `JavaSymbolResolverDeterminismTest` (already shipped):
+    same input → same FQN 25× in a row, two independent resolvers
+    agree, rebootstrap is observably idempotent, deeper FQNs are stable.
+  - **Layer 7** — `E2EResolverPetclinicTest` (env-gated): runs the
+    resolver against every `.java` under `$E2E_PETCLINIC_DIR`, asserts
+    bootstrap < 10 s, no exception, > 50% files produce `JavaResolved`
+    (i.e. strict-success isn't false-rejecting valid Java). Lighter than
+    spec §12 Layer 7's full precision/recall comparison — that requires
+    a pre-resolver baseline JSON checked into test resources, captured
+    at implementation time. This stand-in is the strongest signal until
+    that baseline lands.
+  - **Layer 8** — `JavaSymbolResolverRandomizedTest` (1 test, 100
+    samples): hand-rolled randomized generator with fixed seed; per the
+    plan's license guidance, jqwik (EPL-2.0) is not on the preferred-
+    license list, and this is the documented JUnit + `java.util.Random`
+    fallback. Properties: never throws, never returns null, completes
+    per file in < 1 s.
+  - **Layer 9** — `mutation` Maven profile (non-default): adds
+    `pitest-maven` 1.18.0 (Apache-2.0) targeting
+    `intelligence.resolver.*` and `model.Confidence`. Run with
+    `mvn -P mutation org.pitest:pitest-maven:mutationCoverage
+    -Dfrontend.skip=true -Ddependency-check.skip=true`. Reports under
+    `target/pit-reports/`.
+  - Four robustness fixes from a dual-agent (superpowers + codex)
+    brainstorm landed on the same branch: `volatile` on
+    `JavaSymbolResolver`'s `solver` / `combined` fields, strict
+    parse-success check in the String-source branch (was silently
+    emitting partial-CU edges on broken parses), `StackOverflowError`
+    catch in `Analyzer.resolveFor` (pathological generics no longer kill
+    virtual threads), `try-with-resources` on the `Files.walk` in
+    `JavaSourceRootDiscovery.containsJavaFile` (fd leak fix). 26 new
+    tests on top of the resolver wiring slice's 18 — full suite at 3618
+    / 0 / 32 skipped, +1 skip is the env-gated E2E petclinic test.
 
 ### Changed
 

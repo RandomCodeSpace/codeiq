@@ -8,11 +8,15 @@ import com.github.javaparser.ast.expr.AnnotationExpr;
 import com.github.javaparser.ast.expr.MemberValuePair;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
 import com.github.javaparser.ast.type.Type;
+import com.github.javaparser.resolution.types.ResolvedType;
 import io.github.randomcodespace.iq.detector.DetectorContext;
 import io.github.randomcodespace.iq.detector.DetectorDbHelper;
 import io.github.randomcodespace.iq.detector.DetectorResult;
+import io.github.randomcodespace.iq.intelligence.resolver.Resolved;
+import io.github.randomcodespace.iq.intelligence.resolver.java.JavaResolved;
 import io.github.randomcodespace.iq.model.CodeEdge;
 import io.github.randomcodespace.iq.model.CodeNode;
+import io.github.randomcodespace.iq.model.Confidence;
 import io.github.randomcodespace.iq.model.EdgeKind;
 import io.github.randomcodespace.iq.model.NodeKind;
 import org.springframework.stereotype.Component;
@@ -77,16 +81,28 @@ public class JpaEntityDetector extends AbstractJavaParserDetector {
         String text = ctx.content();
         if (text == null || !text.contains("@Entity")) return DetectorResult.empty();
 
-        Optional<CompilationUnit> cu = parse(ctx);
+        // Prefer the resolver-parsed CU when ctx.resolved() carries a
+        // {@link JavaResolved}: that CU has the symbol solver attached, so
+        // {@code Type.resolve()} works inside detectWithAst and we can promote
+        // edges from SYNTACTIC → RESOLVED with a stable {@code target_fqn}.
+        // Fall back to the local ThreadLocal-pool parse otherwise — existing
+        // behaviour, no resolution attempts, defaults stamp SYNTACTIC.
+        Optional<JavaResolved> resolved = ctx.resolved()
+                .filter(Resolved::isAvailable)
+                .filter(JavaResolved.class::isInstance)
+                .map(JavaResolved.class::cast);
+
+        Optional<CompilationUnit> cu = resolved.map(JavaResolved::cu).or(() -> parse(ctx));
         if (cu.isPresent()) {
-            return detectWithAst(cu.get(), ctx);
+            return detectWithAst(cu.get(), ctx, resolved);
         }
         return detectWithRegex(ctx);
     }
 
     // ==================== AST-based detection ====================
 
-    private DetectorResult detectWithAst(CompilationUnit cu, DetectorContext ctx) {
+    private DetectorResult detectWithAst(CompilationUnit cu, DetectorContext ctx,
+                                          Optional<JavaResolved> resolved) {
         List<CodeNode> nodes = new ArrayList<>();
         List<CodeEdge> edges = new ArrayList<>();
 
@@ -119,7 +135,7 @@ public class JpaEntityDetector extends AbstractJavaParserDetector {
             nodes.add(node);
             DetectorDbHelper.addDbEdge(entityId, ctx.registry(), nodes, edges);
 
-            extractRelationshipEdges(classDecl, entityId, edges);
+            extractRelationshipEdges(classDecl, entityId, resolved, edges);
         });
 
         return DetectorResult.of(nodes, edges);
@@ -159,7 +175,9 @@ public class JpaEntityDetector extends AbstractJavaParserDetector {
     }
 
     private void extractRelationshipEdges(ClassOrInterfaceDeclaration classDecl,
-                                            String entityId, List<CodeEdge> edges) {
+                                            String entityId,
+                                            Optional<JavaResolved> resolved,
+                                            List<CodeEdge> edges) {
         for (FieldDeclaration field : classDecl.getFields()) {
             for (AnnotationExpr ann : field.getAnnotations()) {
                 String annName = ann.getNameAsString();
@@ -169,10 +187,18 @@ public class JpaEntityDetector extends AbstractJavaParserDetector {
                 String targetEntity = resolveTargetEntity(ann, field);
                 if (targetEntity == null) continue;
 
+                // Promote SYNTACTIC → RESOLVED when the symbol solver can give
+                // us a stable FQN for the relationship target. The simple-name
+                // edge ID + target placeholder are unchanged so EntityLinker's
+                // post-pass keeps working; target_fqn rides as a property and
+                // is the canonical pointer when present.
+                Optional<String> targetFqn = resolved.flatMap(r -> resolveTargetFqn(field));
+
                 String mappedBy = extractAnnotationStringAttr(ann, "mappedBy");
                 Map<String, Object> edgeProps = new LinkedHashMap<>();
                 edgeProps.put("relationship_type", relType);
                 if (mappedBy != null) edgeProps.put("mapped_by", mappedBy);
+                targetFqn.ifPresent(fqn -> edgeProps.put("target_fqn", fqn));
 
                 CodeEdge edge = new CodeEdge();
                 edge.setId(entityId + "->maps_to->*:" + targetEntity);
@@ -180,9 +206,52 @@ public class JpaEntityDetector extends AbstractJavaParserDetector {
                 edge.setSourceId(entityId);
                 edge.setTarget(new CodeNode("*:" + targetEntity, NodeKind.ENTITY, targetEntity));
                 edge.setProperties(edgeProps);
+                if (targetFqn.isPresent()) {
+                    edge.setConfidence(Confidence.RESOLVED);
+                    edge.setSource(getName());
+                }
                 edges.add(edge);
             }
         }
+    }
+
+    /**
+     * Resolve the target entity's fully-qualified name via the symbol solver.
+     * Mirrors {@link #resolveTargetEntity} but returns the FQN instead of a
+     * simple name. {@code @OneToMany List<Owner>} → resolves the {@code Owner}
+     * type argument; {@code @ManyToOne Owner} → resolves the field type
+     * directly.
+     *
+     * <p>Returns {@code Optional.empty()} on any resolver failure (unsolved
+     * symbol, missing type, classpath gap, etc.) — graceful fallback to
+     * SYNTACTIC tier.
+     */
+    private Optional<String> resolveTargetFqn(FieldDeclaration field) {
+        for (VariableDeclarator var : field.getVariables()) {
+            Type type = var.getType();
+            if (!type.isClassOrInterfaceType()) continue;
+            ClassOrInterfaceType cit = type.asClassOrInterfaceType();
+            var typeArgsOpt = cit.getTypeArguments();
+            Type targetType;
+            if (typeArgsOpt.isPresent() && !typeArgsOpt.get().isEmpty()) {
+                targetType = typeArgsOpt.get().get(0);
+            } else {
+                targetType = cit;
+            }
+            try {
+                ResolvedType rt = targetType.resolve();
+                if (rt.isReferenceType()) {
+                    return Optional.of(rt.asReferenceType().getQualifiedName());
+                }
+                return Optional.of(rt.describe());
+            } catch (RuntimeException e) {
+                // Resolver couldn't pin the type — typical when the classpath
+                // is incomplete or the type is genuinely unknown. Fall back to
+                // SYNTACTIC by returning empty.
+                return Optional.empty();
+            }
+        }
+        return Optional.empty();
     }
 
     private String resolveTargetEntity(AnnotationExpr ann, FieldDeclaration field) {
