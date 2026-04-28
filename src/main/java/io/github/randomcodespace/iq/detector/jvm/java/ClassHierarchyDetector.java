@@ -5,10 +5,14 @@ import com.github.javaparser.ast.body.AnnotationDeclaration;
 import com.github.javaparser.ast.body.ClassOrInterfaceDeclaration;
 import com.github.javaparser.ast.body.EnumDeclaration;
 import com.github.javaparser.ast.type.ClassOrInterfaceType;
+import com.github.javaparser.resolution.types.ResolvedType;
 import io.github.randomcodespace.iq.detector.DetectorContext;
 import io.github.randomcodespace.iq.detector.DetectorResult;
+import io.github.randomcodespace.iq.intelligence.resolver.Resolved;
+import io.github.randomcodespace.iq.intelligence.resolver.java.JavaResolved;
 import io.github.randomcodespace.iq.model.CodeEdge;
 import io.github.randomcodespace.iq.model.CodeNode;
+import io.github.randomcodespace.iq.model.Confidence;
 import io.github.randomcodespace.iq.model.EdgeKind;
 import io.github.randomcodespace.iq.model.NodeKind;
 import org.springframework.stereotype.Component;
@@ -71,16 +75,28 @@ public class ClassHierarchyDetector extends AbstractJavaParserDetector {
         String text = ctx.content();
         if (text == null || text.isEmpty()) return DetectorResult.empty();
 
-        Optional<CompilationUnit> cu = parse(ctx);
+        // Prefer the resolver-parsed CU when ctx.resolved() carries a
+        // JavaResolved — class hierarchy benefits a lot from FQN resolution
+        // because superclass / interface refs are routinely simple-named in
+        // source ("extends Service" not "extends com.example.Service") and
+        // EXTENDS/IMPLEMENTS edges are downstream-load-bearing.
+        Optional<JavaResolved> resolved = ctx.resolved()
+                .filter(Resolved::isAvailable)
+                .filter(JavaResolved.class::isInstance)
+                .map(JavaResolved.class::cast);
+
+        Optional<CompilationUnit> cu = resolved.map(JavaResolved::cu).or(() -> parse(ctx));
         if (cu.isPresent()) {
-            return detectWithAst(cu.get(), ctx);
+            return detectWithAst(cu.get(), ctx, resolved);
         }
         return detectWithRegex(ctx);
     }
 
     // ==================== AST-based detection ====================
 
-    private DetectorResult detectWithAst(CompilationUnit cu, DetectorContext ctx) {
+    private DetectorResult detectWithAst(CompilationUnit cu, DetectorContext ctx,
+                                          Optional<JavaResolved> resolved) {
+        boolean canResolve = resolved.isPresent();
         List<CodeNode> nodes = new ArrayList<>();
         List<CodeEdge> edges = new ArrayList<>();
 
@@ -144,36 +160,17 @@ public class ClassHierarchyDetector extends AbstractJavaParserDetector {
             node.setProperties(props);
             nodes.add(node);
 
-            // EXTENDS edges
-            if (!isInterface) {
-                for (String superclass : extendedTypes) {
-                    CodeEdge edge = new CodeEdge();
-                    edge.setId(nodeId + "->extends->*:" + superclass);
-                    edge.setKind(EdgeKind.EXTENDS);
-                    edge.setSourceId(nodeId);
-                    edge.setTarget(new CodeNode("*:" + superclass, NodeKind.CLASS, superclass));
-                    edges.add(edge);
-                }
-            } else {
-                // Interfaces extend other interfaces
-                for (String ext : extendedTypes) {
-                    CodeEdge edge = new CodeEdge();
-                    edge.setId(nodeId + "->extends->*:" + ext);
-                    edge.setKind(EdgeKind.EXTENDS);
-                    edge.setSourceId(nodeId);
-                    edge.setTarget(new CodeNode("*:" + ext, NodeKind.INTERFACE, ext));
-                    edges.add(edge);
-                }
+            // EXTENDS edges — iterate the typed AST nodes (not the simple-name
+            // strings) so we can attempt FQN resolution per-type when ctx
+            // carries a JavaResolved.
+            NodeKind extendsTargetKind = isInterface ? NodeKind.INTERFACE : NodeKind.CLASS;
+            for (ClassOrInterfaceType ext : decl.getExtendedTypes()) {
+                addHierarchyEdge(nodeId, ext, EdgeKind.EXTENDS, extendsTargetKind, canResolve, edges);
             }
 
             // IMPLEMENTS edges
-            for (String iface : implementedTypes) {
-                CodeEdge edge = new CodeEdge();
-                edge.setId(nodeId + "->implements->*:" + iface);
-                edge.setKind(EdgeKind.IMPLEMENTS);
-                edge.setSourceId(nodeId);
-                edge.setTarget(new CodeNode("*:" + iface, NodeKind.INTERFACE, iface));
-                edges.add(edge);
+            for (ClassOrInterfaceType impl : decl.getImplementedTypes()) {
+                addHierarchyEdge(nodeId, impl, EdgeKind.IMPLEMENTS, NodeKind.INTERFACE, canResolve, edges);
             }
         });
 
@@ -212,13 +209,8 @@ public class ClassHierarchyDetector extends AbstractJavaParserDetector {
             node.setProperties(props);
             nodes.add(node);
 
-            for (String iface : interfaces) {
-                CodeEdge edge = new CodeEdge();
-                edge.setId(nodeId + "->implements->*:" + iface);
-                edge.setKind(EdgeKind.IMPLEMENTS);
-                edge.setSourceId(nodeId);
-                edge.setTarget(new CodeNode("*:" + iface, NodeKind.INTERFACE, iface));
-                edges.add(edge);
+            for (ClassOrInterfaceType impl : decl.getImplementedTypes()) {
+                addHierarchyEdge(nodeId, impl, EdgeKind.IMPLEMENTS, NodeKind.INTERFACE, canResolve, edges);
             }
         });
 
@@ -434,5 +426,47 @@ public class ClassHierarchyDetector extends AbstractJavaParserDetector {
             if (!trimmed.isEmpty()) result.add(trimmed);
         }
         return result;
+    }
+
+    /**
+     * Emit an EXTENDS or IMPLEMENTS edge for a single type reference. When
+     * {@code canResolve} is true the helper attempts FQN resolution via the
+     * symbol solver and, on success, attaches {@code target_fqn} +
+     * {@link Confidence#RESOLVED} + source. The simple-name placeholder
+     * target is unchanged so EntityLinker / ClassHierarchyLinker post-passes
+     * are unaffected on the surface — they can opt to use {@code target_fqn}
+     * when present.
+     */
+    private void addHierarchyEdge(String sourceId, ClassOrInterfaceType target,
+                                    EdgeKind edgeKind, NodeKind targetKind,
+                                    boolean canResolve, List<CodeEdge> edges) {
+        String simpleName = target.getNameAsString();
+        Optional<String> fqn = canResolve ? tryResolveFqn(target) : Optional.empty();
+
+        CodeEdge edge = new CodeEdge();
+        edge.setId(sourceId + "->" + edgeKind.getValue() + "->*:" + simpleName);
+        edge.setKind(edgeKind);
+        edge.setSourceId(sourceId);
+        edge.setTarget(new CodeNode("*:" + simpleName, targetKind, simpleName));
+        if (fqn.isPresent()) {
+            Map<String, Object> props = new LinkedHashMap<>();
+            props.put("target_fqn", fqn.get());
+            edge.setProperties(props);
+            edge.setConfidence(Confidence.RESOLVED);
+            edge.setSource(getName());
+        }
+        edges.add(edge);
+    }
+
+    private static Optional<String> tryResolveFqn(ClassOrInterfaceType type) {
+        try {
+            ResolvedType rt = type.resolve();
+            if (rt.isReferenceType()) {
+                return Optional.of(rt.asReferenceType().getQualifiedName());
+            }
+            return Optional.of(rt.describe());
+        } catch (RuntimeException e) {
+            return Optional.empty();
+        }
     }
 }
