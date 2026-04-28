@@ -225,6 +225,86 @@ for that specific tag for the per-commit details.
   path-B board ruling, they are not to be re-introduced without an explicit
   board reversal — see `shared/runbooks/engineering-standards.md` §5.1.
 
+### Security
+
+- **Production-readiness PR 1 of 5 — security baseline.** First half of the
+  audit findings catalogued under `docs/audits/2026-04-28-serve-path-prod-readiness.md`
+  (+ `-counter.md`). Closes audit findings #1, #7, #13 (HIGH/MEDIUM) and C2 (MEDIUM).
+  - **Bearer-token auth on `/api/**` and `/mcp/**`** (audit #1). Added
+    `spring-boot-starter-security`. New `config/security/SecurityConfig`,
+    `BearerAuthFilter`, `TokenResolver`. Token source priority:
+    `CODEIQ_MCP_TOKEN` env > `codeiq.mcp.auth.token` config > startup failure.
+    Constant-time compare via SHA-256 pre-hash + `MessageDigest.isEqual` —
+    32-byte digests on both sides defeat the length oracle. RFC 7235 §2.1
+    case-insensitive scheme matching (`Bearer`, `bearer`, etc.). Authorization
+    header value never reaches a logger from this code. Permit list:
+    `/`, `/index.html`, `/favicon.ico`, `/assets/**`, `/static/**`, `/error`,
+    `/actuator/health/{liveness,readiness}` — everything else under
+    `/api/**`, `/mcp/**`, `/actuator/**` requires the bearer token.
+  - **Fail-fast on misconfiguration** (audit #14 partial). `mode=bearer` with
+    no token resolved → throws at startup. `mode=none` with active `serving`
+    profile and `allow_unauthenticated` not explicitly set → throws at
+    startup. `mode=mtls` is reserved and explicitly throws "not yet
+    implemented" rather than silently passing through.
+  - **Defensive response headers** (audit #13). New
+    `config/security/SecurityHeadersFilter` sets `X-Content-Type-Options:
+    nosniff`, `X-Frame-Options: DENY`, `Content-Security-Policy: default-src
+    'self'; ... frame-ancestors 'none'`, `Referrer-Policy: no-referrer`,
+    `Permissions-Policy` disabling geolocation/camera/microphone.
+    `Strict-Transport-Security: max-age=31536000; includeSubDomains` is set
+    only when `X-Forwarded-Proto: https` is present (AKS terminates TLS at
+    ingress) — setting HSTS over plain HTTP would lock out misconfigured envs.
+  - **Uniform error envelope** (audit #7). New
+    `api/GlobalExceptionHandler` (`@RestControllerAdvice`,
+    `@Profile("serving")`) maps every uncaught exception to
+    `{"code","message","request_id"}` with the right HTTP status.
+    `IllegalArgumentException` → 400 with surfaced message.
+    `ResponseStatusException` → status code passes through. Anything else →
+    500 with generic message; the actual exception is logged at WARN with
+    the `request_id` so on-call can correlate without leaking stack frames
+    to the client. `application.yml` now sets
+    `server.error.include-stacktrace: never` + `include-message: never` +
+    `include-binding-errors: never` as belt-and-suspenders.
+  - **Default CORS deny-all in serving** (audit #13). `config/CorsConfig`
+    default changed from loopback patterns to empty. Empty means register
+    no mappings → Spring MVC rejects all preflighted cross-origin requests.
+    Operators who genuinely need cross-origin (e.g. dev with a separate
+    Vite server on a different port) explicitly set
+    `codeiq.cors.allowed-origin-patterns`. Logs the resolved state at
+    startup. The React UI at `/` is unaffected — it's served same-origin.
+  - **Swagger UI / api-docs disabled in serving** (counter-audit C2).
+    `springdoc.api-docs.enabled: false` + `springdoc.swagger-ui.enabled: false`
+    in the serving profile of `application.yml`. The OpenAPI schema is
+    reconnaissance data; reachable only when running locally or with the
+    indexing profile.
+  - **`management.endpoints.web.exposure.include` narrowed** to `health,info`
+    in serving (was `health,info,metrics`); `health.show-details: never`.
+    Defense-in-depth alongside the `SecurityFilterChain` `authenticated()`
+    rule on `/actuator/**`.
+  - **Spring Security autoconfig excluded outside serving.** Without the
+    `serving` profile (CLI, tests, IDE runs), Spring Security's default
+    HTTP Basic chain would lock all endpoints — adding the starter would
+    break ~3000 existing tests that pass through MockMvc with no token.
+    `application.yml` excludes `SecurityAutoConfiguration`,
+    `SecurityFilterAutoConfiguration`, `UserDetailsServiceAutoConfiguration`
+    at the default level; the `serving` profile re-enables them by listing
+    only `UserDetailsServiceAutoConfiguration` (so the auto user/password
+    is suppressed but the filter chain is built from `SecurityConfig`).
+  - **Tests:** 31 new unit tests across `BearerAuthFilterTest` (14 cases:
+    missing/wrong/empty/correct/lowercase scheme, length-oracle defense,
+    log-leak audit, `shouldNotFilter` paths, `SecurityContextHolder` cleanup),
+    `TokenResolverTest` (9 cases for mode/profile/env-priority/fail-fast),
+    `SecurityHeadersFilterTest` (5 cases for header presence/HSTS gating),
+    `GlobalExceptionHandlerTest` (3 cases verifying the envelope shape and
+    no stack-trace leak). Full suite: 3453 tests / 0 failures / 0 errors.
+
+  **Known follow-up (not in this PR):** the React UI cannot read env vars,
+  so the SPA shell is unauthenticated to access static assets. API/MCP calls
+  from the UI must inject `Authorization: Bearer <token>` from
+  operator-supplied localStorage. A first-class UI auth bootstrap (login
+  flow + token-issuance endpoint, OR server-side template injection) is its
+  own design — tracked as a follow-up issue.
+
 ## [0.1.0] - 2026-03-28
 
 First general-availability cut. See the

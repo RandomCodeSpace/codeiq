@@ -155,7 +155,9 @@ public final class UnifiedConfigLoader {
                 (String) pick(m, "mcp", "base_path", "basePath", path, warned),
                 auth == null ? McpAuthConfig.empty() : new McpAuthConfig(
                         (String) auth.get("mode"),
-                        (String) pick(auth, "mcp.auth", "token_env", "tokenEnv", path, warned)),
+                        (String) pick(auth, "mcp.auth", "token_env", "tokenEnv", path, warned),
+                        (String) auth.get("token"),
+                        (Boolean) pick(auth, "mcp.auth", "allow_unauthenticated", "allowUnauthenticated", path, warned)),
                 lim == null ? McpLimitsConfig.empty() : new McpLimitsConfig(
                         requireIntOrNull(pick(lim, "mcp.limits", "per_tool_timeout_ms", "perToolTimeoutMs", path, warned),
                                 path, "mcp.limits.per_tool_timeout_ms"),

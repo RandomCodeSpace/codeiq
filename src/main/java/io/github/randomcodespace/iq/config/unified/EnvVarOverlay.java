@@ -94,7 +94,7 @@ public final class EnvVarOverlay {
                 new ServingConfig(port, bindAddr, readOnly, servingMaxFileBytes,
                         new Neo4jConfig(neo4jDir, pageMb, heapInit, heapMax)),
                 new McpConfig(mcpEnabled, mcpTransport, mcpBasePath,
-                        new McpAuthConfig(mcpMode, mcpTokenEnv),
+                        new McpAuthConfig(mcpMode, mcpTokenEnv, null, null),
                         new McpLimitsConfig(perToolMs, maxResults, maxPayload, ratePerMin),
                         new McpToolsConfig(toolsEnabled, toolsDisabled)),
                 new ObservabilityConfig(metrics, tracing, logFormat, logLevel),

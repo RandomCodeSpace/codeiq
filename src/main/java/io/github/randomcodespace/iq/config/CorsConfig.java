@@ -1,11 +1,15 @@
 package io.github.randomcodespace.iq.config;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Profile;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
+
+import jakarta.annotation.PostConstruct;
 
 /**
  * CORS configuration for the {@code serving} profile.
@@ -16,17 +20,21 @@ import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
  * analysis happens locally via the CLI ({@code codeiq index} / {@code codeiq enrich})
  * and the server never accepts data manipulation.
  *
- * <p>Default origin patterns cover the common local-dev cases (loopback on any port).
- * Override via {@code codeiq.cors.allowed-origin-patterns} (CSV) when serving over a
- * trusted network or behind a reverse proxy.
+ * <p><b>Default is deny-all in serving.</b> The React UI is served same-origin from the
+ * same Spring container, so cross-origin access is not required for normal operation.
+ * Operators who genuinely need cross-origin access (e.g., serving the API behind a
+ * reverse proxy at a different origin) must explicitly set
+ * {@code codeiq.cors.allowed-origin-patterns} to a non-empty CSV — when empty, no CORS
+ * mappings are registered and Spring MVC rejects all preflighted cross-origin requests.
+ *
+ * <p>Local development with the Vite dev server (running on a separate port) is the
+ * usual reason to set this — typical value: {@code http://localhost:[*],http://127.0.0.1:[*]}.
  */
 @Configuration
 @Profile("serving")
 public class CorsConfig {
 
-    /** Default allowed origin patterns: loopback on any port (covers local dev / IDE proxies). */
-    static final String DEFAULT_ALLOWED_ORIGIN_PATTERNS =
-            "http://localhost:[*],http://127.0.0.1:[*]";
+    private static final Logger log = LoggerFactory.getLogger(CorsConfig.class);
 
     /** Read-only REST API: only safe / preflight verbs. */
     static final String[] API_ALLOWED_METHODS = {"GET", "OPTIONS"};
@@ -37,11 +45,26 @@ public class CorsConfig {
     /** Allow all request headers — clients commonly send custom MCP / Auth headers. */
     static final String ALLOWED_HEADERS = "*";
 
-    @Value("${codeiq.cors.allowed-origin-patterns:" + DEFAULT_ALLOWED_ORIGIN_PATTERNS + "}")
-    private String allowedOriginPatterns = DEFAULT_ALLOWED_ORIGIN_PATTERNS;
+    /** Empty default = deny-all (no mappings registered). */
+    @Value("${codeiq.cors.allowed-origin-patterns:}")
+    private String allowedOriginPatterns = "";
+
+    @PostConstruct
+    void logCorsState() {
+        if (allowedOriginPatterns == null || allowedOriginPatterns.isBlank()) {
+            log.info("CORS: deny-all (no allowed-origin-patterns configured). "
+                    + "Set codeiq.cors.allowed-origin-patterns to enable cross-origin access.");
+        } else {
+            log.info("CORS: allowed-origin-patterns = {}", allowedOriginPatterns);
+        }
+    }
 
     @Bean
     public WebMvcConfigurer corsConfigurer() {
+        if (allowedOriginPatterns == null || allowedOriginPatterns.isBlank()) {
+            // Deny-all: register no mappings. Spring MVC rejects cross-origin requests.
+            return new WebMvcConfigurer() {};
+        }
         String[] patterns = allowedOriginPatterns.split(",");
         return new WebMvcConfigurer() {
             @Override

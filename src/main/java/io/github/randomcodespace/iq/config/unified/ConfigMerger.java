@@ -83,8 +83,10 @@ public final class ConfigMerger {
                 take("mcp.transport", lo.transport(), hi.transport(), l, p),
                 take("mcp.base_path", lo.basePath(),  hi.basePath(),  l, p),
                 new McpAuthConfig(
-                        take("mcp.auth.mode",      lo.auth().mode(),     hi.auth().mode(),     l, p),
-                        take("mcp.auth.token_env", lo.auth().tokenEnv(), hi.auth().tokenEnv(), l, p)),
+                        take("mcp.auth.mode",                 lo.auth().mode(),                hi.auth().mode(),                l, p),
+                        take("mcp.auth.token_env",            lo.auth().tokenEnv(),            hi.auth().tokenEnv(),            l, p),
+                        take("mcp.auth.token",                lo.auth().token(),               hi.auth().token(),               l, p),
+                        take("mcp.auth.allow_unauthenticated", lo.auth().allowUnauthenticated(), hi.auth().allowUnauthenticated(), l, p)),
                 new McpLimitsConfig(
                         take("mcp.limits.per_tool_timeout_ms", lo.limits().perToolTimeoutMs(), hi.limits().perToolTimeoutMs(), l, p),
                         take("mcp.limits.max_results",         lo.limits().maxResults(),       hi.limits().maxResults(),       l, p),
