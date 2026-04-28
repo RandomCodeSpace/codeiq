@@ -2,6 +2,9 @@ package io.github.randomcodespace.iq.api;
 
 import io.github.randomcodespace.iq.config.CodeIqConfig;
 import io.github.randomcodespace.iq.query.QueryService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
@@ -32,6 +35,8 @@ import java.util.stream.Collectors;
 @RequestMapping("/api")
 @Profile("serving")
 public class GraphController {
+
+    private static final Logger log = LoggerFactory.getLogger(GraphController.class);
 
     private final QueryService queryService;
     private final CodeIqConfig config;
@@ -257,17 +262,22 @@ public class GraphController {
             @RequestParam String path,
             @RequestParam(required = false) Integer startLine,
             @RequestParam(required = false) Integer endLine) {
+        // Per-error rationale: response bodies must NEVER carry the underlying
+        // exception message (CodeQL java/error-message-exposure / CWE-209). The
+        // exception class + caller-supplied path are logged at WARN with the
+        // request_id; clients receive a generic envelope and the request_id so
+        // operators can correlate without a stack frame leaking class names,
+        // absolute filesystem paths, or syscall errno strings.
         Path codebaseReal;
         try {
             codebaseReal = Path.of(config.getRootPath()).toRealPath();
         } catch (IOException e) {
-            return ResponseEntity.status(500)
-                    .contentType(MediaType.TEXT_PLAIN)
-                    .body("Failed to resolve codebase root: " + e.getMessage());
+            return fileError(HttpStatus.INTERNAL_SERVER_ERROR, "codebase_root_unavailable",
+                    "Failed to resolve codebase root.", path, e);
         }
         Path candidate = codebaseReal.resolve(path).normalize();
         if (!candidate.startsWith(codebaseReal)) {
-            return ResponseEntity.status(403)
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .contentType(MediaType.TEXT_PLAIN)
                     .body("Path traversal blocked");
         }
@@ -277,12 +287,11 @@ public class GraphController {
         } catch (NoSuchFileException e) {
             return ResponseEntity.notFound().build();
         } catch (IOException e) {
-            return ResponseEntity.status(500)
-                    .contentType(MediaType.TEXT_PLAIN)
-                    .body("Failed to resolve file: " + e.getMessage());
+            return fileError(HttpStatus.INTERNAL_SERVER_ERROR, "file_resolve_failed",
+                    "Failed to resolve file.", path, e);
         }
         if (!resolvedReal.startsWith(codebaseReal)) {
-            return ResponseEntity.status(403)
+            return ResponseEntity.status(HttpStatus.FORBIDDEN)
                     .contentType(MediaType.TEXT_PLAIN)
                     .body("Path traversal blocked");
         }
@@ -295,14 +304,34 @@ public class GraphController {
                     .contentType(MediaType.TEXT_PLAIN)
                     .body(content);
         } catch (SafeFileReader.FileTooLargeException tooLarge) {
+            // FileTooLargeException is a curated, sanitized message produced by
+            // SafeFileReader (size cap context only, no path/exception details);
+            // safe to surface to the client.
             return ResponseEntity.status(HttpStatus.CONTENT_TOO_LARGE)
                     .contentType(MediaType.TEXT_PLAIN)
                     .body(tooLarge.getMessage());
         } catch (IOException e) {
-            return ResponseEntity.status(500)
-                    .contentType(MediaType.TEXT_PLAIN)
-                    .body("Failed to read file: " + e.getMessage());
+            return fileError(HttpStatus.INTERNAL_SERVER_ERROR, "file_read_failed",
+                    "Failed to read file.", path, e);
         }
+    }
+
+    /**
+     * Build a sanitized error response for {@code /api/file}. Logs the full
+     * exception (so operators can debug) but never echoes the JDK's IOException
+     * detail back to the client — see CodeQL {@code java/error-message-exposure}
+     * (CWE-209). The response body carries a generic message + request_id;
+     * operators correlate via the WARN log line.
+     */
+    private ResponseEntity<String> fileError(HttpStatus status, String code, String publicMessage,
+                                             String requestedPath, IOException cause) {
+        String requestId = MDC.get("request_id");
+        log.warn("readFile {} (code={}, request_id={}, path={})",
+                cause.getClass().getSimpleName(), code, requestId, requestedPath, cause);
+        String body = publicMessage + (requestId != null ? " (request_id=" + requestId + ")" : "");
+        return ResponseEntity.status(status)
+                .contentType(MediaType.TEXT_PLAIN)
+                .body(body);
     }
 
     // POST /api/analyze removed — API/MCP server is read-only.
